@@ -1,0 +1,61 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  --text: hsl(0, 0%, 95%);
+  --text-weak: hsl(0, 0%, 60%);
+  --back: hsl(0, 0%, 10%);
+  --back-1: hsl(0, 0%, 15%);
+  --back-2: hsl(0, 0%, 20%);
+  --back-3: hsl(0, 0%, 25%);
+  --back-4: hsl(0, 0%, 30%);
+  --back-5: hsl(0, 0%, 35%);
+
+  --topbar-height: 28px;
+
+  color: var(--text);
+  background-color: var(--back);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: lightblue;
+}
+
+body {
+  margin: 0;
+  overflow: clip;
+}
+
+button {
+  background: var(--back-1);
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--text);
+}
+button:hover {
+  background: var(--back-2);
+}
+
+button:active {
+  background: var(--back-4);
+}
+
+button.toggled {
+  background: var(--back-3);
+}
+button.toggled:hover {
+  background: var(--back-4);
+}
+button.toggled:active {
+  background: var(--back-5);
+}
