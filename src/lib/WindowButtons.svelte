@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { getContext, onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { platform } from "./platform";
 
@@ -13,9 +12,13 @@
     win.setAlwaysOnTop(floating);
   }
 
-  onMount(async () => {
+  $effect(() => {
     if ($platform == "window") {
-      floating = await getCurrentWindow().isAlwaysOnTop();
+      getCurrentWindow()
+        .isAlwaysOnTop()
+        .then((newFloating) => {
+          floating = newFloating;
+        });
     }
   });
 </script>
@@ -29,7 +32,7 @@
   </div>
   {@render children()}
   {#if $platform == "android"}{/if}
-  <div class="androidButtons"><button>jello</button></div>
+  <!-- <div class="androidButtons"><button>jello</button></div> -->
 </main>
 
 <style>

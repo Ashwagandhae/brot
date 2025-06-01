@@ -6,17 +6,21 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
 #[cfg(not(target_os = "android"))]
-use window::{open_new, open_note, open_pinned, open_settings};
+use window::open_window;
+
+#[cfg(not(target_os = "android"))]
+use window_state::update_window_state;
 
 pub mod message;
 pub mod server;
 pub mod state;
+pub mod window_state;
 
 #[cfg(not(target_os = "android"))]
 pub mod window;
 
 #[tauri::command]
-async fn is_android() -> bool {
+fn is_android() -> bool {
     #[cfg(not(target_os = "android"))]
     {
         false
@@ -40,29 +44,6 @@ async fn message_command(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default();
-
-    let app = {
-        #[cfg(not(target_os = "android"))]
-        {
-            app.plugin(
-                tauri_plugin_global_shortcut::Builder::new()
-                    .with_shortcuts(["command+semicolon"])
-                    .expect("failed to set shortcuts")
-                    .with_handler(|app, shortcut, event| {
-                        if event.state == ShortcutState::Pressed {
-                            if shortcut.matches(Modifiers::SUPER, Code::Semicolon) {
-                                open_pinned(app.clone());
-                            }
-                        }
-                    })
-                    .build(),
-            )
-        }
-        #[cfg(target_os = "android")]
-        {
-            app
-        }
-    };
 
     let app = app
         .plugin(tauri_plugin_dialog::init())
@@ -91,23 +72,47 @@ pub fn run() {
                 tauri::generate_handler![
                     message_command,
                     is_android,
-                    open_note,
-                    open_settings,
-                    open_new,
-                    open_pinned
+                    open_window,
+                    update_window_state
                 ]
             }
             #[cfg(target_os = "android")]
             {
                 tauri::generate_handler![message_command, is_android]
             }
-        })
-        .build(tauri::generate_context!())
-        .expect("error building app");
-    app.run(|_app_handle, event| match event {
-        tauri::RunEvent::ExitRequested { api, .. } => {
-            api.prevent_exit();
+        });
+
+    let app = {
+        #[cfg(not(target_os = "android"))]
+        {
+            app.plugin(tauri_plugin_shell::init()).plugin(
+                tauri_plugin_global_shortcut::Builder::new()
+                    .with_shortcuts(["command+semicolon"])
+                    .expect("failed to set shortcuts")
+                    .with_handler(|app, shortcut, event| {
+                        let state = app.state::<AppState>();
+                        if event.state == ShortcutState::Pressed {
+                            if shortcut.matches(Modifiers::SUPER, Code::Semicolon) {
+                                use crate::message::locater::Locater;
+
+                                open_window(app.clone(), state, Locater::Pinned)
+                            }
+                        }
+                    })
+                    .build(),
+            )
         }
-        _ => {}
-    });
+        #[cfg(target_os = "android")]
+        {
+            app
+        }
+    };
+    app.build(tauri::generate_context!())
+        .expect("error building app")
+        .run(|_app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => {}
+        });
 }

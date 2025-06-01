@@ -6,7 +6,7 @@ import type { Note } from "../../src-tauri/bindings/Note";
 import { errorMessage } from "./error";
 
 import type { CommandPaletteType } from "../../src-tauri/bindings/CommandPaletteType";
-import type { Locater } from "../../src-tauri/bindings/Locater";
+import type { ViewState } from "../../src-tauri/bindings/ViewState";
 import type { Command } from "../../src-tauri/bindings/Command";
 import { platform, type Platform } from "./platform";
 
@@ -67,13 +67,13 @@ export async function createNote(title: string): Promise<string> {
 
 export async function getCommands(
   search: string,
-  locater: Locater,
+  view_state: ViewState,
   commandPaletteType: CommandPaletteType
 ): Promise<Array<Command>> {
   let res = await sendMessage({
     type: "GetCommands",
     search,
-    locater,
+    view_state,
     command_palette_type: commandPaletteType,
   });
   return (res as { commands: Array<Command> }).commands;

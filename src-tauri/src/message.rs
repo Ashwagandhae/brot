@@ -1,4 +1,4 @@
-use command::{get_commands, Command, CommandPaletteType, Locater};
+use command::{get_commands, Command, CommandPaletteType, ViewState};
 
 use meta::{read_meta, write_meta};
 use note::Note;
@@ -14,6 +14,7 @@ use anyhow::Result;
 
 pub mod command;
 pub mod folder_manager;
+pub mod locater;
 pub mod meta;
 pub mod note;
 pub mod settings;
@@ -38,7 +39,7 @@ pub enum ClientMessage {
     },
     GetCommands {
         search: String,
-        locater: Locater,
+        view_state: ViewState,
         command_palette_type: CommandPaletteType,
     },
     AddPinned {
@@ -62,12 +63,6 @@ pub enum ServerMessage {
     Commands { commands: Vec<Command> },
     Pinned { pinned: Vec<String> },
     Error { error: String },
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self { notes_path: None }
-    }
 }
 
 pub async fn handle_message(
@@ -97,10 +92,10 @@ pub async fn handle_message(
         }
         GetCommands {
             search,
-            locater,
+            view_state,
             command_palette_type,
         } => Ok(ServerMessage::Commands {
-            commands: get_commands(state, app.clone(), search, locater, command_palette_type)
+            commands: get_commands(state, app.clone(), search, view_state, command_palette_type)
                 .await?,
         }),
         GetPinned => Ok(ServerMessage::Pinned {

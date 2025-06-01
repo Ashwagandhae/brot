@@ -1,13 +1,13 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { getLocaterContext } from "$lib/locater";
+  import { getViewStateContext } from "$lib/viewState";
   import { createNote } from "$lib/message";
   import TextBar from "$lib/TextBar.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { onMount } from "svelte";
 
-  let locater = getLocaterContext();
-  $locater = { type: "New" };
+  let view_state = getViewStateContext();
+  $view_state = { type: "New" };
 
   let title = $state("");
 

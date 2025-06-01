@@ -59,3 +59,16 @@ button.toggled:hover {
 button.toggled:active {
   background: var(--back-5);
 }
+
+button.hidden {
+  background: var(--back-0);
+  color: transparent;
+}
+button.hidden:hover {
+  background: var(--back-1);
+  color: var(--text);
+}
+button.hidden:active {
+  background: var(--back-3);
+  color: var(--text);
+}

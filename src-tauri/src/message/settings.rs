@@ -1,16 +1,19 @@
-use std::{io::Write, path::PathBuf};
+use std::{collections::HashMap, io::Write, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use ts_rs::TS;
 
-use crate::state::AppState;
+use crate::{message::locater::Locater, state::AppState, window_state::WindowState};
 
 use anyhow::Result;
 
+#[serde_as]
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
 pub struct Settings {
     pub notes_path: Option<String>,
+    pub window_states: HashMap<Locater, WindowState>,
 }
 
 pub fn read_settings_file(config_path: &PathBuf) -> Result<Settings> {
@@ -33,4 +36,13 @@ pub async fn write_settings(state: &AppState, settings: Settings) -> Result<()> 
     .await?;
     (*state.settings.lock().await) = settings;
     Ok(())
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            notes_path: None,
+            window_states: HashMap::new(),
+        }
+    }
 }

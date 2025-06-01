@@ -3,12 +3,15 @@
   import { onMount } from "svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
-  import { getLocaterContext } from "$lib/locater";
+  import { getViewStateContext } from "$lib/viewState";
   import { addPinned, getPinned, removePinned } from "$lib/message";
-  import { getActionRegistryContext } from "$lib/command";
+  import {
+    getActionRegistryContext,
+    type NoteActionRegistry,
+  } from "$lib/command";
   import { path } from "@tauri-apps/api";
 
-  let locater = getLocaterContext();
+  let view_state = getViewStateContext();
 
   let actionRegistry = getActionRegistryContext();
 
@@ -16,7 +19,7 @@
   let focusPath: string | null = $state(null);
 
   $effect(() => {
-    $locater = { type: "Pinned", focus_path: focusPath };
+    $view_state = { type: "Pinned", focus_path: focusPath };
   });
 
   $effect(() => {
@@ -38,10 +41,8 @@
       await removePinned(focusPath);
       pinnedPaths = await getPinned();
     };
-    $actionRegistry.editTitle = () => {
-      if (focusPath == null) return;
-      editTitles[focusPath]?.();
-    };
+    if (focusPath == null) return;
+    $actionRegistry.note = noteActionRegistries[focusPath];
   });
   onMount(async () => {
     pinnedPaths = await getPinned();
@@ -50,19 +51,33 @@
     }
   });
 
-  let editTitles: { [key: string]: () => void } = $state({});
+  $effect(() => {
+    if (pinnedPaths == null) return;
+    noteActionRegistries = pinnedPaths.reduce(
+      (acc, key) => {
+        acc[key] = {};
+        return acc;
+      },
+      {} as { [key: string]: NoteActionRegistry }
+    );
+  });
+
+  let noteActionRegistries: { [key: string]: NoteActionRegistry } = $state({});
 </script>
 
 <WindowButtons>
   {#if pinnedPaths != null}
     {#each pinnedPaths as path}
-      <NoteView
-        {path}
-        onfocus={() => {
-          focusPath = path;
-        }}
-        bind:editTitle={editTitles[path]}
-      ></NoteView>
+      {#if noteActionRegistries[path] != null}
+        <NoteView
+          {path}
+          onfocus={() => {
+            focusPath = path;
+          }}
+          bind:registry={noteActionRegistries[path]}
+          focused={focusPath == path}
+        ></NoteView>
+      {/if}
     {/each}
   {/if}
 </WindowButtons>

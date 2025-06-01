@@ -10,10 +10,16 @@ export type CommandPaletteState = {
 } | null;
 
 export type ActionRegistry = {
-  editTitle?: () => void;
+  note?: NoteActionRegistry;
   addPinned?: (path: string, insertion: Insertion) => Promise<void>;
   removePinned?: () => Promise<void>;
+};
+
+export type NoteActionRegistry = {
   currentTitle?: () => string | null;
+  editTitle?: () => void;
+  toggleMinimized?: () => void;
+  save?: () => void;
 };
 export function setActionRegistryContext(registry: Writable<ActionRegistry>) {
   setContext("actionRegistry", registry);

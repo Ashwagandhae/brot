@@ -3,28 +3,30 @@
   import Commands from "$lib/CommandPalette.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
-  import { getActionRegistryContext } from "$lib/command.js";
-  import { getLocaterContext } from "$lib/locater";
+  import {
+    getActionRegistryContext,
+    type NoteActionRegistry,
+  } from "$lib/command.js";
+  import { getViewStateContext } from "$lib/viewState";
 
-  let locater = getLocaterContext();
+  let view_state = getViewStateContext();
   let actionRegistry = getActionRegistryContext();
 
   let path = $derived(page.url.searchParams.get("p") ?? "");
   $effect(() => {
-    $locater = { type: "Note", path };
+    $view_state = { type: "Note", path };
   });
 
-  let editTitle: () => void = $state(() => {});
-  let currentTitle: () => string | null = $state(() => null);
+  let noteActionRegistry: NoteActionRegistry = $state({});
 
   $effect(() => {
-    $actionRegistry.editTitle = editTitle;
-    $actionRegistry.currentTitle = currentTitle;
+    $actionRegistry.note = noteActionRegistry;
   });
 </script>
 
 <WindowButtons>
   {#key path}
-    <NoteView {path} bind:editTitle bind:currentTitle></NoteView>
+    <NoteView {path} bind:registry={noteActionRegistry} focused={true}
+    ></NoteView>
   {/key}
 </WindowButtons>

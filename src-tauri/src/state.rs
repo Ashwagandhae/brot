@@ -17,6 +17,7 @@ pub struct AppState {
     pub folder_manager: FolderManager,
     pub meta: Arc<Mutex<Option<Meta>>>,
     pub settings: Arc<Mutex<Settings>>,
+    pub last_focused_app_name: Arc<Mutex<Option<String>>>,
 }
 
 impl AppState {
@@ -26,12 +27,14 @@ impl AppState {
         let folder_manager = FolderManager::new(app)?;
         let settings = Arc::new(Mutex::new(read_settings_file(&config_path)?));
         let meta = Arc::new(Mutex::new(None));
+        let last_focused_app_name = Arc::new(Mutex::new(None));
         Ok(Self {
             build_path,
             config_path,
             folder_manager,
             settings,
             meta,
+            last_focused_app_name,
         })
     }
 }
