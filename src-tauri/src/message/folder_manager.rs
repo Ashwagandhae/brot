@@ -115,9 +115,9 @@ pub async fn write_file(
 ) -> Result<()> {
     match state.folder_manager {
         FolderManager::Normal => {
-            let path = get_folder_path(state, path)
-                .await
-                .ok_or_else(|| anyhow!("no notes path set"))?;
+            let Some(path) = get_folder_path(state, path).await else {
+                return Ok(());
+            };
             fs::write(PathBuf::from(&path), contents).await?;
             Ok(())
         }
