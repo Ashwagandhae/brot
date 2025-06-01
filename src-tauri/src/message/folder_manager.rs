@@ -77,7 +77,10 @@ pub async fn read_file(
 ) -> Result<Option<String>> {
     match state.folder_manager {
         FolderManager::Normal => {
-            match fs::read_to_string(get_folder_path(state, path).await?).await {
+            let Some(path) = get_folder_path(state, path).await else {
+                return Ok(None);
+            };
+            match fs::read_to_string(path).await {
                 Ok(contents) => Ok(Some(contents)),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
                 Err(e) => Err(e.into()),
@@ -112,7 +115,9 @@ pub async fn write_file(
 ) -> Result<()> {
     match state.folder_manager {
         FolderManager::Normal => {
-            let path = get_folder_path(state, path).await?;
+            let path = get_folder_path(state, path)
+                .await
+                .ok_or_else(|| anyhow!("no notes path set"))?;
             fs::write(PathBuf::from(&path), contents).await?;
             Ok(())
         }
@@ -155,15 +160,6 @@ pub async fn file_exists(state: &AppState, app: Option<AppHandle>, path: &str) -
     }
 }
 
-async fn get_folder_path(state: &AppState, path: &str) -> Result<PathBuf> {
-    Ok(PathBuf::from(
-        state
-            .settings
-            .lock()
-            .await
-            .notes_path
-            .clone()
-            .ok_or_else(|| anyhow!("No notes path set"))?,
-    )
-    .join(path))
+async fn get_folder_path(state: &AppState, path: &str) -> Option<PathBuf> {
+    Some(PathBuf::from(state.settings.lock().await.notes_path.clone()?).join(path))
 }
