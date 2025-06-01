@@ -22,6 +22,9 @@ pub fn read_settings_file(config_path: &PathBuf) -> Result<Settings> {
     if path.exists() {
         Ok(serde_json::from_str(&std::fs::read_to_string(path)?)?)
     } else {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let mut file = std::fs::File::create(path)?;
         file.write_all(serde_json::to_string(&Settings::default())?.as_bytes())?;
         Ok(Settings::default())
