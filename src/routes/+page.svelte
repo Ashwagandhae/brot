@@ -4,7 +4,7 @@
   import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
-  import { addPinned, getPinned, removePinned } from "$lib/message";
+  import { addPinned, getPinned, refresh, removePinned } from "$lib/message";
   import {
     getActionRegistryContext,
     type NoteActionRegistry,
@@ -63,21 +63,30 @@
   });
 
   let noteActionRegistries: { [key: string]: NoteActionRegistry } = $state({});
+
+  let refreshKey = $state(false);
+  $actionRegistry.refresh = async () => {
+    await refresh();
+    pinnedPaths = await getPinned();
+    refreshKey = !refreshKey;
+  };
 </script>
 
 <WindowButtons>
-  {#if pinnedPaths != null}
-    {#each pinnedPaths as path}
-      {#if noteActionRegistries[path] != null}
-        <NoteView
-          {path}
-          onfocus={() => {
-            focusPath = path;
-          }}
-          bind:registry={noteActionRegistries[path]}
-          focused={focusPath == path}
-        ></NoteView>
-      {/if}
-    {/each}
-  {/if}
+  {#key refreshKey}
+    {#if pinnedPaths != null}
+      {#each pinnedPaths as path (path)}
+        {#if noteActionRegistries[path] != null}
+          <NoteView
+            {path}
+            onfocus={() => {
+              focusPath = path;
+            }}
+            bind:registry={noteActionRegistries[path]}
+            focused={focusPath == path}
+          ></NoteView>
+        {/if}
+      {/each}
+    {/if}
+  {/key}
 </WindowButtons>

@@ -21,23 +21,28 @@
   import { MathExtension } from "@aarkue/tiptap-math-extension";
   import { Marked } from "marked";
   import { markedHighlight } from "marked-highlight";
+  import { IndentHandler } from "./editorTabExtension";
+  import type { EditorActionsRegistry } from "./command";
 
   let {
     initContent,
     getContent = $bindable(),
     setContent = $bindable(),
+    editor = $bindable(),
+    registry = $bindable(),
     onupdate,
     onfocus,
   }: {
     initContent: string;
     getContent: () => string;
     setContent: (markdown: string) => void;
+    editor?: Editor;
+    registry?: EditorActionsRegistry;
     onupdate?: () => void;
     onfocus?: () => void;
   } = $props();
 
   let element: HTMLElement;
-  let editor: Editor;
   let lowlight = createLowlight(all);
   let myMarked = new Marked(
     markedHighlight({
@@ -77,15 +82,20 @@
   function markdownToHtml(md: string) {
     return myMarked.parse(md);
   }
-  // editor.commands.setContent(parsed);
-  // let html = editor.getHTML();
+
+  function initRegistry(editor: Editor) {
+    registry = {};
+  }
 
   getContent = () => {
-    return htmlToMarkdown(editor.getHTML());
+    return htmlToMarkdown(editor!.getHTML());
   };
 
   setContent = (markdown: string) => {
+    if (editor == null) return;
+    const { from, to } = editor.state.selection;
     editor.commands.setContent(markdownToHtml(markdown));
+    editor.commands.setTextSelection({ from, to });
   };
 
   onMount(() => {
@@ -111,12 +121,9 @@
           defaultProtocol: "https",
           protocols: ["http", "https"],
         }),
+        IndentHandler,
       ],
       content: markdownToHtml(initContent),
-      onTransaction: () => {
-        // force re-render so `editor.isActive` works as expected
-        editor = editor;
-      },
       onUpdate: () => {
         onupdate?.();
       },
@@ -124,6 +131,7 @@
         onfocus?.();
       },
     });
+    initRegistry(editor);
   });
 </script>
 

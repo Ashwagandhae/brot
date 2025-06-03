@@ -1,10 +1,11 @@
 <script lang="ts">
   import { getNote, setNote } from "$lib/message";
   import { onDestroy, onMount, tick, untrack } from "svelte";
-  import Editor from "$lib/EditorTipTap.svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
   import TextBar from "./TextBar.svelte";
-  import type { NoteActionRegistry } from "./command";
+  import type { EditorActionsRegistry, NoteActionRegistry } from "./command";
+  import type { Editor as TipTapEditor } from "@tiptap/core";
+  import EditorTipTap from "./EditorTipTap.svelte";
 
   let {
     path,
@@ -59,10 +60,16 @@
     if (note == null) return;
     editingTitle = false;
     if (editedTitle == "") return;
-    if (editedTitle == note.meta.title) return;
-    note.meta.title = editedTitle;
-    saveNote();
+    if (editedTitle != note.meta.title) {
+      note.meta.title = editedTitle;
+      saveNote();
+    }
+    registry.editor!.commands.focus();
   }
+
+  let editor: TipTapEditor | undefined = $state(undefined);
+  let editorActionRegistry: EditorActionsRegistry | undefined =
+    $state(undefined);
 
   registry.editTitle = () => startEditing();
   registry.currentTitle = () => note?.meta.title ?? null;
@@ -72,6 +79,11 @@
     setContent(content);
     saveNote();
   };
+
+  $effect(() => {
+    registry.editor = editor;
+    registry.editorAction = editorActionRegistry;
+  });
 
   async function startEditing() {
     editingTitle = true;
@@ -121,13 +133,15 @@
       {#if note == null || initContent == null}
         <p>no note found</p>
       {:else}
-        <Editor
+        <EditorTipTap
           {initContent}
           bind:getContent
           bind:setContent
+          bind:editor
+          bind:registry={editorActionRegistry}
           {onfocus}
           onupdate={handleEditorUpdate}
-        ></Editor>
+        ></EditorTipTap>
       {/if}
     </div>
   {/if}

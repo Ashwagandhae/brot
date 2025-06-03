@@ -93,3 +93,8 @@ export async function removePinned(path: string): Promise<null> {
   await sendMessage({ type: "RemovePinned", path });
   return null;
 }
+
+export async function refresh(): Promise<null> {
+  await sendMessage({ type: "Refresh" });
+  return null;
+}

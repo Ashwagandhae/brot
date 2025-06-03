@@ -20,6 +20,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
+  import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
 
   let { children } = $props();
 
@@ -67,20 +68,36 @@
     };
   });
 
-  function handleKeydown(event: KeyboardEvent) {
+  async function handleKeydown(event: KeyboardEvent) {
     let key = event.key.toLowerCase();
 
     if (key == "k" && event.metaKey) {
-      commandPaletteType = { type: "Action" };
+      doCommandAction({ type: "Subcommand", subcommand: { type: "Action" } });
     }
     if (key == "t" && event.metaKey) {
-      commandPaletteType = { type: "Window", new: true };
+      doCommandAction({
+        type: "Subcommand",
+        subcommand: { type: "Window", new: true },
+      });
     }
     if (key == "l" && event.metaKey) {
-      commandPaletteType = { type: "Window", new: false };
+      doCommandAction({
+        type: "Subcommand",
+        subcommand: { type: "Window", new: false },
+      });
     }
     if (key == "s" && event.metaKey) {
       doCommandAction({ type: "SaveNote" });
+    }
+
+    if (key == "v" && event.shiftKey && event.metaKey) {
+      $actionRegistry?.note?.editor?.commands.insertContent(await readText(), {
+        updateSelection: true,
+      });
+    }
+
+    if (key == "r" && event.metaKey) {
+      doCommandAction({ type: "Refresh" });
     }
   }
   function handleCommandPaletteCancel() {
@@ -131,6 +148,8 @@
       case "SaveNote":
         $actionRegistry.note?.save?.();
         return;
+      case "Refresh":
+        $actionRegistry.refresh?.();
     }
   }
 

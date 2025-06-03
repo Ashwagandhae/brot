@@ -7,7 +7,9 @@
     getActionRegistryContext,
     type NoteActionRegistry,
   } from "$lib/command.js";
+  import { refresh } from "$lib/message";
   import { getViewStateContext } from "$lib/viewState";
+  import { getRequest } from "@sveltejs/kit/node";
 
   let view_state = getViewStateContext();
   let actionRegistry = getActionRegistryContext();
@@ -22,11 +24,19 @@
   $effect(() => {
     $actionRegistry.note = noteActionRegistry;
   });
+
+  let refreshKey = $state(false);
+  $actionRegistry.refresh = async () => {
+    await refresh();
+    refreshKey = !refreshKey;
+  };
 </script>
 
 <WindowButtons>
-  {#key path}
-    <NoteView {path} bind:registry={noteActionRegistry} focused={true}
-    ></NoteView>
+  {#key refreshKey}
+    {#key path}
+      <NoteView {path} bind:registry={noteActionRegistry} focused={true}
+      ></NoteView>
+    {/key}
   {/key}
 </WindowButtons>
