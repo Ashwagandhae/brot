@@ -8,11 +8,13 @@ use settings::{write_settings, Settings};
 use tauri::AppHandle;
 use ts_rs::TS;
 
+use crate::message::settings::read_settings_file;
 use crate::state::AppState;
 
 use anyhow::Result;
 
 pub mod command;
+pub mod editor_state;
 pub mod folder_manager;
 pub mod locater;
 pub mod meta;
@@ -50,6 +52,7 @@ pub enum ClientMessage {
         path: String,
     },
     GetPinned,
+    Refresh,
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -113,6 +116,13 @@ pub async fn handle_message(
                 meta.pinned.retain(|p| *p != path);
             })
             .await?;
+            Ok(ServerMessage::None)
+        }
+        Refresh => {
+            *state.meta.lock().await = None;
+            let config_path = state.config_path.clone();
+            *state.settings.lock().await =
+                tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
             Ok(ServerMessage::None)
         }
     }

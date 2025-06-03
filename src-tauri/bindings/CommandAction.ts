@@ -3,4 +3,4 @@ import type { CommandPaletteType } from "./CommandPaletteType";
 import type { Insertion } from "./Insertion";
 import type { Locater } from "./Locater";
 
-export type CommandAction = { "type": "Goto", target: Locater, new_window: boolean, } | { "type": "Subcommand", subcommand: CommandPaletteType, } | { "type": "AddPinned", insertion: Insertion, path: string, } | { "type": "RemovePinned" } | { "type": "EditTitle" } | { "type": "SaveWindowState" } | { "type": "SaveNote" } | { "type": "ToggleNoteMinimized" };
+export type CommandAction = { "type": "Goto", target: Locater, new_window: boolean, } | { "type": "Subcommand", subcommand: CommandPaletteType, } | { "type": "AddPinned", insertion: Insertion, path: string, } | { "type": "RemovePinned" } | { "type": "EditTitle" } | { "type": "SaveWindowState" } | { "type": "SaveNote" } | { "type": "ToggleNoteMinimized" } | { "type": "Refresh" };

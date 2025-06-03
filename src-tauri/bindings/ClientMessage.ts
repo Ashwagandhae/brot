@@ -4,4 +4,4 @@ import type { Note } from "./Note";
 import type { Settings } from "./Settings";
 import type { ViewState } from "./ViewState";
 
-export type ClientMessage = { "type": "RequestSettings" } | { "type": "UpdateSettings", settings: Settings, } | { "type": "RequestNote", path: string, } | { "type": "UpdateNote", path: string, note: Note, } | { "type": "CreateNote", title: string, } | { "type": "GetCommands", search: string, view_state: ViewState, command_palette_type: CommandPaletteType, } | { "type": "AddPinned", path: string, position: number, } | { "type": "RemovePinned", path: string, } | { "type": "GetPinned" };
+export type ClientMessage = { "type": "RequestSettings" } | { "type": "UpdateSettings", settings: Settings, } | { "type": "RequestNote", path: string, } | { "type": "UpdateNote", path: string, note: Note, } | { "type": "CreateNote", title: string, } | { "type": "GetCommands", search: string, view_state: ViewState, command_palette_type: CommandPaletteType, } | { "type": "AddPinned", path: string, position: number, } | { "type": "RemovePinned", path: string, } | { "type": "GetPinned" } | { "type": "Refresh" };

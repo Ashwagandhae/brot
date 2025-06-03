@@ -26,6 +26,7 @@ pub enum CommandAction {
     SaveWindowState,
     SaveNote,
     ToggleNoteMinimized,
+    Refresh,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone)]
