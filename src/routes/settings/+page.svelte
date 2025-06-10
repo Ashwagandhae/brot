@@ -3,8 +3,8 @@
   import { onMount } from "svelte";
   import type { Settings } from "../../../src-tauri/bindings/Settings";
   import { getViewStateContext } from "$lib/viewState";
-  let view_state = getViewStateContext();
-  $view_state = { type: "Settings" };
+  let viewState = getViewStateContext();
+  $viewState = { type: "settings" };
 
   let settings: Settings = $state({ notes_path: null, window_states: {} });
 

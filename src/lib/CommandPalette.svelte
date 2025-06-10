@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Command } from "../../src-tauri/bindings/Command";
   import type { CommandProvider, CommandPaletteState } from "./command";
   import CommandChoice from "./CommandChoice.svelte";
   import TextBar from "./TextBar.svelte";
+  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
+  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 
   let {
     commandPaletteState,
@@ -12,14 +13,14 @@
   }: {
     commandPaletteState: CommandPaletteState;
 
-    onaccept?: (command: Command | null) => void;
+    onaccept?: (command: PartialAction | null) => void;
     oncancel?: () => void;
   } = $props();
 
   let search: string = $state("");
 
   let selectedIndex: number = $state(0);
-  let commands: Command[] = $state([]);
+  let commands: PaletteAction[] = $state([]);
 
   $effect(() => {
     (async () => {
@@ -41,7 +42,7 @@
       selectedIndex += 1;
       event.preventDefault();
     }
-    selectedIndex = Math.min(commands.length - 1, Math.max(selectedIndex, 0));
+    selectedIndex = Math.max(0, Math.min(commands.length - 1, selectedIndex));
   }
 </script>
 
@@ -55,7 +56,7 @@
         {oncancel}
         onaccept={() => {
           if (selectedIndex < commands.length) {
-            onaccept?.(commands[selectedIndex]);
+            onaccept?.(commands[selectedIndex].action);
           }
           return onaccept?.(null);
         }}
@@ -81,7 +82,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 30vh;
+    padding-top: 20vh;
     box-sizing: border-box;
   }
 

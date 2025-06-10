@@ -1,7 +1,8 @@
 <script lang="ts">
-  import type { Command } from "../../src-tauri/bindings/Command";
+  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
 
-  let { command, selected }: { command: Command; selected: boolean } = $props();
+  let { command, selected }: { command: PaletteAction; selected: boolean } =
+    $props();
 </script>
 
 <div class:selected>

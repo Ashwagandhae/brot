@@ -3,9 +3,11 @@
   import { onDestroy, onMount, tick, untrack } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
   import TextBar from "./TextBar.svelte";
-  import type { EditorActionsRegistry, NoteActionRegistry } from "./command";
+
   import type { Editor as TipTapEditor } from "@tiptap/core";
   import EditorTipTap from "./EditorTipTap.svelte";
+  import type { ActionRegistry } from "./actions";
+  import { platform } from "./platform";
 
   let {
     path,
@@ -14,7 +16,7 @@
     focused,
   }: {
     path: string;
-    registry: NoteActionRegistry;
+    registry: ActionRegistry;
     onfocus?: () => void;
     focused: boolean;
   } = $props();
@@ -54,7 +56,6 @@
   let editingTitle = $state(false);
 
   let editedTitle = $state("");
-  let editTitleTextBarElement: HTMLElement | undefined = $state(undefined);
 
   function updateTitle() {
     if (note == null) return;
@@ -64,39 +65,41 @@
       note.meta.title = editedTitle;
       saveNote();
     }
-    registry.editor!.commands.focus();
+    registry?.getEditor?.()?.commands.focus();
   }
 
-  let editor: TipTapEditor | undefined = $state(undefined);
-  let editorActionRegistry: EditorActionsRegistry | undefined =
-    $state(undefined);
-
-  registry.editTitle = () => startEditing();
-  registry.currentTitle = () => note?.meta.title ?? null;
-  registry.toggleMinimized = () => (minimized = !minimized);
-  registry.save = () => {
+  registry.editNoteTitle = () => startEditing();
+  registry.getNoteTitle = () => note?.meta.title ?? null;
+  registry.toggleNoteMinimized = () => (minimized = !minimized);
+  registry.saveNote = () => {
     let content = getContent();
     setContent(content);
     saveNote();
   };
+  registry.focusNote = () => {
+    let [from, to] = note?.meta.selection ?? [0, 0];
+    console.log($state.snapshot(registry));
+    registry
+      .getEditor?.()
+      ?.chain()
+      .focus(null, { scrollIntoView: false })
+      .setTextSelection({ from, to })
+      .run();
+    element?.scrollIntoView();
+  };
 
-  $effect(() => {
-    registry.editor = editor;
-    registry.editorAction = editorActionRegistry;
-  });
-
-  async function startEditing() {
+  function startEditing() {
     editingTitle = true;
     if (note == null) return;
     editedTitle = note.meta.title;
-    await tick();
-    editTitleTextBarElement!.focus();
   }
   let minimized = $state(false);
+
+  let element: HTMLElement | null = $state(null);
 </script>
 
-<div class="top">
-  <div class="topBar">
+<div class="top" bind:this={element}>
+  <div class="topBar" class:window={$platform == "window"}>
     {#if editingTitle && note != null}
       <div class="titleText">
         <TextBar
@@ -104,7 +107,7 @@
           onaccept={updateTitle}
           oncancel={() => (editingTitle = false)}
           {onfocus}
-          bind:element={editTitleTextBarElement}
+          autofocus
           placeholder={"title"}
         ></TextBar>
       </div>
@@ -137,8 +140,7 @@
           {initContent}
           bind:getContent
           bind:setContent
-          bind:editor
-          bind:registry={editorActionRegistry}
+          bind:registry
           {onfocus}
           onupdate={handleEditorUpdate}
         ></EditorTipTap>
@@ -170,7 +172,7 @@
     flex-direction: row;
 
     padding: 4px;
-    pointer-events: all;
+    pointer-events: none;
     width: 100%;
     height: 28px;
     box-sizing: border-box;
@@ -182,6 +184,10 @@
 
     /* align-items: center; */
     gap: 4px;
+  }
+
+  .topBar > * {
+    pointer-events: all;
   }
 
   .titleText {

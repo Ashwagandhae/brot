@@ -24,7 +24,10 @@ pub struct Note {
 impl Note {
     pub fn from_title(title: String) -> Self {
         Note {
-            meta: NoteMeta { title },
+            meta: NoteMeta {
+                title,
+                selection: None,
+            },
             content: "".to_owned(),
         }
     }
@@ -34,6 +37,7 @@ impl Note {
 #[ts(export)]
 pub struct NoteMeta {
     pub title: String,
+    pub selection: Option<(u32, u32)>,
 }
 
 pub async fn read_note(

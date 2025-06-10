@@ -22,13 +22,12 @@
   import { Marked } from "marked";
   import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
-  import type { EditorActionsRegistry } from "./command";
+  import type { ActionRegistry } from "./actions";
 
   let {
     initContent,
     getContent = $bindable(),
     setContent = $bindable(),
-    editor = $bindable(),
     registry = $bindable(),
     onupdate,
     onfocus,
@@ -36,12 +35,12 @@
     initContent: string;
     getContent: () => string;
     setContent: (markdown: string) => void;
-    editor?: Editor;
-    registry?: EditorActionsRegistry;
+    registry: ActionRegistry;
     onupdate?: () => void;
     onfocus?: () => void;
   } = $props();
 
+  let editor: Editor | null = null;
   let element: HTMLElement;
   let lowlight = createLowlight(all);
   let myMarked = new Marked(
@@ -84,7 +83,10 @@
   }
 
   function initRegistry(editor: Editor) {
-    registry = {};
+    registry.editorToggleBold = () => {
+      editor.chain().focus().toggleBold().run();
+    };
+    registry.getEditor = () => editor;
   }
 
   getContent = () => {

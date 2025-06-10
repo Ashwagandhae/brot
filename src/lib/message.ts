@@ -5,10 +5,10 @@ import type { Settings } from "../../src-tauri/bindings/Settings";
 import type { Note } from "../../src-tauri/bindings/Note";
 import { errorMessage } from "./error";
 
-import type { CommandPaletteType } from "../../src-tauri/bindings/CommandPaletteType";
-import type { ViewState } from "../../src-tauri/bindings/ViewState";
-import type { Command } from "../../src-tauri/bindings/Command";
 import { platform, type Platform } from "./platform";
+import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
+import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
+import type { Actions } from "../../src-tauri/bindings/Actions";
 
 let $platform: Platform = null;
 platform.subscribe((newPlatform) => {
@@ -65,18 +65,18 @@ export async function createNote(title: string): Promise<string> {
   return (res as { path: string }).path;
 }
 
-export async function getCommands(
+export async function getPaletteActions(
   search: string,
-  view_state: ViewState,
-  commandPaletteType: CommandPaletteType
-): Promise<Array<Command>> {
+  palette_key: string,
+  filters: PartialActionFilter[]
+): Promise<Array<PaletteAction>> {
   let res = await sendMessage({
-    type: "GetCommands",
+    type: "GetPaletteActions",
     search,
-    view_state,
-    command_palette_type: commandPaletteType,
+    palette_key,
+    filters,
   });
-  return (res as { commands: Array<Command> }).commands;
+  return (res as { actions: Array<PaletteAction> }).actions;
 }
 
 export async function getPinned(): Promise<Array<string>> {
@@ -97,4 +97,9 @@ export async function removePinned(path: string): Promise<null> {
 export async function refresh(): Promise<null> {
   await sendMessage({ type: "Refresh" });
   return null;
+}
+
+export async function getActions(): Promise<Actions> {
+  let res = await sendMessage({ type: "GetActions" });
+  return (res as { actions: Actions }).actions;
 }

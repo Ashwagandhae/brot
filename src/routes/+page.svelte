@@ -1,48 +1,59 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
   import { addPinned, getPinned, refresh, removePinned } from "$lib/message";
-  import {
-    getActionRegistryContext,
-    type NoteActionRegistry,
-  } from "$lib/command";
-  import { path } from "@tauri-apps/api";
 
-  let view_state = getViewStateContext();
+  import { getActionRegistryContext, type ActionRegistry } from "$lib/actions";
 
-  let actionRegistry = getActionRegistryContext();
+  let viewState = getViewStateContext();
+
+  let registry = getActionRegistryContext();
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);
 
   $effect(() => {
-    $view_state = { type: "Pinned", focus_path: focusPath };
+    $viewState = { type: "pinned", focusPath: focusPath };
   });
 
   $effect(() => {
-    $actionRegistry.addPinned = async (path, insertion) => {
+    $registry.addPinned = async (insertion, path) => {
       if (pinnedPaths == null) return;
       if (pinnedPaths.length == 0) {
         await addPinned(path, 0);
       } else {
         let position = pinnedPaths.findIndex((path) => path == focusPath);
-        if (insertion.type == "After") {
+        if (insertion == "below") {
           position += 1;
         }
         await addPinned(path, position);
       }
       pinnedPaths = await getPinned();
+      refreshKey = !refreshKey;
     };
-    $actionRegistry.removePinned = async () => {
+    $registry.removeCurrentPinned = async () => {
       if (focusPath == null) return;
       await removePinned(focusPath);
       pinnedPaths = await getPinned();
     };
+    $registry.refresh = async () => {
+      await refresh();
+      pinnedPaths = await getPinned();
+      refreshKey = !refreshKey;
+    };
     if (focusPath == null) return;
-    $actionRegistry.note = noteActionRegistries[focusPath];
+    $registry.focusPinnedNote = (index) => {
+      let newFocusPath = pinnedPaths?.[index];
+      if (newFocusPath == null) return;
+      noteActionRegistries[newFocusPath].focusNote?.();
+      focusPath = newFocusPath;
+    };
+    $registry = {
+      ...untrack(() => $registry),
+      ...noteActionRegistries[focusPath],
+    };
   });
   onMount(async () => {
     pinnedPaths = await getPinned();
@@ -58,18 +69,13 @@
         acc[key] = {};
         return acc;
       },
-      {} as { [key: string]: NoteActionRegistry }
+      {} as { [key: string]: ActionRegistry }
     );
   });
 
-  let noteActionRegistries: { [key: string]: NoteActionRegistry } = $state({});
+  let noteActionRegistries: { [key: string]: ActionRegistry } = $state({});
 
   let refreshKey = $state(false);
-  $actionRegistry.refresh = async () => {
-    await refresh();
-    pinnedPaths = await getPinned();
-    refreshKey = !refreshKey;
-  };
 </script>
 
 <WindowButtons>

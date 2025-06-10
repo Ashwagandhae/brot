@@ -6,8 +6,8 @@
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { onMount } from "svelte";
 
-  let view_state = getViewStateContext();
-  $view_state = { type: "New" };
+  let viewState = getViewStateContext();
+  $viewState = { type: "new" };
 
   let title = $state("");
 

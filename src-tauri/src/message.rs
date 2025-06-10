@@ -1,5 +1,3 @@
-use command::{get_commands, Command, CommandPaletteType, ViewState};
-
 use meta::{read_meta, write_meta};
 use note::Note;
 use note::{create_note, read_note, write_note};
@@ -8,11 +6,14 @@ use settings::{write_settings, Settings};
 use tauri::AppHandle;
 use ts_rs::TS;
 
+use crate::message::action::{read_actions, Actions, PartialActionFilter};
+use crate::message::command::{get_palette_actions, PaletteAction};
 use crate::message::settings::read_settings_file;
 use crate::state::AppState;
 
 use anyhow::Result;
 
+pub mod action;
 pub mod command;
 pub mod editor_state;
 pub mod folder_manager;
@@ -39,10 +40,10 @@ pub enum ClientMessage {
     CreateNote {
         title: String,
     },
-    GetCommands {
+    GetPaletteActions {
+        palette_key: String,
         search: String,
-        view_state: ViewState,
-        command_palette_type: CommandPaletteType,
+        filters: Vec<PartialActionFilter>,
     },
     AddPinned {
         path: String,
@@ -52,6 +53,7 @@ pub enum ClientMessage {
         path: String,
     },
     GetPinned,
+    GetActions,
     Refresh,
 }
 
@@ -63,7 +65,8 @@ pub enum ServerMessage {
     Note { note: Option<Note> },
     NotePath { path: String },
     None,
-    Commands { commands: Vec<Command> },
+    PaletteActions { actions: Vec<PaletteAction> },
+    Actions { actions: Actions },
     Pinned { pinned: Vec<String> },
     Error { error: String },
 }
@@ -93,18 +96,20 @@ pub async fn handle_message(
             let path = create_note(state, app, title).await?;
             Ok(ServerMessage::NotePath { path })
         }
-        GetCommands {
+        GetPaletteActions {
+            palette_key,
             search,
-            view_state,
-            command_palette_type,
-        } => Ok(ServerMessage::Commands {
-            commands: get_commands(state, app.clone(), search, view_state, command_palette_type)
-                .await?,
+            filters,
+        } => Ok(ServerMessage::PaletteActions {
+            actions: get_palette_actions(state, &app, &palette_key, &search, filters).await?,
         }),
         GetPinned => Ok(ServerMessage::Pinned {
             pinned: read_meta(state, app, |meta| meta.pinned.clone()).await?,
         }),
         AddPinned { path, position } => {
+            if read_meta(state, app.clone(), |meta| meta.pinned.contains(&path)).await? {
+                return Ok(ServerMessage::None);
+            }
             write_meta(state, app, |meta| {
                 meta.pinned.insert(position, path.clone())
             })
@@ -123,8 +128,13 @@ pub async fn handle_message(
             let config_path = state.config_path.clone();
             *state.settings.lock().await =
                 tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
+            *state.actions.lock().await = None;
+
             Ok(ServerMessage::None)
         }
+        GetActions => Ok(ServerMessage::Actions {
+            actions: read_actions(state, app, |a| a.clone()).await?,
+        }),
     }
 }
 

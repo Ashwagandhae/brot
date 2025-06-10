@@ -1,37 +1,20 @@
-import type { Writable } from "svelte/store";
-import type { Command } from "../../src-tauri/bindings/Command";
-import { getContext, setContext } from "svelte";
-import type { Insertion } from "../../src-tauri/bindings/Insertion";
-import type { Editor } from "@tiptap/core";
+import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
+import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+import type { ArgType } from "./actions";
 
-export type CommandProvider = (search: string) => Promise<Command[]>;
+export type CommandProvider = (search: string) => Promise<PaletteAction[]>;
 
 export type CommandPaletteState = {
   provider: CommandProvider;
 } | null;
 
-export type ActionRegistry = {
-  note?: NoteActionRegistry;
-  addPinned?: (path: string, insertion: Insertion) => Promise<void>;
-  removePinned?: () => Promise<void>;
-  refresh?: () => Promise<void>;
-};
-
-type EditorActions = "bold";
-
-export type EditorActionsRegistry = Partial<Record<EditorActions, () => void>>;
-
-export type NoteActionRegistry = {
-  currentTitle?: () => string | null;
-  editTitle?: () => void;
-  toggleMinimized?: () => void;
-  editor?: Editor;
-  save?: () => void;
-  editorAction?: EditorActionsRegistry;
-};
-export function setActionRegistryContext(registry: Writable<ActionRegistry>) {
-  setContext("actionRegistry", registry);
-}
-export function getActionRegistryContext(): Writable<ActionRegistry> {
-  return getContext("actionRegistry");
-}
+export type CommandPaletteType =
+  | {
+      type: "palette";
+      key: string;
+    }
+  | {
+      type: "arg";
+      argType: ArgType;
+      action: PartialAction;
+    };

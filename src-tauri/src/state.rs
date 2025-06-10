@@ -5,6 +5,7 @@ use tauri::{path::BaseDirectory, App, Manager};
 use tokio::sync::Mutex;
 
 use crate::message::{
+    action::Actions,
     folder_manager::FolderManager,
     meta::Meta,
     settings::{read_settings_file, Settings},
@@ -18,6 +19,7 @@ pub struct AppState {
     pub meta: Arc<Mutex<Option<Meta>>>,
     pub settings: Arc<Mutex<Settings>>,
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
+    pub actions: Arc<Mutex<Option<Actions>>>,
 }
 
 impl AppState {
@@ -28,6 +30,7 @@ impl AppState {
         let settings = Arc::new(Mutex::new(read_settings_file(&config_path)?));
         let meta = Arc::new(Mutex::new(None));
         let last_focused_app_name = Arc::new(Mutex::new(None));
+        let actions = Arc::new(Mutex::new(None));
         Ok(Self {
             build_path,
             config_path,
@@ -35,6 +38,7 @@ impl AppState {
             settings,
             meta,
             last_focused_app_name,
+            actions,
         })
     }
 }

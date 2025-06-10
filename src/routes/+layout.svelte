@@ -5,22 +5,32 @@
   import { initPlatformName, platform } from "$lib/platform";
   import CommandPalette from "$lib/CommandPalette.svelte";
   import {
-    setActionRegistryContext,
-    type ActionRegistry,
     type CommandPaletteState,
+    type CommandPaletteType,
   } from "$lib/command";
-  import type { Command } from "../../src-tauri/bindings/Command";
-  import { getCommands } from "$lib/message";
+  import { getActions, getPaletteActions } from "$lib/message";
   import { goto } from "$app/navigation";
-  import type { CommandPaletteType } from "../../src-tauri/bindings/CommandPaletteType";
-  import type { ViewState } from "../../src-tauri/bindings/ViewState";
-  import type { CommandAction } from "../../src-tauri/bindings/CommandAction";
-  import { setViewStateContext, toLocater } from "$lib/viewState";
+
+  import {
+    setViewStateContext,
+    toLocater,
+    type ViewState,
+  } from "$lib/viewState";
   import { writable, type Writable } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
-  import { writeText, readText } from "@tauri-apps/plugin-clipboard-manager";
+  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+  import {
+    continuePartialAction,
+    setActionRegistryContext,
+    type ActionRegistry,
+    type ArgType,
+  } from "$lib/actions";
+  import type { Locater } from "../../src-tauri/bindings/Locater";
+  import type { Actions } from "../../src-tauri/bindings/Actions";
+  import { mapKeydownEventToAction } from "$lib/shortcuts";
+  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
 
   let { children } = $props();
 
@@ -29,20 +39,38 @@
   let viewState: Writable<ViewState | null> = writable(null);
   setViewStateContext(viewState);
 
-  onMount(() => {
+  let registry: Writable<ActionRegistry> = writable({});
+  setActionRegistryContext(registry);
+
+  let handleKeydown: (event: KeyboardEvent) => void = $state(() => {});
+  let actions: Actions | null = $state(null);
+  onMount(async () => {
     initPlatformName();
+    actions = await getActions();
+  });
+
+  $effect(() => {
+    if (actions == null) return;
+    let mapper = mapKeydownEventToAction(actions);
+    handleKeydown = (event: KeyboardEvent) => {
+      let action = mapper(event);
+      if (action == null) return;
+      continuePartialAction($registry, action, (arg) =>
+        requestNextParam(arg, action)
+      );
+    };
   });
 
   let title: string | null = $derived.by(() => {
     if ($viewState == null) return null;
     switch ($viewState.type) {
-      case "Note":
-        return $actionRegistry.note?.currentTitle?.() ?? null;
-      case "Pinned":
+      case "note":
+        return $registry?.getNoteTitle?.() ?? "note not found";
+      case "pinned":
         return "pinned";
-      case "Settings":
+      case "settings":
         return "settings";
-      case "New":
+      case "new":
         return "new";
     }
   });
@@ -53,8 +81,36 @@
     getCurrentWindow().setTitle(title);
   });
 
-  let actionRegistry: Writable<ActionRegistry> = writable({});
-  setActionRegistryContext(actionRegistry);
+  $registry.goto = (newWindow, locater: Locater) => {
+    if (newWindow) {
+      invoke("open_window", { locater });
+    } else {
+      if (locater == "pinned") {
+        goto("/");
+      } else if (locater == "settings") {
+        goto("/settings");
+      } else if (locater == "new") {
+        goto("/new");
+      } else {
+        goto("/note?p=" + locater.slice(5));
+      }
+    }
+    return;
+  };
+  $registry.saveWindowState = () => {
+    if ($viewState == null) return;
+    invoke("update_window_state", { locater: toLocater($viewState) });
+    return;
+  };
+  $registry.openPalette = (paletteType) => {
+    commandPaletteType = { type: "palette", key: paletteType };
+  };
+  $registry.toggleFloating = () => {
+    let win = getCurrentWindow();
+    win.isAlwaysOnTop().then((val) => {
+      win.setAlwaysOnTop(!val);
+    });
+  };
 
   let commandPaletteState: CommandPaletteState = $derived.by(() => {
     if (commandPaletteType == null) return null;
@@ -62,101 +118,73 @@
       search: "",
       provider: async (search: string) => {
         if (commandPaletteType == null) return [];
-        if ($viewState == null) return [];
-        return await getCommands(search, $viewState, commandPaletteType);
+        if (commandPaletteType.type == "palette") {
+          return await getPaletteActions(search, commandPaletteType.key, []);
+        } else {
+          return getParamActions(
+            search,
+            commandPaletteType.argType,
+            commandPaletteType.action
+          );
+        }
       },
     };
   });
 
-  async function handleKeydown(event: KeyboardEvent) {
-    let key = event.key.toLowerCase();
-
-    if (key == "k" && event.metaKey) {
-      doCommandAction({ type: "Subcommand", subcommand: { type: "Action" } });
-    }
-    if (key == "t" && event.metaKey) {
-      doCommandAction({
-        type: "Subcommand",
-        subcommand: { type: "Window", new: true },
-      });
-    }
-    if (key == "l" && event.metaKey) {
-      doCommandAction({
-        type: "Subcommand",
-        subcommand: { type: "Window", new: false },
-      });
-    }
-    if (key == "s" && event.metaKey) {
-      doCommandAction({ type: "SaveNote" });
-    }
-
-    if (key == "v" && event.shiftKey && event.metaKey) {
-      $actionRegistry?.note?.editor?.commands.insertContent(await readText(), {
-        updateSelection: true,
-      });
-    }
-
-    if (key == "r" && event.metaKey) {
-      doCommandAction({ type: "Refresh" });
-    }
-  }
   function handleCommandPaletteCancel() {
     commandPaletteType = null;
   }
 
-  function doCommandAction(action: CommandAction) {
-    switch (action.type) {
-      case "Goto": {
-        if (action.new_window) {
-          invoke("open_window", { locater: action.target });
-        } else {
-          if (action.target == "pinned") {
-            goto("/");
-          } else if (action.target == "settings") {
-            goto("/settings");
-          } else if (action.target == "new") {
-            goto("/new");
-          } else {
-            goto("/note?p=" + action.target.slice(5));
-          }
-        }
-        return;
-      }
-      case "AddPinned": {
-        $actionRegistry.addPinned?.(action.path, action.insertion);
-        return;
-      }
-      case "RemovePinned": {
-        $actionRegistry.removePinned?.();
-        return;
-      }
-      case "EditTitle": {
-        $actionRegistry.note?.editTitle?.();
-        return;
-      }
-      case "Subcommand": {
-        commandPaletteType = action.subcommand;
-        return;
-      }
-      case "SaveWindowState":
-        if ($viewState == null) return;
-        invoke("update_window_state", { locater: toLocater($viewState) });
-        return;
-      case "ToggleNoteMinimized":
-        $actionRegistry.note?.toggleMinimized?.();
-        return;
-      case "SaveNote":
-        $actionRegistry.note?.save?.();
-        return;
-      case "Refresh":
-        $actionRegistry.refresh?.();
-    }
+  function handleCommandPaletteAccept(action: PartialAction | null) {
+    if (action == null) return;
+    commandPaletteType = null;
+    continuePartialAction($registry, action, (arg) =>
+      requestNextParam(arg, action)
+    );
   }
 
-  function handleCommandPaletteAccept(command: Command | null) {
-    if (command == null) return;
-    commandPaletteType = null;
-    doCommandAction(command.action);
+  function requestNextParam(argType: ArgType, action: PartialAction) {
+    commandPaletteType = {
+      type: "arg",
+      argType,
+      action,
+    };
+  }
+
+  function getParamActions(
+    search: string,
+    argType: ArgType,
+    action: PartialAction
+  ): PaletteAction[] {
+    switch (argType) {
+      case "boolean":
+        return enumPaletteActions(["true", "false"], search, action);
+      case "insertion":
+        return enumPaletteActions(["above", "below"], search, action);
+    }
+    return [];
+  }
+
+  function enumPaletteActions(
+    choices: string[],
+    search: string,
+    action: PartialAction
+  ): PaletteAction[] {
+    return choices
+      .filter((choice) => choice.includes(search))
+      .map((choice) => {
+        return {
+          title: choice,
+          action: addParam(action, choice),
+        };
+      });
+  }
+
+  function addParam(action: PartialAction, arg: string): PartialAction {
+    return {
+      key: action.key,
+      args: [...action.args, arg],
+    };
   }
 </script>
 

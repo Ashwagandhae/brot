@@ -1,34 +1,15 @@
 <script lang="ts">
-  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { platform } from "./platform";
 
   let { children } = $props();
-
-  let floating: boolean = $state(false);
-
-  async function toggleFloat() {
-    let win = getCurrentWindow();
-    floating = !(await win.isAlwaysOnTop());
-    win.setAlwaysOnTop(floating);
-  }
-
-  $effect(() => {
-    if ($platform == "window") {
-      getCurrentWindow()
-        .isAlwaysOnTop()
-        .then((newFloating) => {
-          floating = newFloating;
-        });
-    }
-  });
 </script>
 
 <main>
   <div class="topbar" data-tauri-drag-region></div>
   <div class="buttons" class:window={$platform == "window"}>
-    {#if $platform == "window"}
+    <!-- {#if $platform == "window"}
       <button onclick={toggleFloat} class:toggled={floating}>f</button>
-    {/if}
+    {/if} -->
   </div>
   {@render children()}
   {#if $platform == "android"}{/if}
@@ -74,20 +55,5 @@
 
   .buttons.window {
     left: 64px;
-  }
-
-  button {
-    height: 20px;
-    width: 20px;
-
-    font-size: 1rem;
-    border-radius: 50%;
-    pointer-events: all;
-  }
-  .androidButtons {
-    position: fixed;
-    bottom: 100px;
-    z-index: 1000000;
-    left: 100px;
   }
 </style>

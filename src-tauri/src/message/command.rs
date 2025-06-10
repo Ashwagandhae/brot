@@ -1,87 +1,31 @@
 use anyhow::Result;
+use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use ts_rs::TS;
 
-use crate::{message::locater::Locater, state::AppState};
-
-use super::{meta::read_meta, note::NoteMeta};
-
-#[derive(Serialize, Deserialize, TS, Clone)]
-#[ts(export)]
-pub struct Command {
-    title: String,
-    action: CommandAction,
-}
+use crate::{
+    message::{
+        action::{read_actions, PartialAction, PartialActionFilter, PartialActionGenerator},
+        meta::read_meta,
+    },
+    state::AppState,
+};
 
 #[derive(Serialize, Deserialize, TS, Clone)]
-#[ts(export)]
-#[serde(tag = "type")]
-pub enum CommandAction {
-    Goto { target: Locater, new_window: bool },
-    Subcommand { subcommand: CommandPaletteType },
-    AddPinned { insertion: Insertion, path: String },
-    RemovePinned,
-    EditTitle,
-    SaveWindowState,
-    SaveNote,
-    ToggleNoteMinimized,
-    Refresh,
+pub struct PaletteAction {
+    pub title: String,
+    pub action: PartialAction,
 }
 
-#[derive(Serialize, Deserialize, TS, Clone)]
-#[ts(export)]
-#[serde(tag = "type")]
-pub enum Insertion {
-    Before,
-    After,
-}
-
-#[derive(Serialize, Deserialize, TS, Clone, PartialEq, Eq)]
-#[ts(export)]
-#[serde(tag = "type")]
-pub enum ViewState {
-    Note { path: String },
-    Pinned { focus_path: Option<String> },
-    Settings,
-    New,
-}
-
-#[derive(Serialize, Deserialize, TS, Clone)]
-#[ts(export)]
-#[serde(tag = "type")]
-pub enum CommandPaletteType {
-    Action,
-    Window { new: bool },
-    AddPinned { insertion: Insertion },
-}
-
-async fn get_all_notes(
+pub async fn get_palette_actions(
     state: &AppState,
-    app: Option<AppHandle>,
-    view_state: &ViewState,
-) -> Result<Vec<(String, NoteMeta)>> {
-    read_meta(state, app, |meta| {
-        meta.notes
-            .iter()
-            .filter(|(current_path, _)| match view_state {
-                ViewState::Note { path } => path != *current_path,
-                _ => true,
-            })
-            .map(|(path, note_meta)| (path.clone(), note_meta.clone()))
-            .collect::<Vec<_>>()
-    })
-    .await
-}
-
-pub async fn get_commands(
-    state: &AppState,
-    app: Option<AppHandle>,
-    search: String,
-    view_state: ViewState,
-    palette_type: CommandPaletteType,
-) -> Result<Vec<Command>> {
-    Ok(get_all_commands(&state, app, &view_state, &palette_type)
+    app: &Option<AppHandle>,
+    palette_key: &str,
+    search: &str,
+    filters: Vec<PartialActionFilter>,
+) -> Result<Vec<PaletteAction>> {
+    Ok(get_all_palette_actions(state, &app, palette_key)
         .await?
         .into_iter()
         .filter(|command| {
@@ -92,160 +36,104 @@ pub async fn get_commands(
                 .split_whitespace()
                 .all(|word| command.title.contains(word))
         })
-        .take(5)
+        .filter(|command| {
+            filters
+                .iter()
+                .all(|filter| !filter.matches(&command.action))
+        })
+        .take(10)
         .collect())
 }
 
-fn command(title: &str, action: CommandAction) -> Command {
-    Command {
-        title: title.to_owned(),
-        action,
-    }
+pub async fn get_all_palette_actions(
+    state: &AppState,
+    app: &Option<AppHandle>,
+    palette_key: &str,
+) -> Result<Vec<PaletteAction>> {
+    let palette_action_futures: anyhow::Result<_> = read_actions(state, app.clone(), |actions| {
+        Ok(actions
+            .palettes
+            .get(palette_key)
+            .ok_or_else(|| anyhow::anyhow!("invalid palette key"))?
+            .iter()
+            .map(|(title, generator)| {
+                generate_palette_actions(state, app, title.clone(), generator.clone())
+            })
+            .collect::<Vec<_>>())
+    })
+    .await?;
+
+    let unflattened_palette_actions = join_all(palette_action_futures?)
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
+    Ok(unflattened_palette_actions.into_iter().flatten().collect())
 }
 
-async fn get_all_commands(
+pub async fn generate_palette_actions(
     state: &AppState,
-    app: Option<AppHandle>,
-    view_state: &ViewState,
-    palette_type: &CommandPaletteType,
-) -> Result<Vec<Command>> {
-    Ok(match palette_type {
-        CommandPaletteType::Action => get_all_action_commands(view_state).await,
-        CommandPaletteType::Window { new } => {
-            get_all_window_commands(state, app.clone(), view_state, *new).await?
-        }
-        CommandPaletteType::AddPinned { insertion } => {
-            get_all_add_pinned_commands(&insertion, state, app, view_state).await?
-        }
+    app: &Option<AppHandle>,
+    title: String,
+    generator: PartialActionGenerator,
+) -> Result<Vec<PaletteAction>> {
+    Ok(if title.contains("$note_locater") {
+        get_all_note_paths(state, app)
+            .await?
+            .into_iter()
+            .map(|(locater, title_replace)| {
+                let mut args = generator.args.clone();
+                let index = args.iter().position(|a| a == "$note_locater");
+                if let Some(index) = index {
+                    args[index] = format!("note:{}", locater);
+                }
+                PaletteAction {
+                    title: title.replace("$note_locater", &title_replace),
+                    action: PartialAction {
+                        key: generator.key.clone(),
+                        args,
+                    },
+                }
+            })
+            .collect()
+    } else if title.contains("$note_path") {
+        get_all_note_paths(state, app)
+            .await?
+            .into_iter()
+            .map(|(locater, title_replace)| {
+                let mut args = generator.args.clone();
+                let index = args.iter().position(|a| a == "$note_path");
+                if let Some(index) = index {
+                    args[index] = locater;
+                }
+                PaletteAction {
+                    title: title.replace("$note_path", &title_replace),
+                    action: PartialAction {
+                        key: generator.key.clone(),
+                        args,
+                    },
+                }
+            })
+            .collect()
+    } else {
+        vec![PaletteAction {
+            title,
+            action: PartialAction {
+                key: generator.key,
+                args: generator.args,
+            },
+        }]
     })
 }
 
-async fn get_all_add_pinned_commands(
-    insertion: &Insertion,
+async fn get_all_note_paths(
     state: &AppState,
-    app: Option<AppHandle>,
-    view_state: &ViewState,
-) -> Result<Vec<Command>> {
-    let pinned = read_meta(state, app.clone(), |meta| meta.pinned.clone()).await?;
-    Ok(get_all_notes(state, app, view_state)
-        .await?
-        .into_iter()
-        .filter(|(path, _)| !pinned.contains(path))
-        .map(|(path, note_meta)| Command {
-            title: note_meta.title,
-            action: CommandAction::AddPinned {
-                insertion: insertion.clone(),
-                path,
-            },
-        })
-        .collect())
-}
-
-async fn get_all_action_commands(view_state: &ViewState) -> Vec<Command> {
-    let shared = vec![
-        command("save window state", CommandAction::SaveWindowState),
-        command(
-            "open",
-            CommandAction::Subcommand {
-                subcommand: CommandPaletteType::Window { new: false },
-            },
-        ),
-        command(
-            "open out",
-            CommandAction::Subcommand {
-                subcommand: CommandPaletteType::Window { new: true },
-            },
-        ),
-    ];
-    let pinned_and_note_shared: &[Command] = &[
-        command("edit current title", CommandAction::EditTitle),
-        command("save", CommandAction::SaveNote),
-        command("toggle minimized", CommandAction::ToggleNoteMinimized),
-    ];
-    let specific = match view_state {
-        ViewState::Pinned { focus_path } => match focus_path {
-            Some(_) => [
-                vec![
-                    command(
-                        "add new pinned before",
-                        CommandAction::Subcommand {
-                            subcommand: CommandPaletteType::AddPinned {
-                                insertion: Insertion::Before,
-                            },
-                        },
-                    ),
-                    command(
-                        "add new pinned after",
-                        CommandAction::Subcommand {
-                            subcommand: CommandPaletteType::AddPinned {
-                                insertion: Insertion::After,
-                            },
-                        },
-                    ),
-                    command("remove pinned", CommandAction::RemovePinned),
-                ]
-                .as_slice(),
-                pinned_and_note_shared,
-            ]
-            .concat(),
-            None => vec![command(
-                "add new pinned",
-                CommandAction::Subcommand {
-                    subcommand: CommandPaletteType::AddPinned {
-                        insertion: Insertion::After,
-                    },
-                },
-            )],
-        },
-        ViewState::Note { .. } => pinned_and_note_shared.to_vec(),
-        ViewState::Settings => vec![],
-        ViewState::New => vec![],
-    };
-    [shared.as_slice(), specific.as_slice()].concat()
-}
-
-async fn get_all_window_commands(
-    state: &AppState,
-    app: Option<AppHandle>,
-    view_state: &ViewState,
-    new_window: bool,
-) -> Result<Vec<Command>> {
-    let notes: Vec<_> = get_all_notes(state, app, view_state)
-        .await?
-        .into_iter()
-        .map(|(path, note_meta)| Command {
-            title: note_meta.title,
-            action: CommandAction::Goto {
-                target: Locater::Note { path },
-                new_window,
-            },
-        })
-        .collect();
-    let mut specific = Vec::new();
-    if *view_state != ViewState::Settings {
-        specific.push(command(
-            "settings",
-            CommandAction::Goto {
-                target: Locater::Settings,
-                new_window,
-            },
-        ))
-    }
-    if !matches!(view_state, ViewState::Pinned { .. }) {
-        specific.push(command(
-            "pinned",
-            CommandAction::Goto {
-                target: Locater::Pinned,
-                new_window,
-            },
-        ))
-    }
-    specific.push(command(
-        "new",
-        CommandAction::Goto {
-            target: Locater::New,
-            new_window,
-        },
-    ));
-    Ok([notes.as_slice(), specific.as_slice()].concat())
+    app: &Option<AppHandle>,
+) -> Result<Vec<(String, String)>> {
+    read_meta(state, app.clone(), |meta| {
+        meta.notes
+            .iter()
+            .map(|(path, meta)| (path.clone(), meta.title.clone()))
+            .collect()
+    })
+    .await
 }
