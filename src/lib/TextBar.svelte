@@ -26,8 +26,12 @@
   function handleKeydown(event: KeyboardEvent) {
     onkeydown?.(event);
     if (event.key == "Enter") {
+      event.preventDefault();
+      event.stopPropagation();
       onaccept?.();
     } else if (event.key == "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
       oncancel?.();
     }
   }

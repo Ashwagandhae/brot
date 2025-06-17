@@ -31,6 +31,7 @@
   import type { Actions } from "../../src-tauri/bindings/Actions";
   import { mapKeydownEventToAction } from "$lib/shortcuts";
   import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
+  import { listen } from "@tauri-apps/api/event";
 
   let { children } = $props();
 
@@ -186,6 +187,28 @@
       args: [...action.args, arg],
     };
   }
+
+  let searchPalette: boolean = $state(false);
+  let searchPaletteState: CommandPaletteState = $derived.by(() => {
+    if (!searchPalette) return null;
+    return {
+      search: "",
+      provider: async (search: string) => {
+        return await getPaletteActions(search, "search", []);
+      },
+    };
+  });
+  listen("search", () => {
+    if ($viewState == null) return;
+    if (toLocater($viewState) == "pinned") {
+      searchPalette = true;
+    }
+  });
+
+  async function completeSearch(accepted: boolean) {
+    searchPalette = false;
+    await invoke("complete_search", { accepted });
+  }
 </script>
 
 <svelte:head>
@@ -205,6 +228,23 @@
     onaccept={handleCommandPaletteAccept}
   ></CommandPalette>
 {/key}
+
+{#if searchPalette}
+  <CommandPalette
+    commandPaletteState={searchPaletteState}
+    oncancel={() => {
+      completeSearch(false);
+    }}
+    onaccept={async (action) => {
+      if (action == null) {
+        await completeSearch(false);
+        return;
+      }
+      await completeSearch(true);
+      handleCommandPaletteAccept(action);
+    }}
+  ></CommandPalette>
+{/if}
 
 {#if $errorMessage != null}
   <p class="err">{$errorMessage}</p>

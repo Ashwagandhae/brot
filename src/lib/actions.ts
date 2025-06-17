@@ -16,12 +16,12 @@ export const actions = {
   editorToggleBold: [],
   toggleFloating: [],
   focusPinnedNote: ["number"],
+  focusNote: [],
 } as const;
 
 export type ActionRegistry = Partial<Mutable<BuildActions<typeof actions>>> & {
   getNoteTitle?: () => string | null;
   getEditor?: () => Editor;
-  focusNote?: () => void;
 };
 
 type ArgTypesMap = {

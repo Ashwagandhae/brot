@@ -6,7 +6,7 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
 
 #[cfg(not(target_os = "android"))]
-use window::open_window;
+use window::{complete_search, open_search, open_window};
 
 #[cfg(not(target_os = "android"))]
 use window_state::update_window_state;
@@ -73,7 +73,8 @@ pub fn run() {
                     message_command,
                     is_android,
                     open_window,
-                    update_window_state
+                    update_window_state,
+                    complete_search
                 ]
             }
             #[cfg(target_os = "android")]
@@ -87,15 +88,17 @@ pub fn run() {
         {
             app.plugin(tauri_plugin_shell::init()).plugin(
                 tauri_plugin_global_shortcut::Builder::new()
-                    .with_shortcuts(["command+semicolon"])
+                    .with_shortcuts(["command+semicolon", "command+quote"])
                     .expect("failed to set shortcuts")
                     .with_handler(|app, shortcut, event| {
                         let state = app.state::<AppState>();
                         if event.state == ShortcutState::Pressed {
                             if shortcut.matches(Modifiers::SUPER, Code::Semicolon) {
-                                use crate::message::locater::Locater;
-
-                                open_window(app.clone(), state, Locater::Pinned)
+                                use crate::window::toggle_pinned;
+                                toggle_pinned(app.clone(), state.clone());
+                            }
+                            if shortcut.matches(Modifiers::SUPER, Code::Quote) {
+                                open_search(app.clone(), state.clone());
                             }
                         }
                     })

@@ -50,6 +50,7 @@
       noteActionRegistries[newFocusPath].focusNote?.();
       focusPath = newFocusPath;
     };
+    $registry.focusNote = () => untrack(() => $registry)?.focusPinnedNote?.(0);
     $registry = {
       ...untrack(() => $registry),
       ...noteActionRegistries[focusPath],

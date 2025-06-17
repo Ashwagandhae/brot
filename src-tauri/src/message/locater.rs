@@ -1,7 +1,10 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use tauri::Url;
 use ts_rs::TS;
 
-#[derive(Clone, Hash, PartialEq, Eq, TS)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, TS)]
 #[ts(export)]
 #[ts(type = "`note:${string}` | 'pinned' | 'settings' | 'new'")]
 pub enum Locater {
@@ -9,6 +12,35 @@ pub enum Locater {
     Pinned,
     Settings,
     New,
+}
+
+impl Locater {
+    pub fn from_url(url: &Url) -> Option<Locater> {
+        match url.path() {
+            "/settings" => Some(Locater::Settings),
+            "/new" => Some(Locater::New),
+            "/" => Some(Locater::Pinned),
+            "/note" => Some(Locater::Note {
+                path: url.query_pairs().find_map(|(arg, val)| {
+                    if arg == "p" {
+                        Some(val.to_string())
+                    } else {
+                        None
+                    }
+                })?,
+            }),
+            _ => None,
+        }
+    }
+
+    pub fn into_path(&self) -> PathBuf {
+        match self {
+            Locater::Settings => "/settings".into(),
+            Locater::Pinned => "/".into(),
+            Locater::New => "/new".into(),
+            Locater::Note { path } => format!("/note?p={path}").into(),
+        }
+    }
 }
 
 impl Serialize for Locater {

@@ -2,25 +2,11 @@ use std::ffi::CString;
 use std::str::FromStr;
 
 use objc2::rc::autoreleasepool;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, State};
+use tauri::{
+    AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
+};
 
 use crate::{message::locater::Locater, state::AppState};
-
-fn sanitize_window_label(input: &str) -> String {
-    input
-        .to_ascii_lowercase()
-        .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
-                c
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>()
-        .trim_matches('_') // remove leading/trailing underscores
-        .to_string()
-}
 
 fn unique_label(app: &AppHandle, label: String) -> String {
     let mut ret_label = label.clone();
@@ -99,46 +85,62 @@ fn focus_app_by_bundle_id(bundle_id: &str) -> bool {
 }
 
 #[tauri::command]
-pub fn open_window(app: AppHandle, state: State<'_, AppState>, locater: Locater) {
-    if let Locater::Pinned = locater {
-        let windows = app.webview_windows();
-        let pinned_window = windows.get("pinned");
+pub fn toggle_pinned(app: AppHandle, state: State<'_, AppState>) {
+    let windows = app.webview_windows();
+    let pinned_window = windows.get("pinned");
 
-        // if window pinned window is not focused, record which other window is focused
-        if !pinned_window.is_some_and(|window| window.is_focused().unwrap()) {
-            let mut last_focused_app_name = state.last_focused_app_name.blocking_lock();
-            *last_focused_app_name = get_frontmost_app_bundle_id();
-        }
-        if let Some(pinned_window) = pinned_window {
-            if pinned_window.is_focused().unwrap() && pinned_window.is_visible().unwrap() {
-                pinned_window.hide().unwrap();
-                let last_focused_app_name = state.last_focused_app_name.blocking_lock();
-                if let Some(name) = &*last_focused_app_name {
-                    focus_app_by_bundle_id(name);
-                }
-            } else {
-                pinned_window.show().unwrap();
-                pinned_window.set_focus().unwrap();
-            }
-            return;
-        }
+    // if window pinned window is not focused, record which other window is focused
+    if !pinned_window.is_some_and(|window| window.is_focused().unwrap()) {
+        let mut last_focused_app_name = state.last_focused_app_name.blocking_lock();
+        *last_focused_app_name = get_frontmost_app_bundle_id();
     }
-    let (label, url) = match &locater {
-        Locater::New => (unique_label(&app, "new".to_owned()), "/new".to_owned()),
-        Locater::Settings => (
-            unique_label(&app, "settings".to_owned()),
-            "/settings".to_owned(),
-        ),
-        Locater::Note { path } => (
-            unique_label(&app, sanitize_window_label(&format!("note_{path}"))),
-            format!("/note?p={path}"),
-        ),
-        Locater::Pinned => ("pinned".to_owned(), "/".to_owned()),
-    };
-    let mut builder =
-        tauri::webview::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::App(url.into()))
-            .title_bar_style(tauri::TitleBarStyle::Overlay)
-            .hidden_title(true);
+    if let Some(pinned_window) = pinned_window {
+        if pinned_window.is_focused().unwrap() && pinned_window.is_visible().unwrap() {
+            pinned_window.hide().unwrap();
+            let last_focused_app_name = state.last_focused_app_name.blocking_lock();
+            if let Some(name) = &*last_focused_app_name {
+                focus_app_by_bundle_id(name);
+            }
+        } else {
+            pinned_window.show().unwrap();
+            pinned_window.set_focus().unwrap();
+        }
+    } else {
+        open_and_get_window(app, state, Locater::Pinned);
+    }
+}
+
+#[tauri::command]
+pub fn open_window(app: AppHandle, state: State<'_, AppState>, locater: Locater) {
+    open_and_get_window(app, state, locater);
+}
+
+pub fn open_and_get_window(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    locater: Locater,
+) -> WebviewWindow {
+    let windows = app.webview_windows();
+    let window = windows.values().find(|window| {
+        Locater::from_url(&window.url().expect("failed to get window url"))
+            .is_some_and(|other_locater| other_locater == locater)
+    });
+    if let Some(window) = window {
+        window.show().unwrap();
+        window.set_focus().unwrap();
+        return window.clone();
+    }
+    let mut builder = tauri::webview::WebviewWindowBuilder::new(
+        &app,
+        if locater == Locater::Pinned {
+            "pinned".to_owned()
+        } else {
+            unique_label(&app, "window".to_owned())
+        },
+        tauri::WebviewUrl::App(locater.into_path()),
+    )
+    .title_bar_style(tauri::TitleBarStyle::Overlay)
+    .hidden_title(true);
     if let Locater::Pinned = &locater {
         builder = builder.visible_on_all_workspaces(true);
     }
@@ -157,4 +159,85 @@ pub fn open_window(app: AppHandle, state: State<'_, AppState>, locater: Locater)
         .set_position(PhysicalPosition::new(window_state.x, window_state.y))
         .unwrap();
     window.set_always_on_top(window_state.floating).unwrap();
+    window.show().unwrap();
+    window.set_focus().unwrap();
+    window.clone()
+}
+
+pub fn open_search(app: AppHandle, state: State<'_, AppState>) {
+    let windows = app.clone().webview_windows();
+    let pinned_window = windows.get("pinned");
+
+    let last_focused_app_name = get_frontmost_app_bundle_id();
+    let (pinned_window_state, window) = match pinned_window {
+        Some(pinned_window) => {
+            if pinned_window.is_focused().unwrap() {
+                (PinnedWindowState::Focused, pinned_window.clone())
+            } else {
+                let visible = pinned_window.is_visible().unwrap();
+                pinned_window.show().unwrap();
+                pinned_window.set_focus().unwrap();
+                (
+                    PinnedWindowState::Unfocused {
+                        visible,
+                        last_focused_app_name,
+                    },
+                    pinned_window.clone(),
+                )
+            }
+        }
+        None => {
+            let window = open_and_get_window(app, state.clone(), Locater::Pinned);
+
+            (
+                PinnedWindowState::Unfocused {
+                    visible: false,
+                    last_focused_app_name,
+                },
+                window,
+            )
+        }
+    };
+    *state.pinned_state_before_search.blocking_lock() = pinned_window_state;
+    window
+        .emit_to(EventTarget::window("pinned"), "search", ())
+        .expect("failed to send search event");
+}
+
+#[tauri::command]
+pub fn complete_search(app: AppHandle, state: State<'_, AppState>, accepted: bool) {
+    let windows = app.clone().webview_windows();
+    let Some(pinned_window) = windows.get("pinned") else {
+        return;
+    };
+    let pinned_window_state = state.pinned_state_before_search.blocking_lock().clone();
+    match pinned_window_state {
+        PinnedWindowState::Focused => {
+            if !accepted {
+                pinned_window.set_focus().unwrap()
+            }
+        }
+        PinnedWindowState::Unfocused {
+            visible,
+            last_focused_app_name,
+        } => {
+            if !visible {
+                pinned_window.hide().unwrap();
+            }
+            if !accepted {
+                if let Some(bundle_id) = last_focused_app_name {
+                    focus_app_by_bundle_id(&bundle_id);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum PinnedWindowState {
+    Focused,
+    Unfocused {
+        visible: bool,
+        last_focused_app_name: Option<String>,
+    },
 }
