@@ -13,6 +13,12 @@
   width: 100%;
 }
 
+.tiptap code {
+  font-family: "JetBrains Mono", monospace;
+  font-feature-settings: "calt" 1, "liga" 1;
+  /* font-variant-ligatures: contextual common-ligatures; */
+}
+
 .tiptap table td,
 .tiptap table th {
   border: 1px solid var(--back-3);

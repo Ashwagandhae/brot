@@ -7,7 +7,7 @@ use tauri::AppHandle;
 use crate::state::AppState;
 
 use super::{
-    folder_manager::{read_file, write_file},
+    folder_manager::{read, read_dir, write},
     note::NoteMeta,
 };
 
@@ -21,10 +21,10 @@ pub struct Meta {
 const META_PATH: &str = "brot.json";
 
 pub async fn read_meta_file(state: &AppState, app: Option<AppHandle>) -> Result<Meta> {
-    match read_file(state, app.clone(), META_PATH).await? {
+    match read(state, app.clone(), META_PATH).await? {
         Some(contents) => Ok(serde_json::from_str(&contents)?),
         None => {
-            write_file(
+            write(
                 state,
                 app,
                 META_PATH,
@@ -34,6 +34,20 @@ pub async fn read_meta_file(state: &AppState, app: Option<AppHandle>) -> Result<
             Ok(Meta::default())
         }
     }
+}
+
+// removes any files that aren't in the folder, and adds any files that are in meta
+async fn sync_meta(state: &AppState, app: Option<AppHandle>, meta: &mut Meta) -> Result<()> {
+    meta.notes = read_dir(state, app)
+        .await?
+        .into_iter()
+        .filter(|path| path.ends_with(".md"))
+        .map(|path| {
+            let val = meta.notes.get(&path).cloned();
+            (path, val.unwrap_or_default())
+        })
+        .collect();
+    Ok(())
 }
 
 pub async fn read_note_meta(
@@ -53,7 +67,8 @@ pub async fn read_meta<T>(
     if let Some(ref meta) = *guard {
         Ok(function(meta))
     } else {
-        let meta = read_meta_file(state, app).await?;
+        let mut meta = read_meta_file(state, app.clone()).await?;
+        sync_meta(state, app, &mut meta).await?;
         let res = function(&meta);
         *guard = Some(meta);
         Ok(res)
@@ -68,12 +83,12 @@ pub async fn write_meta<T>(
     let mut guard = state.meta.lock().await;
     if let Some(ref mut meta) = *guard {
         let res = function(meta);
-        write_file(state, app, META_PATH, serde_json::to_string(&meta)?).await?;
+        write(state, app, META_PATH, serde_json::to_string(&meta)?).await?;
         Ok(res)
     } else {
         let mut meta = read_meta_file(state, app.clone()).await?;
         let res = function(&mut meta);
-        write_file(state, app, META_PATH, serde_json::to_string(&meta)?).await?;
+        write(state, app, META_PATH, serde_json::to_string(&meta)?).await?;
         *guard = Some(meta);
         Ok(res)
     }

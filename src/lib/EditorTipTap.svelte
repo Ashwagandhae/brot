@@ -1,7 +1,6 @@
 <script lang="ts">
   import "./editorTipTap.css";
   import { onMount } from "svelte";
-  import { Color } from "@tiptap/extension-color";
   import ListItem from "@tiptap/extension-list-item";
   import TextStyle from "@tiptap/extension-text-style";
   import StarterKit from "@tiptap/starter-kit";
@@ -11,6 +10,7 @@
   import TableRow from "@tiptap/extension-table-row";
   import { Editor } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+  import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
   import Link from "@tiptap/extension-link";
 
@@ -23,6 +23,7 @@
   import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
   import type { ActionRegistry } from "./actions";
+  import { isTauri } from "./platform";
 
   let {
     initContent,
@@ -53,6 +54,20 @@
     })
   );
 
+  function initRegistry(editor: Editor) {
+    registry.editorToggleBold = () => {
+      editor.chain().focus().toggleBold().run();
+    };
+    registry.getEditor = () => editor;
+    registry.pasteWithoutFormatting = () => {
+      if (isTauri()) {
+        readText().then((val) => {
+          editor.commands.insertContent(val);
+        });
+      }
+    };
+  }
+
   let markdown = new HTMLarkdown({
     codeblockTrailingLinebreak: "add",
     addTrailingLinebreak: false,
@@ -82,13 +97,6 @@
     return myMarked.parse(md);
   }
 
-  function initRegistry(editor: Editor) {
-    registry.editorToggleBold = () => {
-      editor.chain().focus().toggleBold().run();
-    };
-    registry.getEditor = () => editor;
-  }
-
   getContent = () => {
     return htmlToMarkdown(editor!.getHTML());
   };
@@ -104,7 +112,6 @@
     editor = new Editor({
       element: element,
       extensions: [
-        Color.configure({ types: [TextStyle.name, ListItem.name] }),
         TextStyle,
         StarterKit.configure({
           codeBlock: false,

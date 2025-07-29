@@ -4,4 +4,4 @@ import type { Note } from "./Note";
 import type { PaletteAction } from "./PaletteAction";
 import type { Settings } from "./Settings";
 
-export type ServerMessage = { "type": "Settings", settings: Settings, } | { "type": "Note", note: Note | null, } | { "type": "NotePath", path: string, } | { "type": "None" } | { "type": "PaletteActions", actions: Array<PaletteAction>, } | { "type": "Actions", actions: Actions, } | { "type": "Pinned", pinned: Array<string>, } | { "type": "Error", error: string, };
+export type ServerMessage = { "type": "Settings", settings: Settings, } | { "type": "Note", note: Note | null, } | { "type": "NotePath", path: string | null, } | { "type": "None" } | { "type": "PaletteActions", actions: Array<PaletteAction>, } | { "type": "Actions", actions: Actions, } | { "type": "Pinned", pinned: Array<string>, } | { "type": "Error", error: string, };

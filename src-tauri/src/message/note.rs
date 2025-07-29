@@ -1,13 +1,13 @@
 use anyhow::{bail, Result};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use ts_rs::TS;
 
 use crate::{
     message::{
-        folder_manager::{read_file, write_file},
-        meta::{read_note_meta, write_note_meta},
+        folder_manager::{read, remove_file, write},
+        meta::{read_meta, read_note_meta, write_meta, write_note_meta},
+        title::title_to_path,
     },
     state::AppState,
 };
@@ -22,22 +22,26 @@ pub struct Note {
 }
 
 impl Note {
-    pub fn from_title(title: String) -> Self {
+    pub fn new() -> Self {
         Note {
-            meta: NoteMeta {
-                title,
-                selection: None,
-            },
+            meta: NoteMeta { selection: None },
             content: "".to_owned(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, TS, Clone)]
+#[derive(Serialize, Deserialize, TS, Clone, Debug)]
 #[ts(export)]
 pub struct NoteMeta {
-    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub selection: Option<(u32, u32)>,
+}
+
+impl Default for NoteMeta {
+    fn default() -> Self {
+        Self { selection: None }
+    }
 }
 
 pub async fn read_note(
@@ -48,7 +52,7 @@ pub async fn read_note(
     println!("reading note {:?}", path);
 
     let meta = read_note_meta(state, app.clone(), path).await?;
-    let content = read_file(state, app, path).await?;
+    let content = read(state, app, path).await?;
     Ok(meta
         .zip(content)
         .map(|(meta, content)| Note { meta, content }))
@@ -63,7 +67,7 @@ pub async fn write_note(
     println!("updating note {:?}", path);
 
     write_note_meta(state, app.clone(), path, note.meta).await?;
-    write_file(state, app, path, note.content).await?;
+    write(state, app, path, note.content).await?;
 
     Ok(())
 }
@@ -72,38 +76,64 @@ pub async fn create_note(
     state: &AppState,
     app: Option<AppHandle>,
     title: String,
-) -> Result<String> {
+) -> Result<Option<String>> {
     let path = create_note_path(state, app.clone(), &title).await?;
     println!("creating note {:?}", path);
 
-    write_note(state, app.clone(), &path, Note::from_title(title)).await?;
-
+    if let Some(path) = path.clone() {
+        write_note(state, app.clone(), &path, Note::new()).await?;
+    }
     Ok(path)
 }
 
-fn sanitize_filename(input: &str) -> String {
-    let re = Regex::new(r#"[\s<>:"/\\|?*\x00-\x1F]+"#).unwrap();
-    let replaced = re.replace_all(input, "_");
-
-    replaced.trim_matches('_').to_string()
+pub async fn delete_note(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<()> {
+    remove_file(state, app.clone(), &path).await?;
+    write_meta(state, app, |meta| {
+        meta.notes.remove_entry(path);
+        meta.pinned.retain(|p| p != path);
+    })
+    .await?;
+    Ok(())
 }
 
-pub async fn create_note_path(
+/// Creates note path from title if that note path doesn't already exist, else returns None
+async fn create_note_path(
     state: &AppState,
     app: Option<AppHandle>,
     title: &str,
-) -> Result<String> {
-    let stem = sanitize_filename(title);
-    let path = format!("{}.md", stem);
-    if !file_exists(state, app.clone(), &path).await? {
-        return Ok(path);
-    }
-    let i = 1;
-    while i < 9999 {
-        let path = format!("{}_{}.md", stem, i);
-        if !file_exists(state, app.clone(), &path).await? {
-            return Ok(path);
+) -> Result<Option<String>> {
+    let path = title_to_path(title);
+    Ok(if file_exists(state, app.clone(), &path).await? {
+        None
+    } else {
+        Some(path)
+    })
+}
+
+pub async fn update_path(
+    state: &AppState,
+    app: Option<AppHandle>,
+    current_path: String,
+    new_title: String,
+) -> Result<Option<String>> {
+    let new_path = create_note_path(state, app.clone(), &new_title).await?;
+    if let Some(new_path) = new_path.clone() {
+        let Some(note) = read_note(state, app.clone(), &current_path).await? else {
+            bail!("note does not exist")
+        };
+        let pinned_index = read_meta(state, app.clone(), |meta| {
+            meta.pinned.iter().position(|p| *p == current_path)
+        })
+        .await?;
+        write_note(state, app.clone(), &new_path, note).await?;
+        delete_note(state, app.clone(), &current_path).await?;
+
+        if let Some(index) = pinned_index {
+            write_meta(state, app, |meta| {
+                meta.pinned.insert(index, new_path.clone());
+            })
+            .await?;
         }
     }
-    bail!("attempted to create note path too many times")
+    Ok(new_path)
 }

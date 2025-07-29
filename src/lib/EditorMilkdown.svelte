@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Note } from "../../src-tauri/bindings/Note";
   import { Crepe } from "@milkdown/crepe";
   import "@milkdown/crepe/theme/common/style.css";
   // We have some themes for you to choose

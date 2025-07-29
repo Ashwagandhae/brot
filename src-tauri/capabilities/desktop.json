@@ -1,7 +1,13 @@
 {
   "identifier": "desktop-capability",
-  "platforms": ["macOS", "windows", "linux"],
-  "webviews": ["*"],
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "webviews": [
+    "*"
+  ],
   "permissions": [
     "global-shortcut:default",
     {
@@ -19,6 +25,7 @@
           "sidecar": false
         }
       ]
-    }
+    },
+    "clipboard-manager:default"
   ]
 }

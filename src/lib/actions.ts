@@ -17,6 +17,8 @@ export const actions = {
   toggleFloating: [],
   focusPinnedNote: ["number"],
   focusNote: [],
+  copyUrl: [],
+  pasteWithoutFormatting: [],
 } as const;
 
 export type ActionRegistry = Partial<Mutable<BuildActions<typeof actions>>> & {

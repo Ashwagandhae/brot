@@ -9,7 +9,7 @@ use serde::{
 use tauri::AppHandle;
 use ts_rs::TS;
 
-use crate::{message::folder_manager::read_file, state::AppState};
+use crate::{message::folder_manager::read, state::AppState};
 
 const ACTIONS_PATH: &str = "brot_actions.toml";
 
@@ -53,7 +53,7 @@ impl PartialActionFilter {
 }
 
 pub async fn read_actions_file(state: &AppState, app: Option<AppHandle>) -> Result<Actions> {
-    match read_file(state, app.clone(), ACTIONS_PATH).await? {
+    match read(state, app.clone(), ACTIONS_PATH).await? {
         Some(contents) => Ok(toml::from_str(&contents)?),
         None => Ok(Actions::default()),
     }

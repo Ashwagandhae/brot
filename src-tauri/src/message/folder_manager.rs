@@ -4,6 +4,7 @@ use anyhow::anyhow;
 use anyhow::Result;
 use tauri::App;
 use tauri::AppHandle;
+use tauri_plugin_android_fs::Entry;
 use tauri_plugin_android_fs::{AndroidFsExt, FileUri, PersistableAccessMode, PrivateDir};
 use tokio::fs;
 
@@ -13,34 +14,28 @@ use crate::state::AppState;
 fn downloads_subfolder_uri(app: &mut App) -> Result<FileUri> {
     let api = app.android_fs();
 
-    // Create a unique key for storing the URI
     let storage_key = format!("subfolder_uri");
 
-    // Try to read the stored URI
     let stored_uri = api
         .private_storage()
         .read_to_string(PrivateDir::Data, &storage_key)
         .ok()
         .and_then(|s| FileUri::from_str(&s).ok());
 
-    // Check if we still have permission
     if let Some(uri) = stored_uri {
         if api.check_persisted_uri_permission(&uri, PersistableAccessMode::ReadAndWrite)? {
             return Ok(uri);
         }
     }
 
-    // Ask the user to pick the subfolder
     let selected_uri = api.show_manage_dir_dialog(None)?;
 
     let Some(uri) = selected_uri else {
         return Err(anyhow!("User cancelled folder selection"));
     };
 
-    // Persist permission
     api.take_persistable_uri_permission(&uri)?;
 
-    // Store the URI for future use
     api.private_storage()
         .write(PrivateDir::Data, &storage_key, uri.to_string()?.as_bytes())?;
 
@@ -70,11 +65,7 @@ impl FolderManager {
     }
 }
 
-pub async fn read_file(
-    state: &AppState,
-    app: Option<AppHandle>,
-    path: &str,
-) -> Result<Option<String>> {
+pub async fn read(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<Option<String>> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
@@ -107,7 +98,7 @@ pub async fn read_file(
     }
 }
 
-pub async fn write_file(
+pub async fn write(
     state: &AppState,
     app: Option<AppHandle>,
     path: &str,
@@ -136,9 +127,38 @@ pub async fn write_file(
     }
 }
 
+pub async fn remove_file(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<()> {
+    match state.folder_manager {
+        FolderManager::Normal => {
+            let Some(path) = get_folder_path(state, path).await else {
+                return Ok(());
+            };
+            fs::remove_file(path).await?;
+            Ok(())
+        }
+        FolderManager::Android { ref uri } => {
+            let uri = uri.clone();
+            let path = path.to_owned();
+            tokio::task::spawn_blocking(move || {
+                let app = app.unwrap();
+                let api = app.android_fs();
+                let file_uri = api.resolve_uri(&uri, path)?;
+                api.remove_file(&file_uri)?;
+                Ok(())
+            })
+            .await?
+        }
+    }
+}
+
 pub async fn file_exists(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<bool> {
     match state.folder_manager {
-        FolderManager::Normal => Ok(fs::try_exists(path).await?),
+        FolderManager::Normal => {
+            let Some(path) = get_folder_path(state, path).await else {
+                return Ok(false);
+            };
+            Ok(fs::try_exists(path).await?)
+        }
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
             let path = path.to_owned();
@@ -162,4 +182,40 @@ pub async fn file_exists(state: &AppState, app: Option<AppHandle>, path: &str) -
 
 async fn get_folder_path(state: &AppState, path: &str) -> Option<PathBuf> {
     Some(PathBuf::from(state.settings.lock().await.notes_path.clone()?).join(path))
+}
+
+pub async fn read_dir(state: &AppState, app: Option<AppHandle>) -> Result<Vec<String>> {
+    match state.folder_manager {
+        FolderManager::Normal => {
+            let Some(path) = get_folder_path(state, "").await else {
+                return Ok(Vec::new());
+            };
+            let mut entries = fs::read_dir(&path).await?;
+            let mut paths = Vec::new();
+            while let Some(entry) = entries.next_entry().await? {
+                paths.push(
+                    entry
+                        .file_name()
+                        .into_string()
+                        .expect("invalid entry string"),
+                );
+            }
+            Ok(paths)
+        }
+        FolderManager::Android { ref uri } => {
+            let uri = uri.clone();
+            tokio::task::spawn_blocking(move || {
+                let app = app.unwrap();
+                let api = app.android_fs();
+                Ok(api
+                    .read_dir(&uri)?
+                    .map(|entry| match entry {
+                        Entry::File { name, .. } => name,
+                        Entry::Dir { name, .. } => name,
+                    })
+                    .collect())
+            })
+            .await?
+        }
+    }
 }

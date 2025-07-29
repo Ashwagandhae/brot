@@ -8,6 +8,7 @@ use crate::{
     message::{
         action::{read_actions, PartialAction, PartialActionFilter, PartialActionGenerator},
         meta::read_meta,
+        title::path_to_title,
     },
     state::AppState,
 };
@@ -132,7 +133,7 @@ async fn get_all_note_paths(
     read_meta(state, app.clone(), |meta| {
         meta.notes
             .iter()
-            .map(|(path, meta)| (path.clone(), meta.title.clone()))
+            .map(|(path, _)| (path.clone(), path_to_title(path)))
             .collect()
     })
     .await

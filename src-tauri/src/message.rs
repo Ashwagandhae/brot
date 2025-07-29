@@ -8,6 +8,7 @@ use ts_rs::TS;
 
 use crate::message::action::{read_actions, Actions, PartialActionFilter};
 use crate::message::command::{get_palette_actions, PaletteAction};
+use crate::message::note::update_path;
 use crate::message::settings::read_settings_file;
 use crate::state::AppState;
 
@@ -21,6 +22,7 @@ pub mod locater;
 pub mod meta;
 pub mod note;
 pub mod settings;
+pub mod title;
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -36,6 +38,10 @@ pub enum ClientMessage {
     UpdateNote {
         path: String,
         note: Note,
+    },
+    UpdatePath {
+        current_path: String,
+        new_title: String,
     },
     CreateNote {
         title: String,
@@ -63,7 +69,7 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     Settings { settings: Settings },
     Note { note: Option<Note> },
-    NotePath { path: String },
+    NotePath { path: Option<String> },
     None,
     PaletteActions { actions: Vec<PaletteAction> },
     Actions { actions: Actions },
@@ -92,6 +98,12 @@ pub async fn handle_message(
             write_note(state, app, &path, note).await?;
             Ok(ServerMessage::None)
         }
+        UpdatePath {
+            current_path,
+            new_title,
+        } => Ok(ServerMessage::NotePath {
+            path: update_path(state, app, current_path, new_title).await?,
+        }),
         CreateNote { title } => {
             let path = create_note(state, app, title).await?;
             Ok(ServerMessage::NotePath { path })

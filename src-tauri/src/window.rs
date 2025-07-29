@@ -3,7 +3,8 @@ use std::str::FromStr;
 
 use objc2::rc::autoreleasepool;
 use tauri::{
-    AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
+    AppHandle, Emitter, EventTarget, LogicalPosition, Manager, PhysicalPosition, PhysicalSize,
+    State, WebviewWindow,
 };
 
 use crate::{message::locater::Locater, state::AppState};
@@ -115,6 +116,37 @@ pub fn open_window(app: AppHandle, state: State<'_, AppState>, locater: Locater)
     open_and_get_window(app, state, locater);
 }
 
+#[cfg(target_os = "macos")]
+fn hide_traffic_lights(window: &tauri::WebviewWindow) {
+    use objc2_app_kit::NSWindow;
+    use objc2_app_kit::NSWindowButton;
+
+    unsafe {
+        use objc2::rc::Retained;
+        use objc2_app_kit::NSButton;
+        let ns_window_ptr = window.ns_window().expect("Failed to get NSWindow");
+
+        let ns_window: &NSWindow = &*(ns_window_ptr as *mut NSWindow);
+
+        let close: Option<Retained<NSButton>> =
+            ns_window.standardWindowButton(NSWindowButton::CloseButton);
+        let minimize: Option<Retained<NSButton>> =
+            ns_window.standardWindowButton(NSWindowButton::MiniaturizeButton);
+        let zoom: Option<Retained<NSButton>> =
+            ns_window.standardWindowButton(NSWindowButton::ZoomButton);
+
+        if let Some(button) = close {
+            button.setHidden(true);
+        }
+        if let Some(button) = minimize {
+            button.setHidden(true);
+        }
+        if let Some(button) = zoom {
+            button.setHidden(true);
+        }
+    }
+}
+
 pub fn open_and_get_window(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -141,6 +173,7 @@ pub fn open_and_get_window(
     )
     .title_bar_style(tauri::TitleBarStyle::Overlay)
     .hidden_title(true);
+
     if let Locater::Pinned = &locater {
         builder = builder.visible_on_all_workspaces(true);
     }
@@ -152,6 +185,7 @@ pub fn open_and_get_window(
         .cloned()
         .unwrap_or_default();
     let window = builder.build().unwrap();
+    hide_traffic_lights(&window);
     window
         .set_size(PhysicalSize::new(window_state.width, window_state.height))
         .unwrap();
@@ -161,6 +195,7 @@ pub fn open_and_get_window(
     window.set_always_on_top(window_state.floating).unwrap();
     window.show().unwrap();
     window.set_focus().unwrap();
+
     window.clone()
 }
 

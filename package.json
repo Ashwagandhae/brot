@@ -21,7 +21,7 @@
     "@milkdown/kit": "^7.9.1",
     "@milkdown/plugin-math": "^7.5.9",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-clipboard-manager": "^2.2.2",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.0",
     "@tauri-apps/plugin-dialog": "~2",
     "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-global-shortcut": "^2.2.1",

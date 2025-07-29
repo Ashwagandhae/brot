@@ -60,9 +60,21 @@ export async function setNote(path: string, note: Note): Promise<null> {
   return null;
 }
 
-export async function createNote(title: string): Promise<string> {
+export async function createNote(title: string): Promise<string | null> {
   let res = await sendMessage({ type: "CreateNote", title });
-  return (res as { path: string }).path;
+  return (res as { path: string | null }).path;
+}
+
+export async function updatePath(
+  currentPath: string,
+  newTitle: string
+): Promise<string | null> {
+  let res = await sendMessage({
+    type: "UpdatePath",
+    current_path: currentPath,
+    new_title: newTitle,
+  });
+  return (res as { path: string | null }).path;
 }
 
 export async function getPaletteActions(

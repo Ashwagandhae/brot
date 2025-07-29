@@ -6,6 +6,7 @@
   import { addPinned, getPinned, refresh, removePinned } from "$lib/message";
 
   import { getActionRegistryContext, type ActionRegistry } from "$lib/actions";
+  import { setPathContext } from "$lib/path";
 
   let viewState = getViewStateContext();
 
@@ -13,6 +14,15 @@
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);
+
+  setPathContext({
+    setPath: (from, to) => {
+      if (pinnedPaths == null) return;
+      let index = pinnedPaths.indexOf(from);
+      if (index == -1) return;
+      pinnedPaths[index] = to;
+    },
+  });
 
   $effect(() => {
     $viewState = { type: "pinned", focusPath: focusPath };
@@ -65,13 +75,22 @@
 
   $effect(() => {
     if (pinnedPaths == null) return;
-    noteActionRegistries = pinnedPaths.reduce(
-      (acc, key) => {
-        acc[key] = {};
-        return acc;
-      },
-      {} as { [key: string]: ActionRegistry }
-    );
+    // noteActionRegistries = pinnedPaths.reduce(
+    //   (acc, key) => {
+    //     acc[key] = {};
+    //     return acc;
+    //   },
+    //   {} as { [key: string]: ActionRegistry }
+    // );
+    let newNoteActionRegistries: { [key: string]: ActionRegistry } = {};
+    for (let key of pinnedPaths) {
+      if (noteActionRegistries.hasOwnProperty(key)) {
+        newNoteActionRegistries[key] = noteActionRegistries[key];
+      } else {
+        newNoteActionRegistries[key] = {};
+      }
+    }
+    noteActionRegistries = newNoteActionRegistries;
   });
 
   let noteActionRegistries: { [key: string]: ActionRegistry } = $state({});

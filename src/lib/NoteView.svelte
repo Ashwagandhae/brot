@@ -1,24 +1,26 @@
 <script lang="ts">
   import { getNote, setNote } from "$lib/message";
-  import { onDestroy, onMount, tick, untrack } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
-  import TextBar from "./TextBar.svelte";
 
-  import type { Editor as TipTapEditor } from "@tiptap/core";
   import EditorTipTap from "./EditorTipTap.svelte";
   import type { ActionRegistry } from "./actions";
   import { platform } from "./platform";
+  import Title from "./Title.svelte";
+  import { pathToTitle, pathToUrl } from "./path";
 
   let {
     path,
     registry = $bindable(),
     onfocus,
     focused,
+    autofocus,
   }: {
     path: string;
     registry: ActionRegistry;
     onfocus?: () => void;
     focused: boolean;
+    autofocus?: boolean;
   } = $props();
 
   let note: Note | null = $state(null);
@@ -28,7 +30,13 @@
 
   onMount(async () => {
     note = await getNote(path);
-    initContent = note.content;
+    if (note != null) {
+      initContent = note.content;
+      await tick();
+      if (autofocus) {
+        focusNote();
+      }
+    }
   });
 
   async function saveNote() {
@@ -41,7 +49,7 @@
   let interval = setInterval(async () => {
     if (note == null) return;
     if (!saved) {
-      saveNote();
+      await saveNote();
     }
     saved = true;
   }, 2000);
@@ -53,32 +61,26 @@
     saved = false;
   }
 
-  let editingTitle = $state(false);
-
-  let editedTitle = $state("");
-
-  function updateTitle() {
-    if (note == null) return;
-    editingTitle = false;
-    if (editedTitle == "") return;
-    if (editedTitle != note.meta.title) {
-      note.meta.title = editedTitle;
-      saveNote();
-    }
-    registry?.getEditor?.()?.commands.focus();
-  }
+  let startEditing = $state(() => {});
 
   registry.editNoteTitle = () => startEditing();
-  registry.getNoteTitle = () => note?.meta.title ?? null;
+  registry.getNoteTitle = () => pathToTitle(path);
   registry.toggleNoteMinimized = () => (minimized = !minimized);
-  registry.saveNote = () => {
+  registry.saveNote = async () => {
     let content = getContent();
     setContent(content);
-    saveNote();
+    await saveNote();
+    saved = true;
   };
-  registry.focusNote = () => {
+  registry.focusNote = () => focusNote();
+  registry.copyUrl = () => {
+    navigator.clipboard.writeText(pathToUrl(path));
+  };
+
+  let minimized = $state(false);
+
+  function focusNote() {
     let [from, to] = note?.meta.selection ?? [0, 0];
-    console.log($state.snapshot(registry));
     registry
       .getEditor?.()
       ?.chain()
@@ -86,41 +88,22 @@
       .setTextSelection({ from, to })
       .run();
     element?.scrollIntoView();
-  };
-
-  function startEditing() {
-    editingTitle = true;
-    if (note == null) return;
-    editedTitle = note.meta.title;
   }
-  let minimized = $state(false);
 
   let element: HTMLElement | null = $state(null);
 </script>
 
 <div class="top" bind:this={element}>
   <div class="topBar" class:window={$platform == "window"}>
-    {#if editingTitle && note != null}
-      <div class="titleText">
-        <TextBar
-          bind:value={editedTitle}
-          onaccept={updateTitle}
-          oncancel={() => (editingTitle = false)}
-          {onfocus}
-          autofocus
-          placeholder={"title"}
-        ></TextBar>
-      </div>
-    {:else}
-      <button
-        class="title"
-        disabled={note == null}
-        onclick={startEditing}
-        class:toggled={focused}
-      >
-        {#if note == null}no note{:else}{note.meta.title}{#if !saved}*{/if}{/if}
-      </button>
-    {/if}
+    <Title
+      noteExists={note != null}
+      {saved}
+      {path}
+      {onfocus}
+      {focused}
+      {focusNote}
+      bind:startEditing
+    />
     <div class="tools">
       <button
         class="minimize hidden"
@@ -178,7 +161,7 @@
     box-sizing: border-box;
     overflow: visible;
 
-    justify-content: center;
+    /* justify-content: center; */
 
     z-index: 10;
 
@@ -186,26 +169,8 @@
     gap: 4px;
   }
 
-  .topBar > * {
+  .topBar > :global(*) {
     pointer-events: all;
-  }
-
-  .titleText {
-    width: 180px;
-  }
-  button.title {
-    width: auto;
-    height: 20px;
-    box-sizing: border-box;
-    padding: 0 10px;
-    border-radius: 10px 10px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    line-height: 20px;
-    color: var(--text);
-    border: none;
   }
 
   button.minimize {
