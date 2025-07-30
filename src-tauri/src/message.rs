@@ -16,7 +16,6 @@ use anyhow::Result;
 
 pub mod action;
 pub mod command;
-pub mod editor_state;
 pub mod folder_manager;
 pub mod locater;
 pub mod meta;

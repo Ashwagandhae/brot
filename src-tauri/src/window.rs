@@ -3,8 +3,7 @@ use std::str::FromStr;
 
 use objc2::rc::autoreleasepool;
 use tauri::{
-    AppHandle, Emitter, EventTarget, LogicalPosition, Manager, PhysicalPosition, PhysicalSize,
-    State, WebviewWindow,
+    AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
 };
 
 use crate::{message::locater::Locater, state::AppState};

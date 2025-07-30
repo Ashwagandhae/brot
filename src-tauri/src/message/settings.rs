@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io::Write, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    io::Write,
+    path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 use serde_with::serde_as;
@@ -14,6 +18,9 @@ use anyhow::Result;
 pub struct Settings {
     pub notes_path: Option<String>,
     pub window_states: HashMap<Locater, WindowState>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub minimized_pinned_paths: Option<HashSet<String>>,
 }
 
 pub fn read_settings_file(config_path: &PathBuf) -> Result<Settings> {
@@ -32,6 +39,7 @@ pub fn read_settings_file(config_path: &PathBuf) -> Result<Settings> {
 }
 
 pub async fn write_settings(state: &AppState, settings: Settings) -> Result<()> {
+    println!("writing settings");
     tokio::fs::write(
         state.config_path.join("settings.json"),
         serde_json::to_string(&settings).unwrap(),
@@ -46,6 +54,7 @@ impl Default for Settings {
         Self {
             notes_path: None,
             window_states: HashMap::new(),
+            minimized_pinned_paths: None,
         }
     }
 }
