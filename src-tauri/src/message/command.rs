@@ -16,6 +16,7 @@ use crate::{
 #[derive(Serialize, Deserialize, TS, Clone)]
 pub struct PaletteAction {
     pub title: String,
+    pub icon: Option<String>,
     pub action: PartialAction,
 }
 
@@ -46,6 +47,20 @@ pub async fn get_palette_actions(
         .collect())
 }
 
+pub fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
+    if title_with_icon.starts_with("!") {
+        let (icon, title) = title_with_icon
+            .split_once(" ")
+            .unwrap_or((&title_with_icon, ""));
+        (
+            title.to_owned(),
+            Some(icon.chars().skip(1).collect::<String>()),
+        )
+    } else {
+        (title_with_icon.to_owned(), None)
+    }
+}
+
 pub async fn get_all_palette_actions(
     state: &AppState,
     app: &Option<AppHandle>,
@@ -57,8 +72,9 @@ pub async fn get_all_palette_actions(
             .get(palette_key)
             .ok_or_else(|| anyhow::anyhow!("invalid palette key"))?
             .iter()
-            .map(|(title, generator)| {
-                generate_palette_actions(state, app, title.clone(), generator.clone())
+            .map(|(title_with_icon, generator)| {
+                let (title, icon) = split_title_icon(title_with_icon);
+                generate_palette_actions(state, app, title, icon, generator.clone())
             })
             .collect::<Vec<_>>())
     })
@@ -75,6 +91,7 @@ pub async fn generate_palette_actions(
     state: &AppState,
     app: &Option<AppHandle>,
     title: String,
+    icon: Option<String>,
     generator: PartialActionGenerator,
 ) -> Result<Vec<PaletteAction>> {
     Ok(if title.contains("$note_locater") {
@@ -89,6 +106,7 @@ pub async fn generate_palette_actions(
                 }
                 PaletteAction {
                     title: title.replace("$note_locater", &title_replace),
+                    icon: icon.clone(),
                     action: PartialAction {
                         key: generator.key.clone(),
                         args,
@@ -108,6 +126,7 @@ pub async fn generate_palette_actions(
                 }
                 PaletteAction {
                     title: title.replace("$note_path", &title_replace),
+                    icon: icon.clone(),
                     action: PartialAction {
                         key: generator.key.clone(),
                         args,
@@ -118,6 +137,7 @@ pub async fn generate_palette_actions(
     } else {
         vec![PaletteAction {
             title,
+            icon,
             action: PartialAction {
                 key: generator.key,
                 args: generator.args,
