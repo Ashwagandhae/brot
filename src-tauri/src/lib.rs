@@ -88,7 +88,11 @@ pub fn run() {
         {
             app.plugin(tauri_plugin_shell::init()).plugin(
                 tauri_plugin_global_shortcut::Builder::new()
-                    .with_shortcuts(["command+semicolon", "command+quote"])
+                    .with_shortcuts([
+                        "command+semicolon",
+                        "command+quote",
+                        "command+shift+semicolon",
+                    ])
                     .expect("failed to set shortcuts")
                     .with_handler(|app, shortcut, event| {
                         let state = app.state::<AppState>();
@@ -99,6 +103,12 @@ pub fn run() {
                             }
                             if shortcut.matches(Modifiers::SUPER, Code::Quote) {
                                 open_search(app.clone(), state.clone());
+                            }
+                            if shortcut
+                                .matches(Modifiers::SUPER | Modifiers::SHIFT, Code::Semicolon)
+                            {
+                                use crate::message::locater::Locater;
+                                open_window(app.clone(), state.clone(), Locater::New);
                             }
                         }
                     })
