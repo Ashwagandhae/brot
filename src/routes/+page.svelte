@@ -3,10 +3,17 @@
   import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
-  import { addPinned, getPinned, refresh, removePinned } from "$lib/message";
+  import {
+    addPinned,
+    getPinned,
+    getSettings,
+    refresh,
+    removePinned,
+    setSettings,
+  } from "$lib/message";
 
   import { getActionRegistryContext, type ActionRegistry } from "$lib/actions";
-  import { setPathContext } from "$lib/path";
+  import { pathToTitle, setPathContext } from "$lib/path";
 
   let viewState = getViewStateContext();
 
@@ -14,6 +21,9 @@
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);
+  let noteActionRegistries: { [key: string]: ActionRegistry } = $state({});
+  let minimized: { [key: string]: boolean } = $state({});
+  let refreshKey = $state(false);
 
   setPathContext({
     setPath: (from, to) => {
@@ -71,31 +81,56 @@
     if (pinnedPaths.length > 0) {
       focusPath = pinnedPaths[0];
     }
+    let minimizedPinnedPaths = (await getSettings()).minimized_pinned_paths;
+    minimized = {};
+    for (let path of pinnedPaths) {
+      minimized[path] = minimizedPinnedPaths?.includes(path) ?? false;
+    }
   });
+
+  function changeDictKeys<T>(
+    dict: { [key: string]: T },
+    newKeys: string[],
+    defaultValue: () => T
+  ): { [key: string]: T } {
+    let newDict: { [key: string]: T } = {};
+    for (let key of newKeys) {
+      if (dict.hasOwnProperty(key)) {
+        newDict[key] = dict[key];
+      } else {
+        newDict[key] = defaultValue();
+      }
+    }
+    return newDict;
+  }
 
   $effect(() => {
     if (pinnedPaths == null) return;
-    // noteActionRegistries = pinnedPaths.reduce(
-    //   (acc, key) => {
-    //     acc[key] = {};
-    //     return acc;
-    //   },
-    //   {} as { [key: string]: ActionRegistry }
-    // );
-    let newNoteActionRegistries: { [key: string]: ActionRegistry } = {};
-    for (let key of pinnedPaths) {
-      if (noteActionRegistries.hasOwnProperty(key)) {
-        newNoteActionRegistries[key] = noteActionRegistries[key];
-      } else {
-        newNoteActionRegistries[key] = {};
+    noteActionRegistries = changeDictKeys(
+      untrack(() => noteActionRegistries),
+      pinnedPaths,
+      () => {
+        return {};
       }
-    }
-    noteActionRegistries = newNoteActionRegistries;
+    );
+    minimized = changeDictKeys(
+      untrack(() => minimized),
+      pinnedPaths,
+      () => false
+    );
   });
 
-  let noteActionRegistries: { [key: string]: ActionRegistry } = $state({});
-
-  let refreshKey = $state(false);
+  $effect(() => {
+    let minimizedPinnedPaths = Object.entries(minimized) // use state variable outside of async
+      .filter(([_, minimized]) => minimized)
+      .map(([path, _]) => path);
+    (async () => {
+      if (Object.keys(minimized).length == 0) return;
+      let settings = await getSettings();
+      settings.minimized_pinned_paths = minimizedPinnedPaths;
+      await setSettings(settings);
+    })();
+  });
 </script>
 
 <WindowButtons>
@@ -109,7 +144,9 @@
               focusPath = path;
             }}
             bind:registry={noteActionRegistries[path]}
+            bind:minimized={minimized[path]}
             focused={focusPath == path}
+            canMinimize
           ></NoteView>
         {/if}
       {/each}

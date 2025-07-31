@@ -37,7 +37,12 @@
 <WindowButtons>
   {#key refreshKey}
     {#key path}
-      <NoteView {path} bind:registry={$registry} focused={true} autofocus
+      <NoteView
+        {path}
+        bind:registry={$registry}
+        focused={true}
+        autofocus
+        canMinimize={false}
       ></NoteView>
     {/key}
   {/key}

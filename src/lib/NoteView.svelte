@@ -8,6 +8,7 @@
   import { platform } from "./platform";
   import Title from "./Title.svelte";
   import { pathToTitle, pathToUrl } from "./path";
+  import Icon from "./Icon.svelte";
 
   let {
     path,
@@ -15,12 +16,16 @@
     onfocus,
     focused,
     autofocus,
+    canMinimize,
+    minimized = $bindable(false),
   }: {
     path: string;
     registry: ActionRegistry;
     onfocus?: () => void;
     focused: boolean;
     autofocus?: boolean;
+    canMinimize?: boolean;
+    minimized?: boolean;
   } = $props();
 
   let note: Note | null = $state(null);
@@ -57,8 +62,15 @@
     clearInterval(interval);
   });
 
-  function handleEditorUpdate() {
+  function handleUpdate() {
     saved = false;
+  }
+
+  function handleSelectionChange() {
+    if (note == null) return;
+    let selection = registry.getEditor?.().state.selection;
+    if (selection == null) return;
+    note.meta.selection = [selection.from, selection.to];
   }
 
   let startEditing = $state(() => {});
@@ -77,9 +89,7 @@
     navigator.clipboard.writeText(pathToUrl(path));
   };
 
-  let minimized = $state(false);
-
-  function focusNote() {
+  function focusNote(scroll = true) {
     let [from, to] = note?.meta.selection ?? [0, 0];
     registry
       .getEditor?.()
@@ -87,8 +97,24 @@
       .focus(null, { scrollIntoView: false })
       .setTextSelection({ from, to })
       .run();
-    element?.scrollIntoView();
+    if (scroll) {
+      element?.scrollIntoView();
+    }
   }
+
+  $effect(() => {
+    if (!focused) {
+      registry.getEditor?.().chain().blur().run();
+    }
+  });
+
+  let lastMinimized = false;
+  $effect(() => {
+    if (!minimized && lastMinimized && focused) {
+      focusNote(false);
+    }
+    lastMinimized = minimized;
+  });
 
   let element: HTMLElement | null = $state(null);
 </script>
@@ -105,16 +131,23 @@
       bind:startEditing
     />
     <div class="tools">
-      <button
-        class="minimize hidden"
-        aria-label="minimize"
-        onclick={() => (minimized = !minimized)}
-        >{#if minimized}∧{:else}∨{/if}</button
-      >
+      {#if canMinimize}
+        <button
+          class="minimize hidden"
+          aria-label="minimize"
+          onclick={() => (minimized = !minimized)}
+        >
+          {#if minimized}
+            <Icon name="triangleFlipped"></Icon>
+          {:else}
+            <Icon name="triangle"></Icon>
+          {/if}
+        </button>
+      {/if}
     </div>
   </div>
 
-  {#if !minimized}
+  {#if !minimized || !canMinimize}
     <div class="content">
       {#if note == null || initContent == null}
         <p>no note found</p>
@@ -125,7 +158,8 @@
           bind:setContent
           bind:registry
           {onfocus}
-          onupdate={handleEditorUpdate}
+          onupdate={handleUpdate}
+          onselectionchange={handleSelectionChange}
         ></EditorTipTap>
       {/if}
     </div>
@@ -177,9 +211,14 @@
     height: 20px;
     width: 20px;
 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     font-size: 1rem;
     border-radius: 50%;
     pointer-events: all;
+    padding: 5px;
   }
   .tools {
     position: absolute;

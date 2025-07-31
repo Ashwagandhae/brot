@@ -1,7 +1,6 @@
 <script lang="ts">
   import "./editorTipTap.css";
   import { onMount } from "svelte";
-  import ListItem from "@tiptap/extension-list-item";
   import TextStyle from "@tiptap/extension-text-style";
   import StarterKit from "@tiptap/starter-kit";
   import Table from "@tiptap/extension-table";
@@ -32,6 +31,7 @@
     registry = $bindable(),
     onupdate,
     onfocus,
+    onselectionchange,
   }: {
     initContent: string;
     getContent: () => string;
@@ -39,6 +39,7 @@
     registry: ActionRegistry;
     onupdate?: () => void;
     onfocus?: () => void;
+    onselectionchange?: () => void;
   } = $props();
 
   let editor: Editor | null = null;
@@ -138,6 +139,9 @@
       },
       onFocus: () => {
         onfocus?.();
+      },
+      onSelectionUpdate: () => {
+        onselectionchange?.();
       },
     });
     initRegistry(editor);

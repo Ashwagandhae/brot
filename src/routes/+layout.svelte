@@ -19,7 +19,7 @@
   import { writable, type Writable } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import {
     continuePartialAction,
@@ -46,8 +46,16 @@
   let handleKeydown: (event: KeyboardEvent) => void = $state(() => {});
   let actions: Actions | null = $state(null);
   onMount(async () => {
-    initPlatformName();
+    await initPlatformName();
     actions = await getActions();
+    if ($platform == "window") {
+      await listen("search", () => {
+        if ($viewState == null) return;
+        if (toLocater($viewState) == "pinned") {
+          searchPalette = true;
+        }
+      });
+    }
   });
 
   $effect(() => {
@@ -176,6 +184,7 @@
       .map((choice) => {
         return {
           title: choice,
+          icon: null,
           action: addParam(action, choice),
         };
       });
@@ -197,12 +206,6 @@
         return await getPaletteActions(search, "search", []);
       },
     };
-  });
-  listen("search", () => {
-    if ($viewState == null) return;
-    if (toLocater($viewState) == "pinned") {
-      searchPalette = true;
-    }
   });
 
   async function completeSearch(accepted: boolean) {
