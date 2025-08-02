@@ -13,6 +13,7 @@ export const actions = {
   saveNote: [],
   saveWindowState: [],
   refresh: [],
+  refreshPage: [],
   editorToggleBold: [],
   toggleFloating: [],
   focusPinnedNote: ["number"],

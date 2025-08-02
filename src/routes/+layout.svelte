@@ -120,6 +120,10 @@
       win.setAlwaysOnTop(!val);
     });
   };
+  $registry.refresh = async () => {
+    await msg("refresh");
+    $registry?.refreshPage?.();
+  };
 
   let commandPaletteState: CommandPaletteState = $derived.by(() => {
     if (commandPaletteType == null) return null;

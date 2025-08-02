@@ -51,8 +51,7 @@
       await msg("removePinned", { path: focusPath });
       pinnedPaths = await msg("getPinned");
     };
-    $registry.refresh = async () => {
-      await msg("refresh");
+    $registry.refreshPage = async () => {
       pinnedPaths = await msg("getPinned");
       refreshKey = !refreshKey;
     };

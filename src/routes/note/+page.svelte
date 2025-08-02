@@ -19,8 +19,7 @@
   });
 
   $effect(() => {
-    $registry.refresh = async () => {
-      await msg("refresh");
+    $registry.refreshPage = async () => {
       refreshKey = !refreshKey;
     };
   });
