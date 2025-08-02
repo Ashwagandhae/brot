@@ -14,6 +14,15 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchedPaletteAction {
+    pub indices: Vec<u32>,
+    pub palette_action: PaletteAction,
+}
+
+#[derive(Serialize, Deserialize, TS, Clone)]
+#[ts(export)]
 pub struct PaletteAction {
     pub title: String,
     pub icon: Option<String>,
@@ -23,30 +32,20 @@ pub struct PaletteAction {
 pub async fn get_palette_actions(
     state: &AppState,
     palette_key: &str,
-    search: &str,
     filters: Vec<PartialActionFilter>,
 ) -> Result<Vec<PaletteAction>> {
     Ok(get_all_palette_actions(state, palette_key)
         .await?
         .into_iter()
         .filter(|command| {
-            if search.len() == 0 {
-                return true;
-            }
-            search
-                .split_whitespace()
-                .all(|word| command.title.contains(word))
-        })
-        .filter(|command| {
             filters
                 .iter()
                 .all(|filter| !filter.matches(&command.action))
         })
-        .take(10)
         .collect())
 }
 
-pub fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
+fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
     if title_with_icon.starts_with("!") {
         let (icon, title) = title_with_icon
             .split_once(" ")
@@ -60,7 +59,7 @@ pub fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
     }
 }
 
-pub async fn get_all_palette_actions(
+async fn get_all_palette_actions(
     state: &AppState,
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
@@ -85,7 +84,7 @@ pub async fn get_all_palette_actions(
     Ok(unflattened_palette_actions.into_iter().flatten().collect())
 }
 
-pub async fn generate_palette_actions(
+async fn generate_palette_actions(
     state: &AppState,
     title: String,
     icon: Option<String>,

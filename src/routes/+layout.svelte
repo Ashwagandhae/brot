@@ -5,8 +5,9 @@
   import { initPlatformName, platform } from "$lib/platform";
   import CommandPalette from "$lib/CommandPalette.svelte";
   import {
-    type CommandPaletteState,
+    stateFromType,
     type CommandPaletteType,
+    type CommandProvider,
   } from "$lib/command";
   import { goto } from "$app/navigation";
 
@@ -29,7 +30,6 @@
   import type { Locater } from "../../src-tauri/bindings/Locater";
   import type { Actions } from "../../src-tauri/bindings/Actions";
   import { mapKeydownEventToAction } from "$lib/shortcuts";
-  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
   import { listen } from "@tauri-apps/api/event";
   import { msg } from "$lib/message";
 
@@ -127,27 +127,9 @@
     $registry?.refreshPage?.();
   };
 
-  let commandPaletteState: CommandPaletteState = $derived.by(() => {
+  let commandProvider: CommandProvider | null = $derived.by(() => {
     if (commandPaletteType == null) return null;
-    return {
-      search: "",
-      provider: async (search: string) => {
-        if (commandPaletteType == null) return [];
-        if (commandPaletteType.type == "palette") {
-          return await msg("getPaletteActions", {
-            search,
-            paletteKey: commandPaletteType.key,
-            filters: [],
-          });
-        } else {
-          return getParamActions(
-            search,
-            commandPaletteType.argType,
-            commandPaletteType.action
-          );
-        }
-      },
-    };
+    return stateFromType(commandPaletteType);
   });
 
   function handleCommandPaletteCancel() {
@@ -175,58 +157,7 @@
     };
   }
 
-  function getParamActions(
-    search: string,
-    argType: ArgType,
-    action: PartialAction
-  ): PaletteAction[] {
-    switch (argType) {
-      case "boolean":
-        return enumPaletteActions(["true", "false"], search, action);
-      case "insertion":
-        return enumPaletteActions(["above", "below"], search, action);
-    }
-    return [];
-  }
-
-  function enumPaletteActions(
-    choices: string[],
-    search: string,
-    action: PartialAction
-  ): PaletteAction[] {
-    return choices
-      .filter((choice) => choice.includes(search))
-      .map((choice) => {
-        return {
-          title: choice,
-          icon: null,
-          action: addParam(action, choice),
-        };
-      });
-  }
-
-  function addParam(action: PartialAction, arg: string): PartialAction {
-    return {
-      key: action.key,
-      args: [...action.args, arg],
-    };
-  }
-
   let searchPalette: boolean = $state(false);
-  let searchPaletteState: CommandPaletteState = $derived.by(() => {
-    if (!searchPalette) return null;
-    return {
-      search: "",
-      provider: async (search: string) => {
-        return await msg("getPaletteActions", {
-          search,
-          paletteKey: "search",
-          filters: [],
-        });
-      },
-    };
-  });
-
   async function completeSearch(accepted: boolean) {
     searchPalette = false;
     await invoke("complete_search", { accepted });
@@ -244,11 +175,13 @@
 <svelte:document onkeydown={handleKeydown} />
 
 {#key commandPaletteType}
-  <CommandPalette
-    {commandPaletteState}
-    oncancel={handleCommandPaletteCancel}
-    onaccept={handleCommandPaletteAccept}
-  ></CommandPalette>
+  {#if commandProvider != null}
+    <CommandPalette
+      provider={commandProvider}
+      oncancel={handleCommandPaletteCancel}
+      onaccept={handleCommandPaletteAccept}
+    ></CommandPalette>
+  {/if}
 {/key}
 
 {#if $errorMessage != null}

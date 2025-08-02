@@ -1,17 +1,18 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import type { CommandProvider, CommandPaletteState } from "./command";
+  import { onDestroy, onMount } from "svelte";
+  import type { CommandProvider } from "./command";
   import CommandChoice from "./CommandChoice.svelte";
   import TextBar from "./TextBar.svelte";
   import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+  import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
 
   let {
-    commandPaletteState,
+    provider,
     onaccept,
     oncancel,
   }: {
-    commandPaletteState: CommandPaletteState;
+    provider: CommandProvider;
 
     onaccept?: (command: PartialAction) => void;
     oncancel?: () => void;
@@ -20,18 +21,21 @@
   let search: string = $state("");
 
   let selectedIndex: number = $state(0);
-  let commands: PaletteAction[] = $state([]);
+  let commands: MatchedPaletteAction[] = $state([]);
 
   $effect(() => {
     (async () => {
-      if (commandPaletteState == null) return;
-      commands = await commandPaletteState.provider(search);
+      commands = await provider.search(search);
     })();
   });
 
   $effect(() => {
     commands;
     selectedIndex = 0;
+  });
+
+  onDestroy(() => {
+    stop?.();
   });
 
   function handleKeydown(event: KeyboardEvent) {
@@ -46,32 +50,32 @@
   }
 </script>
 
-{#if commandPaletteState != null}
-  <div class="outer">
-    <div class="content">
-      <TextBar
-        bind:value={search}
-        flat
-        autofocus
-        {oncancel}
-        onaccept={() => {
-          if (selectedIndex >= commands.length) {
-            oncancel?.();
-            return;
-          }
-          onaccept?.(commands[selectedIndex].action);
-        }}
-        onkeydown={handleKeydown}
-      ></TextBar>
-      <div class="choices">
-        {#each commands as command, index}
-          <CommandChoice selected={selectedIndex == index} {command}
-          ></CommandChoice>
-        {/each}
-      </div>
+<div class="outer">
+  <div class="content">
+    <TextBar
+      bind:value={search}
+      flat
+      autofocus
+      {oncancel}
+      onaccept={() => {
+        if (selectedIndex >= commands.length) {
+          oncancel?.();
+          return;
+        }
+        onaccept?.(commands[selectedIndex].paletteAction.action);
+      }}
+      onkeydown={handleKeydown}
+    ></TextBar>
+    <div class="choices">
+      {#each commands as command, index}
+        <CommandChoice
+          selected={selectedIndex == index}
+          command={command.paletteAction}
+        ></CommandChoice>
+      {/each}
     </div>
   </div>
-{/if}
+</div>
 
 <style>
   div.outer {

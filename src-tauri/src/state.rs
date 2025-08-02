@@ -2,13 +2,14 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use tauri::{path::BaseDirectory, App, AppHandle, Manager};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     message::{
         action::Actions,
         folder_manager::FolderManager,
         meta::Meta,
+        palette::Palettes,
         settings::{read_settings_file, Settings},
     },
     window::PinnedWindowState,
@@ -24,7 +25,7 @@ pub struct AppState {
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
     pub actions: Arc<Mutex<Option<Actions>>>,
-
+    pub palettes: Arc<RwLock<Palettes>>,
     pub handle: AppHandle,
 }
 
@@ -41,6 +42,7 @@ impl AppState {
             last_focused_app_name: None,
         }));
         let actions = Arc::new(Mutex::new(None));
+        let palettes = Arc::new(RwLock::new(Palettes::new()));
         let handle = app.handle().clone();
         Ok(Self {
             build_path,
@@ -51,6 +53,7 @@ impl AppState {
             last_focused_app_name,
             pinned_state_before_search,
             actions,
+            palettes,
             handle,
         })
     }

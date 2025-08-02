@@ -6,19 +6,21 @@ use settings::{write_settings, Settings};
 use ts_rs::TS;
 
 use crate::message::action::{read_actions, Actions, PartialActionFilter};
-use crate::message::command::{get_palette_actions, PaletteAction};
 use crate::message::note::update_path;
+use crate::message::palette::{create_palette, search_palette, PaletteId};
+use crate::message::palette_action::MatchedPaletteAction;
 use crate::message::settings::read_settings_file;
 use crate::state::AppState;
 
 use anyhow::Result;
 
 pub mod action;
-pub mod command;
 pub mod folder_manager;
 pub mod locater;
 pub mod meta;
 pub mod note;
+pub mod palette;
+pub mod palette_action;
 pub mod settings;
 pub mod title;
 
@@ -50,10 +52,16 @@ pub enum ClientMessage {
         title: String,
     },
     #[serde(rename_all = "camelCase")]
-    GetPaletteActions {
+    CreatePalette {
         palette_key: String,
-        search: String,
         filters: Vec<PartialActionFilter>,
+    },
+    #[serde(rename_all = "camelCase")]
+    SearchPalette {
+        id: PaletteId,
+        search: String,
+        start: u32,
+        end: u32,
     },
     #[serde(rename_all = "camelCase")]
     AddPinned {
@@ -81,7 +89,8 @@ pub enum ServerMessage {
     UpdatePath(Option<String>),
     CreateNote(Option<String>),
     Note(Option<Note>),
-    GetPaletteActions(Vec<PaletteAction>),
+    CreatePalette(PaletteId),
+    SearchPalette(Vec<MatchedPaletteAction>),
     AddPinned,
     RemovePinned,
     GetPinned(Vec<String>),
@@ -114,12 +123,21 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             let path = create_note(state, title).await?;
             Ok(ServerMessage::CreateNote(path))
         }
-        GetPaletteActions {
+        CreatePalette {
             palette_key,
-            search,
             filters,
-        } => Ok(ServerMessage::GetPaletteActions(
-            get_palette_actions(state, &palette_key, &search, filters).await?,
+        } => Ok(ServerMessage::CreatePalette(
+            create_palette(state, palette_key, filters).await?,
+        )),
+        SearchPalette {
+            id,
+            search,
+            start,
+            end,
+        } => Ok(ServerMessage::SearchPalette(
+            search_palette(state, id, search, start..end)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("invalid id"))?,
         )),
         GetPinned => Ok(ServerMessage::GetPinned(
             read_meta(state, |meta| meta.pinned.clone()).await?,
