@@ -53,6 +53,7 @@
         if ($viewState == null) return;
         if (toLocater($viewState) == "pinned") {
           searchPalette = true;
+          commandPaletteType = { type: "palette", key: "search" };
         }
       });
     }
@@ -122,6 +123,7 @@
   };
   $registry.refresh = async () => {
     await msg("refresh");
+    actions = await msg("getActions");
     $registry?.refreshPage?.();
   };
 
@@ -149,11 +151,16 @@
   });
 
   function handleCommandPaletteCancel() {
+    if (searchPalette) {
+      completeSearch(false);
+    }
     commandPaletteType = null;
   }
 
-  function handleCommandPaletteAccept(action: PartialAction | null) {
-    if (action == null) return;
+  function handleCommandPaletteAccept(action: PartialAction) {
+    if (searchPalette) {
+      completeSearch(true);
+    }
     commandPaletteType = null;
     continuePartialAction($registry, action, (arg) =>
       requestNextParam(arg, action)
@@ -243,23 +250,6 @@
     onaccept={handleCommandPaletteAccept}
   ></CommandPalette>
 {/key}
-
-{#if searchPalette}
-  <CommandPalette
-    commandPaletteState={searchPaletteState}
-    oncancel={() => {
-      completeSearch(false);
-    }}
-    onaccept={async (action) => {
-      if (action == null) {
-        await completeSearch(false);
-        return;
-      }
-      await completeSearch(true);
-      handleCommandPaletteAccept(action);
-    }}
-  ></CommandPalette>
-{/if}
 
 {#if $errorMessage != null}
   <p class="err">{$errorMessage}</p>

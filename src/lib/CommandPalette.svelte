@@ -13,7 +13,7 @@
   }: {
     commandPaletteState: CommandPaletteState;
 
-    onaccept?: (command: PartialAction | null) => void;
+    onaccept?: (command: PartialAction) => void;
     oncancel?: () => void;
   } = $props();
 
@@ -55,10 +55,11 @@
         autofocus
         {oncancel}
         onaccept={() => {
-          if (selectedIndex < commands.length) {
-            onaccept?.(commands[selectedIndex].action);
+          if (selectedIndex >= commands.length) {
+            oncancel?.();
+            return;
           }
-          return onaccept?.(null);
+          onaccept?.(commands[selectedIndex].action);
         }}
         onkeydown={handleKeydown}
       ></TextBar>
