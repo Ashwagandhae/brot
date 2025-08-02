@@ -8,7 +8,7 @@ use crate::{
 };
 
 async fn message(body: web::Json<ClientMessage>, state: web::Data<AppState>) -> impl Responder {
-    HttpResponse::Ok().json(handle_message_and_errors(body.0, &state, None).await)
+    HttpResponse::Ok().json(handle_message_and_errors(body.0, &state).await)
 }
 
 pub async fn run_server(state: AppState) -> std::io::Result<()> {

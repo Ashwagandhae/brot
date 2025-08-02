@@ -1,7 +1,7 @@
 use anyhow::Result;
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+
 use ts_rs::TS;
 
 use crate::{
@@ -22,12 +22,11 @@ pub struct PaletteAction {
 
 pub async fn get_palette_actions(
     state: &AppState,
-    app: &Option<AppHandle>,
     palette_key: &str,
     search: &str,
     filters: Vec<PartialActionFilter>,
 ) -> Result<Vec<PaletteAction>> {
-    Ok(get_all_palette_actions(state, &app, palette_key)
+    Ok(get_all_palette_actions(state, palette_key)
         .await?
         .into_iter()
         .filter(|command| {
@@ -63,10 +62,9 @@ pub fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
 
 pub async fn get_all_palette_actions(
     state: &AppState,
-    app: &Option<AppHandle>,
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
-    let palette_action_futures: anyhow::Result<_> = read_actions(state, app.clone(), |actions| {
+    let palette_action_futures: anyhow::Result<_> = read_actions(state, |actions| {
         Ok(actions
             .palettes
             .get(palette_key)
@@ -74,7 +72,7 @@ pub async fn get_all_palette_actions(
             .iter()
             .map(|(title_with_icon, generator)| {
                 let (title, icon) = split_title_icon(title_with_icon);
-                generate_palette_actions(state, app, title, icon, generator.clone())
+                generate_palette_actions(state, title, icon, generator.clone())
             })
             .collect::<Vec<_>>())
     })
@@ -89,13 +87,12 @@ pub async fn get_all_palette_actions(
 
 pub async fn generate_palette_actions(
     state: &AppState,
-    app: &Option<AppHandle>,
     title: String,
     icon: Option<String>,
     generator: PartialActionGenerator,
 ) -> Result<Vec<PaletteAction>> {
     Ok(if title.contains("$note_locater") {
-        get_all_note_paths(state, app)
+        get_all_note_paths(state)
             .await?
             .into_iter()
             .map(|(locater, title_replace)| {
@@ -115,7 +112,7 @@ pub async fn generate_palette_actions(
             })
             .collect()
     } else if title.contains("$note_path") {
-        get_all_note_paths(state, app)
+        get_all_note_paths(state)
             .await?
             .into_iter()
             .map(|(locater, title_replace)| {
@@ -146,11 +143,8 @@ pub async fn generate_palette_actions(
     })
 }
 
-async fn get_all_note_paths(
-    state: &AppState,
-    app: &Option<AppHandle>,
-) -> Result<Vec<(String, String)>> {
-    read_meta(state, app.clone(), |meta| {
+async fn get_all_note_paths(state: &AppState) -> Result<Vec<(String, String)>> {
+    read_meta(state, |meta| {
         meta.notes
             .iter()
             .map(|(path, _)| (path.clone(), path_to_title(path)))

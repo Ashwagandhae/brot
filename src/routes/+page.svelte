@@ -3,17 +3,10 @@
   import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
-  import {
-    addPinned,
-    getPinned,
-    getSettings,
-    refresh,
-    removePinned,
-    setSettings,
-  } from "$lib/message";
+  import { msg } from "$lib/message";
 
   import { getActionRegistryContext, type ActionRegistry } from "$lib/actions";
-  import { pathToTitle, setPathContext } from "$lib/path";
+  import { setPathContext } from "$lib/path";
 
   let viewState = getViewStateContext();
 
@@ -42,25 +35,25 @@
     $registry.addPinned = async (insertion, path) => {
       if (pinnedPaths == null) return;
       if (pinnedPaths.length == 0) {
-        await addPinned(path, 0);
+        await msg("addPinned", { path, position: 0 });
       } else {
         let position = pinnedPaths.findIndex((path) => path == focusPath);
         if (insertion == "below") {
           position += 1;
         }
-        await addPinned(path, position);
+        await msg("addPinned", { path, position });
       }
-      pinnedPaths = await getPinned();
+      pinnedPaths = await msg("getPinned");
       refreshKey = !refreshKey;
     };
     $registry.removeCurrentPinned = async () => {
       if (focusPath == null) return;
-      await removePinned(focusPath);
-      pinnedPaths = await getPinned();
+      await msg("removePinned", { path: focusPath });
+      pinnedPaths = await msg("getPinned");
     };
     $registry.refresh = async () => {
-      await refresh();
-      pinnedPaths = await getPinned();
+      await msg("refresh");
+      pinnedPaths = await msg("getPinned");
       refreshKey = !refreshKey;
     };
     if (focusPath == null) return;
@@ -77,11 +70,11 @@
     };
   });
   onMount(async () => {
-    pinnedPaths = await getPinned();
+    pinnedPaths = await msg("getPinned");
     if (pinnedPaths.length > 0) {
       focusPath = pinnedPaths[0];
     }
-    let minimizedPinnedPaths = (await getSettings()).minimized_pinned_paths;
+    let minimizedPinnedPaths = (await msg("getSettings")).minimizedPinnedPaths;
     minimized = {};
     for (let path of pinnedPaths) {
       minimized[path] = minimizedPinnedPaths?.includes(path) ?? false;
@@ -126,9 +119,9 @@
       .map(([path, _]) => path);
     (async () => {
       if (Object.keys(minimized).length == 0) return;
-      let settings = await getSettings();
-      settings.minimized_pinned_paths = minimizedPinnedPaths;
-      await setSettings(settings);
+      let settings = await msg("getSettings");
+      settings.minimizedPinnedPaths = minimizedPinnedPaths;
+      await msg("updateSettings", { settings });
     })();
   });
 </script>

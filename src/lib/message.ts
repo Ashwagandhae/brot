@@ -1,14 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { type ClientMessage } from "../../src-tauri/bindings/ClientMessage";
 import { type ServerMessage } from "../../src-tauri/bindings/ServerMessage";
-import type { Settings } from "../../src-tauri/bindings/Settings";
-import type { Note } from "../../src-tauri/bindings/Note";
+import type { ServerResult } from "../../src-tauri/bindings/ServerResult";
 import { errorMessage } from "./error";
 
-import { platform, type Platform } from "./platform";
-import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
-import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
-import type { Actions } from "../../src-tauri/bindings/Actions";
+import { isTauri, platform, type Platform } from "./platform";
 
 let $platform: Platform = null;
 platform.subscribe((newPlatform) => {
@@ -18,8 +14,8 @@ platform.subscribe((newPlatform) => {
 export async function sendMessage(
   message: ClientMessage
 ): Promise<ServerMessage> {
-  let serverMessage: ServerMessage;
-  if (!(window as unknown as any).__TAURI_INTERNALS__) {
+  let serverResult: ServerResult;
+  if (!isTauri()) {
     const response = await fetch("http://localhost:4242/message", {
       method: "POST",
       headers: {
@@ -29,89 +25,43 @@ export async function sendMessage(
     });
 
     const result = await response.json();
-    serverMessage = result;
+    serverResult = result;
   } else {
-    serverMessage = await invoke("message_command", { message });
+    serverResult = await invoke("message_command", { message });
   }
-  if (serverMessage.type == "Error") {
-    errorMessage.set(serverMessage.error);
+  if (serverResult.type == "err") {
+    errorMessage.set(serverResult.error);
+    throw new Error(serverResult.error);
   }
-  return serverMessage;
+  return serverResult.message;
 }
 
-export async function getSettings(): Promise<Settings> {
-  let res = await sendMessage({ type: "RequestSettings" });
-  return (res as { settings: Settings }).settings;
-}
+type ClientDataFor<T extends ClientMessage["type"]> = Extract<
+  ClientMessage,
+  { type: T }
+> extends { data: infer D }
+  ? D
+  : undefined;
 
-export async function setSettings(settings: Settings): Promise<null> {
-  await sendMessage({ type: "UpdateSettings", settings });
-  return null;
-}
+type ServerDataFor<T extends ServerMessage["type"]> = Extract<
+  ServerMessage,
+  { type: T }
+> extends { data: infer D }
+  ? D
+  : undefined;
 
-export async function getNote(path: string): Promise<Note> {
-  let res = await sendMessage({ type: "RequestNote", path });
+export async function msg<T extends ClientMessage["type"]>(
+  ...args: ClientDataFor<T> extends undefined
+    ? [type: T]
+    : [type: T, data: ClientDataFor<T>] // allow user to omit data arg if no data is required
+): Promise<ServerDataFor<T>> {
+  const [type, maybeData] = args as [T, ClientDataFor<T> | undefined];
 
-  return (res as { note: Note }).note;
-}
+  const msg: ClientMessage = {
+    type,
+    ...(maybeData !== undefined ? { data: maybeData } : {}),
+  } as ClientMessage;
 
-export async function setNote(path: string, note: Note): Promise<null> {
-  await sendMessage({ type: "UpdateNote", path, note });
-  return null;
-}
-
-export async function createNote(title: string): Promise<string | null> {
-  let res = await sendMessage({ type: "CreateNote", title });
-  return (res as { path: string | null }).path;
-}
-
-export async function updatePath(
-  currentPath: string,
-  newTitle: string
-): Promise<string | null> {
-  let res = await sendMessage({
-    type: "UpdatePath",
-    current_path: currentPath,
-    new_title: newTitle,
-  });
-  return (res as { path: string | null }).path;
-}
-
-export async function getPaletteActions(
-  search: string,
-  palette_key: string,
-  filters: PartialActionFilter[]
-): Promise<Array<PaletteAction>> {
-  let res = await sendMessage({
-    type: "GetPaletteActions",
-    search,
-    palette_key,
-    filters,
-  });
-  return (res as { actions: Array<PaletteAction> }).actions;
-}
-
-export async function getPinned(): Promise<Array<string>> {
-  let res = await sendMessage({ type: "GetPinned" });
-  return (res as { pinned: Array<string> }).pinned;
-}
-
-export async function addPinned(path: string, position: number): Promise<null> {
-  await sendMessage({ type: "AddPinned", path, position });
-  return null;
-}
-
-export async function removePinned(path: string): Promise<null> {
-  await sendMessage({ type: "RemovePinned", path });
-  return null;
-}
-
-export async function refresh(): Promise<null> {
-  await sendMessage({ type: "Refresh" });
-  return null;
-}
-
-export async function getActions(): Promise<Actions> {
-  let res = await sendMessage({ type: "GetActions" });
-  return (res as { actions: Actions }).actions;
+  const response: ServerMessage = await sendMessage(msg);
+  return (response as unknown as any).data as ServerDataFor<T>;
 }

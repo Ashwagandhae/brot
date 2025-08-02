@@ -1,0 +1,10 @@
+<svg width="100%" style="" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M129.498 87.0711C145.118 71.4501 145.119 46.1235 129.498 30.5025C113.877 14.8816 88.55 14.8816 72.929 30.5025"
+    stroke="currentColor" stroke-width="20" stroke-linecap="round" />
+  <path
+    d="M30.5026 72.9289C14.8816 88.5499 14.8816 113.876 30.5026 129.497C46.1235 145.118 71.4501 145.118 87.0711 129.497"
+    stroke="currentColor" stroke-width="20" stroke-linecap="round" />
+  <rect x="101.213" y="44.6447" width="20" height="80" rx="10"
+    transform="rotate(45 101.213 44.6447)" fill="currentColor" />
+</svg>

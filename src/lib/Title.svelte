@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { updatePath } from "./message";
   import TextBar from "./TextBar.svelte";
+  import { msg } from "./message";
   import { getPathContext, pathToTitle } from "./path";
 
   let pathContext = getPathContext();
@@ -35,7 +35,10 @@
   async function updateTitle() {
     editingTitle = false;
     focusNote();
-    let newPath = await updatePath(path, editedTitle);
+    let newPath = await msg("updatePath", {
+      currentPath: path,
+      newTitle: editedTitle,
+    });
     if (newPath != null) {
       pathContext.setPath(path, newPath);
     }

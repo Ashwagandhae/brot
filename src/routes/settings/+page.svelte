@@ -1,26 +1,26 @@
 <script lang="ts">
-  import { getSettings, setSettings } from "$lib/message";
   import { onMount } from "svelte";
   import type { Settings } from "../../../src-tauri/bindings/Settings";
   import { getViewStateContext } from "$lib/viewState";
+  import { msg } from "$lib/message";
   let viewState = getViewStateContext();
   $viewState = { type: "settings" };
 
-  let settings: Settings = $state({ notes_path: null, window_states: {} });
+  let settings: Settings = $state({ notesPath: null, windowStates: {} });
 
   onMount(async () => {
-    settings = await getSettings();
+    settings = await msg("getSettings");
   });
 
   async function updateSettings() {
-    await setSettings(settings);
+    await msg("updateSettings", { settings });
   }
 </script>
 
 <main>
   <h1>Settings</h1>
   <form onsubmit={updateSettings}>
-    <textarea bind:value={settings.notes_path}></textarea>
+    <textarea bind:value={settings.notesPath}></textarea>
     <button type="submit">Submit</button>
     <a href="../">back</a>
   </form>

@@ -3,7 +3,6 @@ use note::Note;
 use note::{create_note, read_note, write_note};
 use serde::{Deserialize, Serialize};
 use settings::{write_settings, Settings};
-use tauri::AppHandle;
 use ts_rs::TS;
 
 use crate::message::action::{read_actions, Actions, PartialActionFilter};
@@ -25,35 +24,43 @@ pub mod title;
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
 pub enum ClientMessage {
-    RequestSettings,
+    GetSettings,
+    #[serde(rename_all = "camelCase")]
     UpdateSettings {
         settings: Settings,
     },
-    RequestNote {
+    #[serde(rename_all = "camelCase")]
+    GetNote {
         path: String,
     },
+    #[serde(rename_all = "camelCase")]
     UpdateNote {
         path: String,
         note: Note,
     },
+    #[serde(rename_all = "camelCase")]
     UpdatePath {
         current_path: String,
         new_title: String,
     },
+    #[serde(rename_all = "camelCase")]
     CreateNote {
         title: String,
     },
+    #[serde(rename_all = "camelCase")]
     GetPaletteActions {
         palette_key: String,
         search: String,
         filters: Vec<PartialActionFilter>,
     },
+    #[serde(rename_all = "camelCase")]
     AddPinned {
         path: String,
         position: usize,
     },
+    #[serde(rename_all = "camelCase")]
     RemovePinned {
         path: String,
     },
@@ -64,75 +71,72 @@ pub enum ClientMessage {
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
+/// ServerMessage's enum variant names must match ClientMessage's enum variant names
 pub enum ServerMessage {
-    Settings { settings: Settings },
-    Note { note: Option<Note> },
-    NotePath { path: Option<String> },
-    None,
-    PaletteActions { actions: Vec<PaletteAction> },
-    Actions { actions: Actions },
-    Pinned { pinned: Vec<String> },
-    Error { error: String },
+    GetSettings(Settings),
+    UpdateSettings,
+    GetNote(Option<Note>),
+    UpdateNote,
+    UpdatePath(Option<String>),
+    CreateNote(Option<String>),
+    Note(Option<Note>),
+    GetPaletteActions(Vec<PaletteAction>),
+    AddPinned,
+    RemovePinned,
+    GetPinned(Vec<String>),
+    GetActions(Actions),
+    Refresh,
 }
 
-pub async fn handle_message(
-    message: ClientMessage,
-    state: &AppState,
-    app: Option<AppHandle>,
-) -> Result<ServerMessage> {
+pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<ServerMessage> {
     use ClientMessage::*;
     match message {
-        RequestSettings => Ok(ServerMessage::Settings {
-            settings: state.settings.lock().await.clone(),
-        }),
+        GetSettings => Ok(ServerMessage::GetSettings(
+            state.settings.lock().await.clone(),
+        )),
         UpdateSettings { settings } => {
             write_settings(state, settings).await?;
-            Ok(ServerMessage::None)
+            Ok(ServerMessage::UpdateSettings)
         }
-        RequestNote { path } => Ok(ServerMessage::Note {
-            note: read_note(state, app, &path).await?,
-        }),
+        GetNote { path } => Ok(ServerMessage::Note(read_note(state, &path).await?)),
         UpdateNote { path, note } => {
-            write_note(state, app, &path, note).await?;
-            Ok(ServerMessage::None)
+            write_note(state, &path, note).await?;
+            Ok(ServerMessage::UpdateNote)
         }
         UpdatePath {
             current_path,
             new_title,
-        } => Ok(ServerMessage::NotePath {
-            path: update_path(state, app, current_path, new_title).await?,
-        }),
+        } => Ok(ServerMessage::UpdatePath(
+            update_path(state, current_path, new_title).await?,
+        )),
         CreateNote { title } => {
-            let path = create_note(state, app, title).await?;
-            Ok(ServerMessage::NotePath { path })
+            let path = create_note(state, title).await?;
+            Ok(ServerMessage::CreateNote(path))
         }
         GetPaletteActions {
             palette_key,
             search,
             filters,
-        } => Ok(ServerMessage::PaletteActions {
-            actions: get_palette_actions(state, &app, &palette_key, &search, filters).await?,
-        }),
-        GetPinned => Ok(ServerMessage::Pinned {
-            pinned: read_meta(state, app, |meta| meta.pinned.clone()).await?,
-        }),
+        } => Ok(ServerMessage::GetPaletteActions(
+            get_palette_actions(state, &palette_key, &search, filters).await?,
+        )),
+        GetPinned => Ok(ServerMessage::GetPinned(
+            read_meta(state, |meta| meta.pinned.clone()).await?,
+        )),
         AddPinned { path, position } => {
-            if read_meta(state, app.clone(), |meta| meta.pinned.contains(&path)).await? {
-                return Ok(ServerMessage::None);
+            if read_meta(state, |meta| meta.pinned.contains(&path)).await? {
+                return Ok(ServerMessage::AddPinned);
             }
-            write_meta(state, app, |meta| {
-                meta.pinned.insert(position, path.clone())
-            })
-            .await?;
-            Ok(ServerMessage::None)
+            write_meta(state, |meta| meta.pinned.insert(position, path.clone())).await?;
+            Ok(ServerMessage::AddPinned)
         }
         RemovePinned { path } => {
-            write_meta(state, app, |meta| {
+            write_meta(state, |meta| {
                 meta.pinned.retain(|p| *p != path);
             })
             .await?;
-            Ok(ServerMessage::None)
+            Ok(ServerMessage::RemovePinned)
         }
         Refresh => {
             *state.meta.lock().await = None;
@@ -141,26 +145,29 @@ pub async fn handle_message(
                 tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
             *state.actions.lock().await = None;
 
-            Ok(ServerMessage::None)
+            Ok(ServerMessage::Refresh)
         }
-        GetActions => Ok(ServerMessage::Actions {
-            actions: read_actions(state, app, |a| a.clone()).await?,
-        }),
+        GetActions => Ok(ServerMessage::GetActions(
+            read_actions(state, |a| a.clone()).await?,
+        )),
     }
 }
 
-pub async fn handle_message_and_errors(
-    message: ClientMessage,
-    state: &AppState,
-    app: Option<AppHandle>,
-) -> ServerMessage {
-    let response = handle_message(message, state, app).await;
+#[derive(Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ServerResult {
+    Ok { message: ServerMessage },
+    Err { error: String },
+}
+pub async fn handle_message_and_errors(message: ClientMessage, state: &AppState) -> ServerResult {
+    let response = handle_message(message, state).await;
 
     match response {
-        Ok(message) => message,
+        Ok(message) => ServerResult::Ok { message },
         Err(error) => {
             println!("server err: {}", error.to_string());
-            ServerMessage::Error {
+            ServerResult::Err {
                 error: error.to_string(),
             }
         }

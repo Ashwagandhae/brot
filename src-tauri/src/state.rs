@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use tauri::{path::BaseDirectory, App, Manager};
+use tauri::{path::BaseDirectory, App, AppHandle, Manager};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -24,6 +24,8 @@ pub struct AppState {
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
     pub actions: Arc<Mutex<Option<Actions>>>,
+
+    pub handle: AppHandle,
 }
 
 impl AppState {
@@ -39,6 +41,7 @@ impl AppState {
             last_focused_app_name: None,
         }));
         let actions = Arc::new(Mutex::new(None));
+        let handle = app.handle().clone();
         Ok(Self {
             build_path,
             config_path,
@@ -48,6 +51,7 @@ impl AppState {
             last_focused_app_name,
             pinned_state_before_search,
             actions,
+            handle,
         })
     }
 }

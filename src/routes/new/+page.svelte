@@ -1,10 +1,10 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { getViewStateContext } from "$lib/viewState";
-  import { createNote } from "$lib/message";
   import TextBar from "$lib/TextBar.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { onMount } from "svelte";
+  import { msg } from "$lib/message";
 
   let viewState = getViewStateContext();
   $viewState = { type: "new" };
@@ -12,8 +12,9 @@
   let title = $state("");
 
   async function createAndGotoNote() {
-    let path = await createNote(title);
-    goto("./note?p=" + path);
+    let path = await msg("createNote", { title });
+    if (path == null) return;
+    goto(`./note?p=${path}`);
   }
   let element: HTMLElement | undefined = $state(undefined);
   onMount(() => {

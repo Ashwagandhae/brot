@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use anyhow::anyhow;
 use anyhow::Result;
 use tauri::App;
-use tauri::AppHandle;
 use tauri_plugin_android_fs::Entry;
 use tauri_plugin_android_fs::{AndroidFsExt, FileUri, PersistableAccessMode, PrivateDir};
 use tokio::fs;
@@ -65,7 +64,7 @@ impl FolderManager {
     }
 }
 
-pub async fn read(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<Option<String>> {
+pub async fn read(state: &AppState, path: &str) -> Result<Option<String>> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
@@ -79,9 +78,9 @@ pub async fn read(state: &AppState, app: Option<AppHandle>, path: &str) -> Resul
         }
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
+            let app = state.handle.clone();
             let path = path.to_owned();
             tokio::task::spawn_blocking(move || {
-                let app = app.unwrap();
                 let api = app.android_fs();
                 match api.resolve_uri(&uri, &path) {
                     Ok(file_uri) => Ok(Some(api.read_to_string(&file_uri)?)),
@@ -98,12 +97,7 @@ pub async fn read(state: &AppState, app: Option<AppHandle>, path: &str) -> Resul
     }
 }
 
-pub async fn write(
-    state: &AppState,
-    app: Option<AppHandle>,
-    path: &str,
-    contents: String,
-) -> Result<()> {
+pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
@@ -115,8 +109,8 @@ pub async fn write(
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
             let path = path.to_owned();
+            let app = state.handle.clone();
             tokio::task::spawn_blocking(move || {
-                let app = app.unwrap();
                 let api = app.android_fs();
                 let file_uri = api.resolve_uri(&uri, path)?;
                 api.write(&file_uri, contents.as_bytes())?;
@@ -127,7 +121,7 @@ pub async fn write(
     }
 }
 
-pub async fn remove_file(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<()> {
+pub async fn remove_file(state: &AppState, path: &str) -> Result<()> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
@@ -139,8 +133,8 @@ pub async fn remove_file(state: &AppState, app: Option<AppHandle>, path: &str) -
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
             let path = path.to_owned();
+            let app = state.handle.clone();
             tokio::task::spawn_blocking(move || {
-                let app = app.unwrap();
                 let api = app.android_fs();
                 let file_uri = api.resolve_uri(&uri, path)?;
                 api.remove_file(&file_uri)?;
@@ -151,7 +145,7 @@ pub async fn remove_file(state: &AppState, app: Option<AppHandle>, path: &str) -
     }
 }
 
-pub async fn file_exists(state: &AppState, app: Option<AppHandle>, path: &str) -> Result<bool> {
+pub async fn file_exists(state: &AppState, path: &str) -> Result<bool> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
@@ -162,8 +156,8 @@ pub async fn file_exists(state: &AppState, app: Option<AppHandle>, path: &str) -
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
             let path = path.to_owned();
+            let app = state.handle.clone();
             tokio::task::spawn_blocking(move || {
-                let app = app.unwrap();
                 let api = app.android_fs();
                 match api.resolve_uri(&uri, &path) {
                     Ok(_) => Ok(true),
@@ -184,7 +178,7 @@ async fn get_folder_path(state: &AppState, path: &str) -> Option<PathBuf> {
     Some(PathBuf::from(state.settings.lock().await.notes_path.clone()?).join(path))
 }
 
-pub async fn read_dir(state: &AppState, app: Option<AppHandle>) -> Result<Vec<String>> {
+pub async fn read_dir(state: &AppState) -> Result<Vec<String>> {
     match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, "").await else {
@@ -204,8 +198,8 @@ pub async fn read_dir(state: &AppState, app: Option<AppHandle>) -> Result<Vec<St
         }
         FolderManager::Android { ref uri } => {
             let uri = uri.clone();
+            let app = state.handle.clone();
             tokio::task::spawn_blocking(move || {
-                let app = app.unwrap();
                 let api = app.android_fs();
                 Ok(api
                     .read_dir(&uri)?

@@ -6,7 +6,6 @@ use serde::{
     de::{self, MapAccess, Visitor},
     Deserialize, Deserializer, Serialize,
 };
-use tauri::AppHandle;
 use ts_rs::TS;
 
 use crate::{message::folder_manager::read, state::AppState};
@@ -15,6 +14,8 @@ const ACTIONS_PATH: &str = "brot_actions.toml";
 
 #[derive(Serialize, Deserialize, TS, Clone, Default)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
+
 pub struct Actions {
     pub shortcuts: HashMap<String, PartialActionGenerator>,
     pub palettes: HashMap<String, HashMap<String, PartialActionGenerator>>,
@@ -22,6 +23,8 @@ pub struct Actions {
 
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
+
 pub struct PartialAction {
     pub key: String,
     pub args: Vec<String>,
@@ -29,6 +32,8 @@ pub struct PartialAction {
 
 #[derive(Serialize, TS, Clone)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
+
 pub struct PartialActionGenerator {
     pub key: String,
     pub args: Vec<String>,
@@ -36,6 +41,8 @@ pub struct PartialActionGenerator {
 
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
+
 pub struct PartialActionFilter {
     pub key: String,
     pub args: Vec<Option<String>>,
@@ -52,8 +59,8 @@ impl PartialActionFilter {
     }
 }
 
-pub async fn read_actions_file(state: &AppState, app: Option<AppHandle>) -> Result<Actions> {
-    match read(state, app.clone(), ACTIONS_PATH).await? {
+pub async fn read_actions_file(state: &AppState) -> Result<Actions> {
+    match read(state, ACTIONS_PATH).await? {
         Some(contents) => Ok(toml::from_str(&contents)?),
         None => Ok(Actions::default()),
     }
@@ -61,14 +68,13 @@ pub async fn read_actions_file(state: &AppState, app: Option<AppHandle>) -> Resu
 
 pub async fn read_actions<T>(
     state: &AppState,
-    app: Option<AppHandle>,
     mut function: impl FnMut(&Actions) -> T,
 ) -> Result<T> {
     let mut guard = state.actions.lock().await;
     if let Some(ref actions) = *guard {
         Ok(function(actions))
     } else {
-        let actions = read_actions_file(state, app).await?;
+        let actions = read_actions_file(state).await?;
         let res = function(&actions);
         *guard = Some(actions);
         Ok(res)

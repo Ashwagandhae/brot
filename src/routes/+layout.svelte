@@ -8,7 +8,6 @@
     type CommandPaletteState,
     type CommandPaletteType,
   } from "$lib/command";
-  import { getActions, getPaletteActions } from "$lib/message";
   import { goto } from "$app/navigation";
 
   import {
@@ -19,7 +18,7 @@
   import { writable, type Writable } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onDestroy, onMount } from "svelte";
+  import { onMount } from "svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import {
     continuePartialAction,
@@ -32,6 +31,7 @@
   import { mapKeydownEventToAction } from "$lib/shortcuts";
   import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
   import { listen } from "@tauri-apps/api/event";
+  import { msg } from "$lib/message";
 
   let { children } = $props();
 
@@ -47,7 +47,7 @@
   let actions: Actions | null = $state(null);
   onMount(async () => {
     await initPlatformName();
-    actions = await getActions();
+    actions = await msg("getActions");
     if ($platform == "window") {
       await listen("search", () => {
         if ($viewState == null) return;
@@ -128,7 +128,11 @@
       provider: async (search: string) => {
         if (commandPaletteType == null) return [];
         if (commandPaletteType.type == "palette") {
-          return await getPaletteActions(search, commandPaletteType.key, []);
+          return await msg("getPaletteActions", {
+            search,
+            paletteKey: commandPaletteType.key,
+            filters: [],
+          });
         } else {
           return getParamActions(
             search,
@@ -203,7 +207,11 @@
     return {
       search: "",
       provider: async (search: string) => {
-        return await getPaletteActions(search, "search", []);
+        return await msg("getPaletteActions", {
+          search,
+          paletteKey: "search",
+          filters: [],
+        });
       },
     };
   });

@@ -4,4 +4,7 @@ import type { Note } from "./Note";
 import type { PaletteAction } from "./PaletteAction";
 import type { Settings } from "./Settings";
 
-export type ServerMessage = { "type": "Settings", settings: Settings, } | { "type": "Note", note: Note | null, } | { "type": "NotePath", path: string | null, } | { "type": "None" } | { "type": "PaletteActions", actions: Array<PaletteAction>, } | { "type": "Actions", actions: Actions, } | { "type": "Pinned", pinned: Array<string>, } | { "type": "Error", error: string, };
+/**
+ * ServerMessage's enum variant names must match ClientMessage's enum variant names
+ */
+export type ServerMessage = { "type": "getSettings", "data": Settings } | { "type": "updateSettings" } | { "type": "getNote", "data": Note | null } | { "type": "updateNote" } | { "type": "updatePath", "data": string | null } | { "type": "createNote", "data": string | null } | { "type": "note", "data": Note | null } | { "type": "getPaletteActions", "data": Array<PaletteAction> } | { "type": "addPinned" } | { "type": "removePinned" } | { "type": "getPinned", "data": Array<string> } | { "type": "getActions", "data": Actions } | { "type": "refresh" };

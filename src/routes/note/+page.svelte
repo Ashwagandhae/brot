@@ -4,8 +4,8 @@
   import NoteView from "$lib/NoteView.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { getActionRegistryContext } from "$lib/actions";
+  import { msg } from "$lib/message";
 
-  import { refresh } from "$lib/message";
   import { setPathContext } from "$lib/path";
   import { getViewStateContext } from "$lib/viewState";
 
@@ -20,7 +20,7 @@
 
   $effect(() => {
     $registry.refresh = async () => {
-      await refresh();
+      await msg("refresh");
       refreshKey = !refreshKey;
     };
   });

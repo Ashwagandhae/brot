@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { getNote, setNote } from "$lib/message";
   import { onDestroy, onMount, tick } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
 
@@ -9,6 +8,7 @@
   import Title from "./Title.svelte";
   import { pathToTitle, pathToUrl } from "./path";
   import Icon from "./Icon.svelte";
+  import { msg } from "./message";
 
   let {
     path,
@@ -34,7 +34,7 @@
   let setContent: (markdown: string) => void = $state(() => {});
 
   onMount(async () => {
-    note = await getNote(path);
+    note = await msg("getNote", { path });
     if (note != null) {
       initContent = note.content;
       await tick();
@@ -47,7 +47,7 @@
   async function saveNote() {
     if (note == null) return;
     note.content = getContent();
-    await setNote(path, note);
+    await msg("updateNote", { path, note });
   }
 
   let saved = $state(true);

@@ -1,6 +1,6 @@
-use message::{handle_message_and_errors, ClientMessage, ServerMessage};
+use message::{handle_message_and_errors, ClientMessage};
 use state::AppState;
-use tauri::{AppHandle, Manager, State};
+use tauri::{Manager, State};
 
 #[cfg(not(target_os = "android"))]
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
@@ -10,6 +10,8 @@ use window::{complete_search, open_search, open_window};
 
 #[cfg(not(target_os = "android"))]
 use window_state::update_window_state;
+
+use crate::message::ServerResult;
 
 pub mod message;
 pub mod server;
@@ -36,15 +38,13 @@ fn is_android() -> bool {
 async fn message_command(
     message: ClientMessage,
     state: State<'_, AppState>,
-    app: AppHandle,
-) -> Result<ServerMessage, String> {
-    Ok(handle_message_and_errors(message, &state, Some(app)).await)
+) -> Result<ServerResult, String> {
+    Ok(handle_message_and_errors(message, &state).await)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default().plugin(tauri_plugin_clipboard_manager::init());
-
     let app = app
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_android_fs::init())

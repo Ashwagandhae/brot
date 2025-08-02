@@ -5,16 +5,15 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use ts_rs::TS;
 
 use crate::{message::locater::Locater, state::AppState, window_state::WindowState};
 
 use anyhow::Result;
 
-#[serde_as]
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct Settings {
     pub notes_path: Option<String>,
     pub window_states: HashMap<Locater, WindowState>,

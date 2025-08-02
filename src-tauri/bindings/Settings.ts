@@ -2,4 +2,4 @@
 import type { Locater } from "./Locater";
 import type { WindowState } from "./WindowState";
 
-export type Settings = { notes_path: string | null, window_states: { [key in Locater]?: WindowState }, minimized_pinned_paths?: Array<string>, };
+export type Settings = { notesPath: string | null, windowStates: { [key in Locater]?: WindowState }, minimizedPinnedPaths?: Array<string>, };
