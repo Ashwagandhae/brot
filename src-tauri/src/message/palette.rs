@@ -44,6 +44,11 @@ pub async fn search_palette(
     Ok(palettes.search_palette(id, &search, range).await?)
 }
 
+pub async fn delete_palette(state: &AppState, id: PaletteId) {
+    let mut palettes = state.palettes.write().await;
+    palettes.delete_palette(id);
+}
+
 impl Palettes {
     pub fn new() -> Self {
         Self {
@@ -63,6 +68,10 @@ impl Palettes {
         self.palettes
             .insert(id, Arc::new(Mutex::new(Palette::new(actions))));
         id
+    }
+
+    pub fn delete_palette(&mut self, id: PaletteId) {
+        self.palettes.remove(&id);
     }
 
     pub async fn search_palette(
@@ -89,7 +98,7 @@ impl Palettes {
     }
 }
 
-pub struct Palette {
+struct Palette {
     nucleo: Nucleo<PaletteAction>,
     matcher: Matcher,
     last_search: Option<String>,
@@ -134,7 +143,7 @@ impl Palette {
             return Vec::new();
         }
         let pattern = snapshot.pattern();
-        let start = range.start.min(count - 1);
+        let start = range.start.min(count);
         let end = range.end.min(count);
         snapshot
             .matched_items(start..end)

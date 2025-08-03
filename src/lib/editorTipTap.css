@@ -3,40 +3,7 @@
 .tiptap:first-child {
   margin-top: 0;
 }
-
-.tiptap code {
-  font-family: "JetBrains Mono", monospace;
-  font-feature-settings: "calt" 1, "liga" 1;
-  /* font-variant-ligatures: contextual common-ligatures; */
-  background-color: var(--back-1);
-  font-size: 0.85rem;
-  border-radius: 0.4rem;
-  padding: 0.2em 0.3em;
-}
-
-.tiptap .latex {
-  font-family: "JetBrains Mono", monospace;
-  font-feature-settings: "calt" 1, "liga" 1;
-  /* font-variant-ligatures: contextual common-ligatures; */
-  background-color: var(--back-1);
-  border-radius: 0.4rem;
-  padding: 0.2em 0.3em;
-}
-
-.tiptap pre {
-  background: var(--back-1);
-  border-radius: 0.5rem;
-  color: var(--white);
-  font-family: "JetBrainsMono", monospace;
-  margin: 1.5rem 0;
-  padding: 0.25em 0.3em;
-}
-.tiptap pre code {
-  background: none;
-  color: inherit;
-  padding: 0;
-}
-
+/* paragraph spacing */
 .tiptap ul,
 .tiptap ol,
 .tiptap p {
@@ -49,17 +16,67 @@
   padding-left: 1.5em;
 }
 
+/* task list */
+ul[data-type="taskList"] {
+  list-style: none;
+  margin-left: 0;
+  padding: 0;
+}
+
+ul[data-type="taskList"] li {
+  align-items: flex-start;
+  display: flex;
+}
+ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+  user-select: none;
+}
+ul[data-type="taskList"] li > div {
+  flex: 1 1 auto;
+}
+ul[data-type="taskList"] input[type="checkbox"] {
+  cursor: pointer;
+}
+
+ul[data-type="taskList"] ul[data-type="taskList"] {
+  margin: 0;
+}
+
+/* code block */
 .tiptap code {
+  font-family: "JetBrains Mono", monospace;
+  font-feature-settings: "calt" 1, "liga" 1;
+  background-color: var(--back-1);
+  font-size: 0.85rem;
+  border-radius: 0.4rem;
+  padding: 0.2em 0.3em;
   tab-size: 2ch;
 }
 
 .tiptap pre {
-  margin-top: 1em;
-  margin-bottom: 1em;
+  background: var(--back-1);
+  border-radius: 0.5rem;
+  color: var(--white);
+  font-family: "JetBrainsMono", monospace;
+  margin: 0.5rem 0;
+  padding: 0.25em 0.3em;
   line-height: 1.4;
 }
+.tiptap pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
 
-/* Table-specific styling */
+/* blockquote */
+.tiptap blockquote {
+  border-left: 3px solid var(--text-weak);
+  margin: 1rem 0;
+  padding-left: 0.5rem;
+}
+
+/* table  */
 .tiptap table {
   border-collapse: collapse;
   margin: 0;

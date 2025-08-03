@@ -82,7 +82,7 @@
     justify-content: center;
     font-size: 0.8rem;
     line-height: 20px;
-    color: var(--text);
+    color: var(--text-strong);
     border: none;
   }
 </style>

@@ -19,7 +19,7 @@
   import { writable, type Writable } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import {
     continuePartialAction,
@@ -126,6 +126,12 @@
     actions = await msg("getActions");
     $registry?.refreshPage?.();
   };
+  $registry.historyBack = () => {
+    history.back();
+  };
+  $registry.historyForward = () => {
+    history.forward();
+  };
 
   let commandProvider: CommandProvider | null = $derived.by(() => {
     if (commandPaletteType == null) return null;
@@ -139,11 +145,12 @@
     commandPaletteType = null;
   }
 
-  function handleCommandPaletteAccept(action: PartialAction) {
+  async function handleCommandPaletteAccept(action: PartialAction) {
     if (searchPalette) {
       completeSearch(true);
     }
     commandPaletteType = null;
+    await tick();
     continuePartialAction($registry, action, (arg) =>
       requestNextParam(arg, action)
     );

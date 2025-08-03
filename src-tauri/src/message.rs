@@ -7,7 +7,7 @@ use ts_rs::TS;
 
 use crate::message::action::{read_actions, Actions, PartialActionFilter};
 use crate::message::note::update_path;
-use crate::message::palette::{create_palette, search_palette, PaletteId};
+use crate::message::palette::{create_palette, delete_palette, search_palette, PaletteId};
 use crate::message::palette_action::MatchedPaletteAction;
 use crate::message::settings::read_settings_file;
 use crate::state::AppState;
@@ -57,6 +57,10 @@ pub enum ClientMessage {
         filters: Vec<PartialActionFilter>,
     },
     #[serde(rename_all = "camelCase")]
+    DeletePalette {
+        id: PaletteId,
+    },
+    #[serde(rename_all = "camelCase")]
     SearchPalette {
         id: PaletteId,
         search: String,
@@ -90,7 +94,8 @@ pub enum ServerMessage {
     CreateNote(Option<String>),
     Note(Option<Note>),
     CreatePalette(PaletteId),
-    SearchPalette(Vec<MatchedPaletteAction>),
+    SearchPalette(Option<Vec<MatchedPaletteAction>>),
+    DeletePalette,
     AddPinned,
     RemovePinned,
     GetPinned(Vec<String>),
@@ -135,10 +140,12 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             start,
             end,
         } => Ok(ServerMessage::SearchPalette(
-            search_palette(state, id, search, start..end)
-                .await?
-                .ok_or_else(|| anyhow::anyhow!("invalid id"))?,
+            search_palette(state, id, search, start..end).await?,
         )),
+        DeletePalette { id } => {
+            delete_palette(state, id).await;
+            Ok(ServerMessage::DeletePalette)
+        }
         GetPinned => Ok(ServerMessage::GetPinned(
             read_meta(state, |meta| meta.pinned.clone()).await?,
         )),

@@ -3,7 +3,6 @@
   import type { CommandProvider } from "./command";
   import CommandChoice from "./CommandChoice.svelte";
   import TextBar from "./TextBar.svelte";
-  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
 
@@ -18,6 +17,12 @@
     oncancel?: () => void;
   } = $props();
 
+  let previousFocus: Element | null = null;
+  onMount(() => {
+    previousFocus = document.activeElement;
+    textElement?.focus();
+  });
+
   let search: string = $state("");
 
   let selectedIndex: number = $state(0);
@@ -25,37 +30,56 @@
 
   $effect(() => {
     (async () => {
-      commands = await provider.search(search);
+      commands = await provider.search(search, 0, 10);
     })();
   });
 
   $effect(() => {
-    commands;
+    search;
     selectedIndex = 0;
   });
 
   onDestroy(() => {
     stop?.();
+    if (previousFocus == null) return;
+    if (previousFocus instanceof HTMLElement) {
+      previousFocus.focus();
+    }
   });
 
-  function handleKeydown(event: KeyboardEvent) {
+  async function handleKeydown(event: KeyboardEvent) {
+    let newSelectedIndex = selectedIndex;
     if (event.key == "ArrowUp") {
-      selectedIndex -= 1;
+      newSelectedIndex -= 1;
       event.preventDefault();
     } else if (event.key == "ArrowDown") {
-      selectedIndex += 1;
+      newSelectedIndex += 1;
       event.preventDefault();
     }
-    selectedIndex = Math.max(0, Math.min(commands.length - 1, selectedIndex));
+    if (newSelectedIndex >= commands.length) {
+      let newCommands = await provider.search(
+        search,
+        commands.length,
+        commands.length + 10
+      );
+      commands = [...commands, ...newCommands];
+    }
+    selectedIndex = Math.max(
+      0,
+      Math.min(commands.length - 1, newSelectedIndex)
+    );
   }
+
+  let choices: HTMLElement | null = $state(null);
+  let textElement: HTMLElement | undefined = $state(undefined);
 </script>
 
 <div class="outer">
   <div class="content">
     <TextBar
       bind:value={search}
+      bind:element={textElement}
       flat
-      autofocus
       {oncancel}
       onaccept={() => {
         if (selectedIndex >= commands.length) {
@@ -66,11 +90,12 @@
       }}
       onkeydown={handleKeydown}
     ></TextBar>
-    <div class="choices">
-      {#each commands as command, index}
+    <div class="choices" bind:this={choices}>
+      {#each commands as command, index (index)}
         <CommandChoice
           selected={selectedIndex == index}
-          command={command.paletteAction}
+          {command}
+          container={choices}
         ></CommandChoice>
       {/each}
     </div>
@@ -97,5 +122,9 @@
     box-sizing: border-box;
     background: var(--back-1);
     border-radius: 8px;
+  }
+  div.choices {
+    max-height: calc(32px * 10);
+    overflow: scroll;
   }
 </style>

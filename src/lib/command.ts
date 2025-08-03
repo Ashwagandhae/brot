@@ -7,7 +7,11 @@ import type { ArgType } from "./actions";
 import { msg } from "./message";
 
 export interface CommandProvider {
-  search: (search: string) => Promise<MatchedPaletteAction[]>;
+  search: (
+    search: string,
+    start: number,
+    end: number
+  ) => Promise<MatchedPaletteAction[]>;
   stop?: () => void;
 }
 
@@ -32,6 +36,48 @@ function getParamActions(
       return enumPaletteActions(["true", "false"], search, action);
     case "insertion":
       return enumPaletteActions(["above", "below"], search, action);
+    case "url":
+      return verifyActions(
+        (str) => {
+          try {
+            new URL(str);
+            return true;
+          } catch {
+            try {
+              new URL("http://" + str);
+              return true;
+            } catch {
+              return false;
+            }
+          }
+        },
+        search,
+        action
+      );
+    case "number":
+      return verifyActions(
+        (str) => {
+          return str.trim() !== "" && !isNaN(Number(str));
+        },
+        search,
+        action
+      );
+    case "locater":
+      return [];
+    case "notePath":
+      return [];
+    case "palette":
+      return [];
+  }
+}
+
+function verifyActions(
+  verify: (search: string) => boolean,
+  search: string,
+  action: PartialAction
+): PaletteAction[] {
+  if (verify(search)) {
+    return [{ title: "ok", icon: "check", action: addParam(action, search) }];
   }
   return [];
 }
@@ -68,31 +114,61 @@ class PaletteCommandProvider implements CommandProvider {
     this.key = key;
     this.filters = filters;
   }
-  async search(search: string): Promise<MatchedPaletteAction[]> {
-    if (this.id == null) {
-      this.id = await msg("createPalette", {
-        paletteKey: this.key,
-        filters: this.filters,
-      });
-    }
+  private async initId() {
+    return await msg("createPalette", {
+      paletteKey: this.key,
+      filters: this.filters,
+    });
+  }
+  private async searchPalette(
+    search: string,
+    id: PaletteId,
+    start: number,
+    end: number
+  ) {
     return await msg("searchPalette", {
       search,
-      id: this.id,
-      start: 0,
-      end: 10,
+      id,
+      start,
+      end,
     });
+  }
+  async search(
+    search: string,
+    start: number,
+    end: number
+  ): Promise<MatchedPaletteAction[]> {
+    if (this.id == null) {
+      this.id = await this.initId();
+    }
+    let res = await this.searchPalette(search, this.id, start, end);
+    // if null, then id is invalid, so try reiniting
+    if (res == null) {
+      this.id = await this.initId();
+      res = await this.searchPalette(search, this.id, start, end);
+    }
+    // if still null then we are cooked
+    if (res == null) {
+      return [];
+    }
+    return res;
+  }
+
+  async stop(): Promise<void> {
+    if (this.id == null) return;
+    await msg("deletePalette", { id: this.id });
   }
 }
 
 export function stateFromType(type: CommandPaletteType): CommandProvider {
   if (type.type == "arg") {
     return {
-      search: async (search) =>
-        getParamActions(search, type.argType, type.action).map(
-          (paletteAction) => {
+      search: async (search, start, end) =>
+        getParamActions(search, type.argType, type.action)
+          .map((paletteAction) => {
             return { paletteAction, indices: [] };
-          }
-        ),
+          })
+          .slice(start, end),
     };
   } else {
     return new PaletteCommandProvider(type.key, []);

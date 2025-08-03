@@ -1,12 +1,8 @@
 <script lang="ts">
   import "./editorTipTap.css";
   import { onMount } from "svelte";
-  import TextStyle from "@tiptap/extension-text-style";
   import StarterKit from "@tiptap/starter-kit";
-  import Table from "@tiptap/extension-table";
-  import TableCell from "@tiptap/extension-table-cell";
-  import TableHeader from "@tiptap/extension-table-header";
-  import TableRow from "@tiptap/extension-table-row";
+  import { TableKit } from "@tiptap/extension-table";
   import { Editor } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
   import { readText } from "@tauri-apps/plugin-clipboard-manager";
@@ -17,12 +13,34 @@
 
   import { HTMLarkdown } from "htmlarkdown";
   import "katex/dist/katex.min.css";
-  import { MathExtension } from "@aarkue/tiptap-math-extension";
   import { Marked } from "marked";
   import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
   import type { ActionRegistry } from "./actions";
   import { isTauri } from "./platform";
+
+  // nodes
+  import Blockquote from "@tiptap/extension-blockquote";
+  import { BulletList } from "@tiptap/extension-list";
+  import Document from "@tiptap/extension-document";
+  import HardBreak from "@tiptap/extension-hard-break";
+  import Heading from "@tiptap/extension-heading";
+  import HorizontalRule from "@tiptap/extension-horizontal-rule";
+  import { ListItem } from "@tiptap/extension-list";
+  import { OrderedList } from "@tiptap/extension-list";
+  import Paragraph from "@tiptap/extension-paragraph";
+  import Text from "@tiptap/extension-text";
+  // marks
+  import Bold from "@tiptap/extension-bold";
+  import Code from "@tiptap/extension-code";
+  import Italic from "@tiptap/extension-italic";
+  import Strike from "@tiptap/extension-strike";
+  import Underline from "@tiptap/extension-underline";
+  // extensions
+  import { Dropcursor } from "@tiptap/extensions";
+  import { Gapcursor } from "@tiptap/extensions";
+  import { UndoRedo } from "@tiptap/extensions";
+  import { ListKeymap } from "@tiptap/extension-list";
 
   let {
     initContent,
@@ -67,6 +85,42 @@
         });
       }
     };
+    registry.setLink = (url: string) => {
+      editor
+        .chain()
+        .focus()
+        .extendMarkRange("link")
+        .setLink({ href: url })
+        .run();
+    };
+    registry.unsetLink = () => {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+    };
+    registry.insertTable = () => {
+      editor
+        .chain()
+        .focus()
+        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+        .run();
+    };
+    registry.addColumnBefore = () =>
+      editor.chain().focus().addColumnBefore().run();
+    registry.addColumnAfter = () =>
+      editor.chain().focus().addColumnAfter().run();
+    registry.deleteColumn = () => editor.chain().focus().deleteColumn().run();
+    registry.addRowBefore = () => editor.chain().focus().addRowBefore().run();
+    registry.addRowAfter = () => editor.chain().focus().addRowAfter().run();
+    registry.deleteRow = () => editor.chain().focus().deleteRow().run();
+    registry.deleteTable = () => editor.chain().focus().deleteTable().run();
+    registry.mergeCells = () => editor.chain().focus().mergeCells().run();
+    registry.splitCell = () => editor.chain().focus().splitCell().run();
+    registry.toggleHeaderColumn = () =>
+      editor.chain().focus().toggleHeaderColumn().run();
+    registry.toggleHeaderRow = () =>
+      editor.chain().focus().toggleHeaderRow().run();
+    registry.toggleHeaderCell = () =>
+      editor.chain().focus().toggleHeaderCell().run();
+    registry.mergeOrSplit = () => editor.chain().focus().mergeOrSplit().run();
   }
 
   let markdown = new HTMLarkdown({
@@ -91,11 +145,13 @@
   });
 
   function htmlToMarkdown(html: string) {
-    return markdown.convert(html);
+    let md = markdown.convert(html);
+    return md;
   }
 
   function markdownToHtml(md: string) {
-    return myMarked.parse(md);
+    let html = myMarked.parse(md);
+    return html;
   }
 
   getContent = () => {
@@ -113,15 +169,29 @@
     editor = new Editor({
       element: element,
       extensions: [
-        TextStyle,
-        StarterKit.configure({
-          codeBlock: false,
-        }),
-        MathExtension,
-        Table,
-        TableCell,
-        TableHeader,
-        TableRow,
+        // starterkit:
+        Blockquote,
+        BulletList,
+        Document,
+        HardBreak,
+        Heading,
+        HorizontalRule,
+        ListItem,
+        OrderedList,
+        Paragraph,
+        Text,
+        Bold,
+        Code,
+        Italic,
+        Strike,
+        Underline,
+        Dropcursor,
+        Gapcursor,
+        UndoRedo,
+        ListKeymap,
+        // starterkit end
+
+        TableKit,
         CodeBlockLowlight.configure({
           lowlight,
         }),

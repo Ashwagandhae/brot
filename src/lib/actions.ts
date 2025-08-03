@@ -20,6 +20,25 @@ export const actions = {
   focusNote: [],
   copyUrl: [],
   pasteWithoutFormatting: [],
+  historyBack: [],
+  historyForward: [],
+  setLink: ["url"],
+  unsetLink: [],
+  insertTable: [],
+  addColumnBefore: [],
+  addColumnAfter: [],
+  deleteColumn: [],
+  addRowBefore: [],
+  addRowAfter: [],
+  deleteRow: [],
+  deleteTable: [],
+  mergeCells: [],
+  splitCell: [],
+  toggleHeaderColumn: [],
+  toggleHeaderRow: [],
+  toggleHeaderCell: [],
+  mergeOrSplit: [],
+  setCodeBlockLanguage: [],
 } as const;
 
 export type ActionRegistry = Partial<Mutable<BuildActions<typeof actions>>> & {
@@ -34,6 +53,7 @@ type ArgTypesMap = {
   boolean: boolean;
   palette: string;
   number: number;
+  url: string;
 };
 export type ArgType = keyof ArgTypesMap;
 
@@ -56,7 +76,7 @@ type PartialAction = {
   args: string[];
 };
 
-export function continuePartialAction(
+export async function continuePartialAction(
   registry: ActionRegistry,
   action: PartialAction,
   requestNextArg: (argType: ArgType) => void
@@ -96,12 +116,14 @@ const parsers: {
   palette: (val) => val,
   locater: (val) => val as Locater,
   number: (val) => Number(val),
+  url: (val) => val,
 };
 
 export function parseArgType<T extends keyof ArgTypesMap>(
   type: T,
   val: string
 ): ArgTypesMap[T] {
+  console.log("parsing arg of type: ", type);
   return parsers[type](val);
 }
 export function setActionRegistryContext(registry: Writable<ActionRegistry>) {

@@ -6,7 +6,8 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-  --text: hsl(0, 0%, 95%);
+  --text: hsl(0, 0%, 90%);
+  --text-strong: hsl(0, 0%, 100%);
   --text-weak: hsl(0, 0%, 60%);
   --back: hsl(0, 0%, 10%);
   --back-1: hsl(0, 0%, 15%);

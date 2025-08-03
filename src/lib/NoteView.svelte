@@ -37,6 +37,9 @@
     note = await msg("getNote", { path });
     if (note != null) {
       initContent = note.content;
+      //       initContent = `hello
+      //  - there
+      // `;
       await tick();
       if (autofocus) {
         focusNote();
@@ -138,9 +141,9 @@
           onclick={() => (minimized = !minimized)}
         >
           {#if minimized}
-            <Icon name="triangleFlipped"></Icon>
+            <Icon name="triangleDown"></Icon>
           {:else}
-            <Icon name="triangle"></Icon>
+            <Icon name="triangleUp"></Icon>
           {/if}
         </button>
       {/if}
