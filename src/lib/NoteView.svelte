@@ -3,7 +3,7 @@
   import type { Note } from "../../src-tauri/bindings/Note";
 
   import EditorTipTap from "./EditorTipTap.svelte";
-  import type { ActionRegistry } from "./actions";
+  import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";
   import Title from "./Title.svelte";
   import { pathToTitle, pathToUrl } from "./path";
@@ -20,7 +20,7 @@
     minimized = $bindable(false),
   }: {
     path: string;
-    registry: ActionRegistry;
+    registry: ActionRegistryManager;
     onfocus?: () => void;
     focused: boolean;
     autofocus?: boolean;
@@ -33,13 +33,26 @@
   let getContent: () => string = $state(() => "");
   let setContent: (markdown: string) => void = $state(() => {});
 
+  registry.add({
+    editNoteTitle: () => startEditing(),
+    getNoteTitle: () => pathToTitle(path),
+    toggleNoteMinimized: () => (minimized = !minimized),
+    saveNote: async () => {
+      let content = getContent();
+      setContent(content);
+      await saveNote();
+      saved = true;
+    },
+    focusNote: () => focusNote(),
+    copyUrl: () => {
+      navigator.clipboard.writeText(pathToUrl(path));
+    },
+  });
+
   onMount(async () => {
     note = await msg("getNote", { path });
     if (note != null) {
       initContent = note.content;
-      //       initContent = `hello
-      //  - there
-      // `;
       await tick();
       if (autofocus) {
         focusNote();
@@ -71,31 +84,17 @@
 
   function handleSelectionChange() {
     if (note == null) return;
-    let selection = registry.getEditor?.().state.selection;
+    let selection = registry.get("getEditor")?.().state.selection;
     if (selection == null) return;
     note.meta.selection = [selection.from, selection.to];
   }
 
   let startEditing = $state(() => {});
 
-  registry.editNoteTitle = () => startEditing();
-  registry.getNoteTitle = () => pathToTitle(path);
-  registry.toggleNoteMinimized = () => (minimized = !minimized);
-  registry.saveNote = async () => {
-    let content = getContent();
-    setContent(content);
-    await saveNote();
-    saved = true;
-  };
-  registry.focusNote = () => focusNote();
-  registry.copyUrl = () => {
-    navigator.clipboard.writeText(pathToUrl(path));
-  };
-
   function focusNote(scroll = true) {
     let [from, to] = note?.meta.selection ?? [0, 0];
     registry
-      .getEditor?.()
+      .get("getEditor")?.()
       ?.chain()
       .focus(null, { scrollIntoView: false })
       .setTextSelection({ from, to })
@@ -107,7 +106,7 @@
 
   $effect(() => {
     if (!focused) {
-      registry.getEditor?.().chain().blur().run();
+      registry.get("getEditor")?.().chain().blur().run();
     }
   });
 

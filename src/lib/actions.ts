@@ -1,7 +1,8 @@
 import { getContext, setContext } from "svelte";
 import type { Locater } from "../../src-tauri/bindings/Locater";
 import type { Editor } from "@tiptap/core";
-import type { Writable } from "svelte/store";
+import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
 
 export const actions = {
   openPalette: ["palette"],
@@ -41,10 +42,60 @@ export const actions = {
   setCodeBlockLanguage: [],
 } as const;
 
-export type ActionRegistry = Partial<Mutable<BuildActions<typeof actions>>> & {
+export type ActionRegistry = BuildActions & {
   getNoteTitle?: () => string | null;
   getEditor?: () => Editor;
 };
+
+// contains the key mapped to a generator of lists of different sets of arguments to construct the PartialActionFilters
+export type DisabledRegistry = Partial<
+  Record<keyof typeof actions, () => ArgsFilter>
+>;
+
+export class ArgsFilter {
+  private argSetFilters: string[][];
+  constructor(argSetFilters: string[][]) {
+    this.argSetFilters = argSetFilters;
+  }
+
+  static alwaysMatch = new ArgsFilter([[]]);
+  static neverMatch = new ArgsFilter([]);
+
+  toFilters(key: string): PartialActionFilter[] {
+    return this.argSetFilters.map((argSetFilter) => ({
+      key,
+      args: argSetFilter,
+    }));
+  }
+}
+
+export class ActionRegistryManager {
+  private registry: ActionRegistry;
+  private disabled: DisabledRegistry;
+  private override: ActionRegistryManager | null;
+  constructor() {
+    this.registry = {};
+    this.disabled = {};
+    this.override = null;
+  }
+  add(registry: ActionRegistry, disabled?: DisabledRegistry) {
+    this.registry = { ...this.registry, ...registry };
+    if (disabled != null) {
+      this.disabled = { ...this.disabled, ...disabled };
+    }
+  }
+  get<K extends keyof ActionRegistry>(key: K): ActionRegistry[K] {
+    return this.override?.get(key) ?? this.registry[key];
+  }
+  getArgsFilter<K extends keyof DisabledRegistry>(
+    key: K
+  ): (() => ArgsFilter) | undefined {
+    return this.override?.getArgsFilter(key) ?? this.disabled[key];
+  }
+  setOverride(registry: ActionRegistryManager) {
+    this.override = registry;
+  }
+}
 
 type ArgTypesMap = {
   locater: Locater;
@@ -57,11 +108,29 @@ type ArgTypesMap = {
 };
 export type ArgType = keyof ArgTypesMap;
 
-type BuildActions<T extends Record<string, readonly string[]>> = {
-  [K in keyof T]: T[K] extends readonly []
-    ? () => void
-    : (...args: BuildArgs<T[K]>) => void;
-};
+export type BuildRegistry<
+  T extends Record<string, readonly string[]>,
+  U
+> = Partial<
+  Mutable<{
+    [K in keyof T]: T[K] extends readonly []
+      ? () => U
+      : (...args: BuildArgs<T[K]>) => U;
+  }>
+>;
+
+export type BuildRegistryPartialArgs<
+  T extends Record<string, readonly string[]>,
+  U
+> = Partial<
+  Mutable<{
+    [K in keyof T]: T[K] extends readonly []
+      ? () => U
+      : (...args: Partial<BuildArgs<T[K]>>) => U;
+  }>
+>;
+
+type BuildActions = BuildRegistry<typeof actions, void>;
 
 type BuildArgs<T extends readonly string[]> = {
   [K in keyof T]: T[K] extends keyof ArgTypesMap ? ArgTypesMap[T[K]] : never;
@@ -71,19 +140,14 @@ type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
 
-type PartialAction = {
-  key: string;
-  args: string[];
-};
-
 export async function continuePartialAction(
-  registry: ActionRegistry,
+  registry: ActionRegistryManager,
   action: PartialAction,
   requestNextArg: (argType: ArgType) => void
 ) {
   let key = action.key as keyof typeof actions;
   if (actions[key].length <= action.args.length) {
-    let fn = registry[key];
+    let fn = registry.get(key);
     if (fn != null) {
       (fn as any)(
         ...action.args.map((val, index) =>
@@ -126,9 +190,9 @@ export function parseArgType<T extends keyof ArgTypesMap>(
   console.log("parsing arg of type: ", type);
   return parsers[type](val);
 }
-export function setActionRegistryContext(registry: Writable<ActionRegistry>) {
+export function setActionRegistryContext(registry: ActionRegistryManager) {
   setContext("actionRegistry", registry);
 }
-export function getActionRegistryContext(): Writable<ActionRegistry> {
+export function getActionRegistryContext(): ActionRegistryManager {
   return getContext("actionRegistry");
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
-  import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
+  import { getActionRegistryContext } from "./actions";
   import BoldChars from "./BoldChars.svelte";
   import Icon from "./Icon.svelte";
 
@@ -15,6 +15,8 @@
   } = $props();
 
   let element: HTMLElement;
+
+  let registry = getActionRegistryContext();
 
   function isElementFullyInContainerView(
     el: HTMLElement,

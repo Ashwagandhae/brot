@@ -5,16 +5,54 @@
   import { getViewStateContext } from "$lib/viewState";
   import { msg } from "$lib/message";
 
-  import { getActionRegistryContext, type ActionRegistry } from "$lib/actions";
+  import {
+    ActionRegistryManager,
+    getActionRegistryContext,
+    type ActionRegistry,
+  } from "$lib/actions";
   import { setPathContext } from "$lib/path";
 
   let viewState = getViewStateContext();
 
   let registry = getActionRegistryContext();
+  registry.add({
+    addPinned: async (insertion, path) => {
+      if (pinnedPaths == null) return;
+      if (pinnedPaths.length == 0) {
+        await msg("addPinned", { path, position: 0 });
+      } else {
+        let position = pinnedPaths.findIndex((path) => path == focusPath);
+        if (insertion == "below") {
+          position += 1;
+        }
+        await msg("addPinned", { path, position });
+      }
+      pinnedPaths = await msg("getPinned");
+      refreshKey = !refreshKey;
+    },
+    removeCurrentPinned: async () => {
+      if (focusPath == null) return;
+      await msg("removePinned", { path: focusPath });
+      pinnedPaths = await msg("getPinned");
+    },
+    refreshPage: async () => {
+      pinnedPaths = await msg("getPinned");
+      refreshKey = !refreshKey;
+    },
+    focusPinnedNote: (index) => {
+      let newFocusPath = pinnedPaths?.[index];
+      if (newFocusPath == null) return;
+      noteActionRegistries[newFocusPath].get("focusNote")?.();
+      focusPath = newFocusPath;
+    },
+    focusNote: () => untrack(() => registry).get("focusPinnedNote")?.(0),
+  });
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);
-  let noteActionRegistries: { [key: string]: ActionRegistry } = $state({});
+  let noteActionRegistries: { [key: string]: ActionRegistryManager } = $state(
+    {}
+  );
   let minimized: { [key: string]: boolean } = $state({});
   let refreshKey = $state(false);
 
@@ -28,46 +66,16 @@
   });
 
   $effect(() => {
-    $viewState = { type: "pinned", focusPath: focusPath };
+    if (focusPath == null) return;
+    let otherRegistry = noteActionRegistries[focusPath];
+    if (otherRegistry == null) return;
+    registry.setOverride(otherRegistry);
   });
 
   $effect(() => {
-    $registry.addPinned = async (insertion, path) => {
-      if (pinnedPaths == null) return;
-      if (pinnedPaths.length == 0) {
-        await msg("addPinned", { path, position: 0 });
-      } else {
-        let position = pinnedPaths.findIndex((path) => path == focusPath);
-        if (insertion == "below") {
-          position += 1;
-        }
-        await msg("addPinned", { path, position });
-      }
-      pinnedPaths = await msg("getPinned");
-      refreshKey = !refreshKey;
-    };
-    $registry.removeCurrentPinned = async () => {
-      if (focusPath == null) return;
-      await msg("removePinned", { path: focusPath });
-      pinnedPaths = await msg("getPinned");
-    };
-    $registry.refreshPage = async () => {
-      pinnedPaths = await msg("getPinned");
-      refreshKey = !refreshKey;
-    };
-    if (focusPath == null) return;
-    $registry.focusPinnedNote = (index) => {
-      let newFocusPath = pinnedPaths?.[index];
-      if (newFocusPath == null) return;
-      noteActionRegistries[newFocusPath].focusNote?.();
-      focusPath = newFocusPath;
-    };
-    $registry.focusNote = () => untrack(() => $registry)?.focusPinnedNote?.(0);
-    $registry = {
-      ...untrack(() => $registry),
-      ...noteActionRegistries[focusPath],
-    };
+    $viewState = { type: "pinned", focusPath: focusPath };
   });
+
   onMount(async () => {
     pinnedPaths = await msg("getPinned");
     if (pinnedPaths.length > 0) {
@@ -102,7 +110,7 @@
       untrack(() => noteActionRegistries),
       pinnedPaths,
       () => {
-        return {};
+        return new ActionRegistryManager();
       }
     );
     minimized = changeDictKeys(

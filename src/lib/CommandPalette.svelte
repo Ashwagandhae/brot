@@ -12,7 +12,6 @@
     oncancel,
   }: {
     provider: CommandProvider;
-
     onaccept?: (command: PartialAction) => void;
     oncancel?: () => void;
   } = $props();

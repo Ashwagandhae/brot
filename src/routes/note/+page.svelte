@@ -3,8 +3,7 @@
   import { page } from "$app/state";
   import NoteView from "$lib/NoteView.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
-  import { getActionRegistryContext } from "$lib/actions";
-  import { msg } from "$lib/message";
+  import { getActionRegistryContext, ArgsFilter } from "$lib/actions";
 
   import { setPathContext } from "$lib/path";
   import { getViewStateContext } from "$lib/viewState";
@@ -18,11 +17,19 @@
     $viewState = { type: "note", path };
   });
 
-  $effect(() => {
-    $registry.refreshPage = async () => {
-      refreshKey = !refreshKey;
-    };
-  });
+  registry.add(
+    {
+      refreshPage: async () => {
+        refreshKey = !refreshKey;
+      },
+    },
+    {
+      openPalette: () =>
+        new ArgsFilter([["addPinnedAbove"], ["addPinnedBelow"]]),
+      removeCurrentPinned: () => ArgsFilter.alwaysMatch,
+      toggleNoteMinimized: () => ArgsFilter.alwaysMatch,
+    }
+  );
 
   setPathContext({
     setPath: (_, to) => {
@@ -36,12 +43,7 @@
 <WindowButtons>
   {#key refreshKey}
     {#key path}
-      <NoteView
-        {path}
-        bind:registry={$registry}
-        focused={true}
-        autofocus
-        canMinimize={false}
+      <NoteView {path} {registry} focused={true} autofocus canMinimize={false}
       ></NoteView>
     {/key}
   {/key}

@@ -16,7 +16,7 @@
   import { Marked } from "marked";
   import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
-  import type { ActionRegistry } from "./actions";
+  import type { ActionRegistryManager } from "./actions";
   import { isTauri } from "./platform";
 
   // nodes
@@ -41,6 +41,7 @@
   import { Gapcursor } from "@tiptap/extensions";
   import { UndoRedo } from "@tiptap/extensions";
   import { ListKeymap } from "@tiptap/extension-list";
+  import { addEditorActions } from "./editorAction";
 
   let {
     initContent,
@@ -54,7 +55,7 @@
     initContent: string;
     getContent: () => string;
     setContent: (markdown: string) => void;
-    registry: ActionRegistry;
+    registry: ActionRegistryManager;
     onupdate?: () => void;
     onfocus?: () => void;
     onselectionchange?: () => void;
@@ -74,53 +75,48 @@
   );
 
   function initRegistry(editor: Editor) {
-    registry.editorToggleBold = () => {
-      editor.chain().focus().toggleBold().run();
-    };
-    registry.getEditor = () => editor;
-    registry.pasteWithoutFormatting = () => {
-      if (isTauri()) {
-        readText().then((val) => {
-          editor.commands.insertContent(val);
-        });
-      }
-    };
-    registry.setLink = (url: string) => {
-      editor
-        .chain()
-        .focus()
-        .extendMarkRange("link")
-        .setLink({ href: url })
-        .run();
-    };
-    registry.unsetLink = () => {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-    };
-    registry.insertTable = () => {
-      editor
-        .chain()
-        .focus()
-        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-        .run();
-    };
-    registry.addColumnBefore = () =>
-      editor.chain().focus().addColumnBefore().run();
-    registry.addColumnAfter = () =>
-      editor.chain().focus().addColumnAfter().run();
-    registry.deleteColumn = () => editor.chain().focus().deleteColumn().run();
-    registry.addRowBefore = () => editor.chain().focus().addRowBefore().run();
-    registry.addRowAfter = () => editor.chain().focus().addRowAfter().run();
-    registry.deleteRow = () => editor.chain().focus().deleteRow().run();
-    registry.deleteTable = () => editor.chain().focus().deleteTable().run();
-    registry.mergeCells = () => editor.chain().focus().mergeCells().run();
-    registry.splitCell = () => editor.chain().focus().splitCell().run();
-    registry.toggleHeaderColumn = () =>
-      editor.chain().focus().toggleHeaderColumn().run();
-    registry.toggleHeaderRow = () =>
-      editor.chain().focus().toggleHeaderRow().run();
-    registry.toggleHeaderCell = () =>
-      editor.chain().focus().toggleHeaderCell().run();
-    registry.mergeOrSplit = () => editor.chain().focus().mergeOrSplit().run();
+    registry.add({
+      editorToggleBold: () => {
+        editor.chain().focus().toggleBold().run();
+      },
+      getEditor: () => editor,
+      pasteWithoutFormatting: () => {
+        if (isTauri()) {
+          readText().then((val) => {
+            editor.commands.insertContent(val);
+          });
+        }
+      },
+    });
+    addEditorActions(registry, editor, {
+      setLink: (url?: string) => (chain) =>
+        chain
+          .focus()
+          .extendMarkRange("link")
+          .setLink({ href: url ?? "" })
+          .run(),
+      unsetLink: () => (chain) =>
+        chain.focus().extendMarkRange("link").unsetLink().run(),
+      insertTable: () => (chain) =>
+        chain
+          .focus()
+          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+          .run(),
+      addColumnBefore: () => (chain) => chain.focus().addColumnBefore().run(),
+      addColumnAfter: () => (chain) => chain.focus().addColumnAfter().run(),
+      deleteColumn: () => (chain) => chain.focus().deleteColumn().run(),
+      addRowBefore: () => (chain) => chain.focus().addRowBefore().run(),
+      addRowAfter: () => (chain) => chain.focus().addRowAfter().run(),
+      deleteRow: () => (chain) => chain.focus().deleteRow().run(),
+      deleteTable: () => (chain) => chain.focus().deleteTable().run(),
+      mergeCells: () => (chain) => chain.focus().mergeCells().run(),
+      splitCell: () => (chain) => chain.focus().splitCell().run(),
+      toggleHeaderColumn: () => (chain) =>
+        chain.focus().toggleHeaderColumn().run(),
+      toggleHeaderRow: () => (chain) => chain.focus().toggleHeaderRow().run(),
+      toggleHeaderCell: () => (chain) => chain.focus().toggleHeaderCell().run(),
+      mergeOrSplit: () => (chain) => chain.focus().mergeOrSplit().run(),
+    });
   }
 
   let markdown = new HTMLarkdown({

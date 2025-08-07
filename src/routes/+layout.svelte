@@ -22,6 +22,7 @@
   import { onMount, tick } from "svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import {
+    ActionRegistryManager,
     continuePartialAction,
     setActionRegistryContext,
     type ActionRegistry,
@@ -40,7 +41,7 @@
   let viewState: Writable<ViewState | null> = writable(null);
   setViewStateContext(viewState);
 
-  let registry: Writable<ActionRegistry> = writable({});
+  let registry: ActionRegistryManager = new ActionRegistryManager();
   setActionRegistryContext(registry);
 
   let handleKeydown: (event: KeyboardEvent) => void = $state(() => {});
@@ -65,7 +66,7 @@
     handleKeydown = (event: KeyboardEvent) => {
       let action = mapper(event);
       if (action == null) return;
-      continuePartialAction($registry, action, (arg) =>
+      continuePartialAction(registry, action, (arg) =>
         requestNextParam(arg, action)
       );
     };
@@ -75,7 +76,7 @@
     if ($viewState == null) return null;
     switch ($viewState.type) {
       case "note":
-        return $registry?.getNoteTitle?.() ?? "note not found";
+        return registry.get("getNoteTitle")?.() ?? "note not found";
       case "pinned":
         return "pinned";
       case "settings":
@@ -90,52 +91,53 @@
     if ($platform != "window") return;
     getCurrentWindow().setTitle(title);
   });
-
-  $registry.goto = (newWindow, locater: Locater) => {
-    if (newWindow) {
-      invoke("open_window", { locater });
-    } else {
-      if (locater == "pinned") {
-        goto("/");
-      } else if (locater == "settings") {
-        goto("/settings");
-      } else if (locater == "new") {
-        goto("/new");
+  registry.add({
+    goto: (newWindow, locater: Locater) => {
+      if (newWindow) {
+        invoke("open_window", { locater });
       } else {
-        goto("/note?p=" + locater.slice(5));
+        if (locater == "pinned") {
+          goto("/");
+        } else if (locater == "settings") {
+          goto("/settings");
+        } else if (locater == "new") {
+          goto("/new");
+        } else {
+          goto("/note?p=" + locater.slice(5));
+        }
       }
-    }
-    return;
-  };
-  $registry.saveWindowState = () => {
-    if ($viewState == null) return;
-    invoke("update_window_state", { locater: toLocater($viewState) });
-    return;
-  };
-  $registry.openPalette = (paletteType) => {
-    commandPaletteType = { type: "palette", key: paletteType };
-  };
-  $registry.toggleFloating = () => {
-    let win = getCurrentWindow();
-    win.isAlwaysOnTop().then((val) => {
-      win.setAlwaysOnTop(!val);
-    });
-  };
-  $registry.refresh = async () => {
-    await msg("refresh");
-    actions = await msg("getActions");
-    $registry?.refreshPage?.();
-  };
-  $registry.historyBack = () => {
-    history.back();
-  };
-  $registry.historyForward = () => {
-    history.forward();
-  };
+      return;
+    },
+    saveWindowState: () => {
+      if ($viewState == null) return;
+      invoke("update_window_state", { locater: toLocater($viewState) });
+      return;
+    },
+    openPalette: (paletteType) => {
+      commandPaletteType = { type: "palette", key: paletteType };
+    },
+    toggleFloating: () => {
+      let win = getCurrentWindow();
+      win.isAlwaysOnTop().then((val) => {
+        win.setAlwaysOnTop(!val);
+      });
+    },
+    refresh: async () => {
+      await msg("refresh");
+      actions = await msg("getActions");
+      registry.get("refreshPage")?.();
+    },
+    historyBack: () => {
+      history.back();
+    },
+    historyForward: () => {
+      history.forward();
+    },
+  });
 
   let commandProvider: CommandProvider | null = $derived.by(() => {
     if (commandPaletteType == null) return null;
-    return stateFromType(commandPaletteType);
+    return stateFromType(commandPaletteType, registry);
   });
 
   function handleCommandPaletteCancel() {
@@ -151,7 +153,7 @@
     }
     commandPaletteType = null;
     await tick();
-    continuePartialAction($registry, action, (arg) =>
+    continuePartialAction(registry, action, (arg) =>
       requestNextParam(arg, action)
     );
   }

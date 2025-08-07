@@ -3,7 +3,7 @@ import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
 import type { PaletteId } from "../../src-tauri/bindings/PaletteId";
 import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
-import type { ArgType } from "./actions";
+import { actions, type ActionRegistryManager, type ArgType } from "./actions";
 import { msg } from "./message";
 
 export interface CommandProvider {
@@ -160,7 +160,10 @@ class PaletteCommandProvider implements CommandProvider {
   }
 }
 
-export function stateFromType(type: CommandPaletteType): CommandProvider {
+export function stateFromType(
+  type: CommandPaletteType,
+  registry: ActionRegistryManager
+): CommandProvider {
   if (type.type == "arg") {
     return {
       search: async (search, start, end) =>
@@ -171,6 +174,15 @@ export function stateFromType(type: CommandPaletteType): CommandProvider {
           .slice(start, end),
     };
   } else {
-    return new PaletteCommandProvider(type.key, []);
+    return new PaletteCommandProvider(type.key, getFilters(registry));
   }
+}
+
+function getFilters(registry: ActionRegistryManager): PartialActionFilter[] {
+  return Object.entries(actions).flatMap(([key, _]) => {
+    let typedKey = key as keyof typeof actions;
+    let argsFilter = registry.getArgsFilter(typedKey);
+    if (argsFilter == null) return [];
+    return argsFilter().toFilters(key);
+  });
 }
