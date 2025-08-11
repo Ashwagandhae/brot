@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Result;
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
@@ -26,6 +28,7 @@ pub struct MatchedPaletteAction {
 pub struct PaletteAction {
     pub title: String,
     pub icon: Option<String>,
+    pub shortcut: Option<String>,
     pub action: PartialAction,
 }
 
@@ -63,6 +66,14 @@ async fn get_all_palette_actions(
     state: &AppState,
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
+    let shortcut_map = read_actions(state, |actions| {
+        actions
+            .shortcuts
+            .iter()
+            .map(|(shortcut, action)| (action.clone(), shortcut.clone()))
+            .collect()
+    })
+    .await?;
     let palette_action_futures: anyhow::Result<_> = read_actions(state, |actions| {
         Ok(actions
             .palettes
@@ -71,7 +82,7 @@ async fn get_all_palette_actions(
             .iter()
             .map(|(title_with_icon, generator)| {
                 let (title, icon) = split_title_icon(title_with_icon);
-                generate_palette_actions(state, title, icon, generator.clone())
+                generate_palette_actions(state, &shortcut_map, title, icon, generator.clone())
             })
             .collect::<Vec<_>>())
     })
@@ -86,11 +97,12 @@ async fn get_all_palette_actions(
 
 async fn generate_palette_actions(
     state: &AppState,
+    shortcut_map: &HashMap<PartialAction, String>,
     title: String,
     icon: Option<String>,
     generator: PartialActionGenerator,
 ) -> Result<Vec<PaletteAction>> {
-    Ok(if title.contains("$note_locater") {
+    let palette_actions: Vec<_> = if title.contains("$note_locater") {
         get_all_note_paths(state)
             .await?
             .into_iter()
@@ -100,14 +112,15 @@ async fn generate_palette_actions(
                 if let Some(index) = index {
                     args[index] = format!("note:{}", locater);
                 }
-                PaletteAction {
-                    title: title.replace("$note_locater", &title_replace),
-                    icon: icon.clone(),
-                    action: PartialAction {
+
+                (
+                    title.replace("$note_locater", &title_replace),
+                    icon.clone(),
+                    PartialAction {
                         key: generator.key.clone(),
                         args,
                     },
-                }
+                )
             })
             .collect()
     } else if title.contains("$note_path") {
@@ -120,26 +133,35 @@ async fn generate_palette_actions(
                 if let Some(index) = index {
                     args[index] = locater;
                 }
-                PaletteAction {
-                    title: title.replace("$note_path", &title_replace),
-                    icon: icon.clone(),
-                    action: PartialAction {
+                (
+                    title.replace("$note_path", &title_replace),
+                    icon.clone(),
+                    PartialAction {
                         key: generator.key.clone(),
                         args,
                     },
-                }
+                )
             })
             .collect()
     } else {
-        vec![PaletteAction {
+        vec![(
             title,
             icon,
-            action: PartialAction {
+            PartialAction {
                 key: generator.key,
                 args: generator.args,
             },
-        }]
-    })
+        )]
+    };
+    Ok(palette_actions
+        .into_iter()
+        .map(|(title, icon, action)| PaletteAction {
+            shortcut: shortcut_map.get(&action).cloned(),
+            title,
+            icon,
+            action,
+        })
+        .collect())
 }
 
 async fn get_all_note_paths(state: &AppState) -> Result<Vec<(String, String)>> {

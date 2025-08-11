@@ -15,16 +15,14 @@ const ACTIONS_PATH: &str = "brot_actions.toml";
 #[derive(Serialize, Deserialize, TS, Clone, Default)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-
 pub struct Actions {
-    pub shortcuts: HashMap<String, PartialActionGenerator>,
+    pub shortcuts: HashMap<String, PartialAction>,
     pub palettes: HashMap<String, HashMap<String, PartialActionGenerator>>,
 }
 
-#[derive(Serialize, Deserialize, TS, Clone)]
+#[derive(Serialize, PartialEq, Eq, Hash, TS, Clone)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-
 pub struct PartialAction {
     pub key: String,
     pub args: Vec<String>,
@@ -86,10 +84,20 @@ impl<'de> Deserialize<'de> for PartialActionGenerator {
     where
         D: Deserializer<'de>,
     {
-        struct PartialActionGeneratorVisitor;
+        let PartialAction { key, args } = PartialAction::deserialize(deserializer)?;
+        Ok(PartialActionGenerator { key, args })
+    }
+}
 
-        impl<'de> Visitor<'de> for PartialActionGeneratorVisitor {
-            type Value = PartialActionGenerator;
+impl<'de> Deserialize<'de> for PartialAction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PartialActionVisitor;
+
+        impl<'de> Visitor<'de> for PartialActionVisitor {
+            type Value = PartialAction;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a string or a map with keys `key` and optional `args`")
@@ -99,7 +107,7 @@ impl<'de> Deserialize<'de> for PartialActionGenerator {
             where
                 E: de::Error,
             {
-                Ok(PartialActionGenerator {
+                Ok(PartialAction {
                     key: v.to_string(),
                     args: vec![],
                 })
@@ -135,10 +143,10 @@ impl<'de> Deserialize<'de> for PartialActionGenerator {
                 let key = key.ok_or_else(|| de::Error::missing_field("key"))?;
                 let args = args.unwrap_or_default();
 
-                Ok(PartialActionGenerator { key, args })
+                Ok(PartialAction { key, args })
             }
         }
 
-        deserializer.deserialize_any(PartialActionGeneratorVisitor)
+        deserializer.deserialize_any(PartialActionVisitor)
     }
 }

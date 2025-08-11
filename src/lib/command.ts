@@ -77,7 +77,14 @@ function verifyActions(
   action: PartialAction
 ): PaletteAction[] {
   if (verify(search)) {
-    return [{ title: "ok", icon: "check", action: addParam(action, search) }];
+    return [
+      {
+        title: "ok",
+        icon: "check",
+        action: addParam(action, search),
+        shortcut: null,
+      },
+    ];
   }
   return [];
 }
@@ -94,6 +101,7 @@ function enumPaletteActions(
         title: choice,
         icon: null,
         action: addParam(action, choice),
+        shortcut: null,
       };
     });
 }

@@ -117,7 +117,7 @@
 
   .content {
     width: 100%;
-    max-width: 300px;
+    max-width: 350px;
     box-sizing: border-box;
     background: var(--back-1);
     border-radius: 8px;

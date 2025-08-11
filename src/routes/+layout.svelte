@@ -30,7 +30,7 @@
   } from "$lib/actions";
   import type { Locater } from "../../src-tauri/bindings/Locater";
   import type { Actions } from "../../src-tauri/bindings/Actions";
-  import { mapKeydownEventToAction } from "$lib/shortcuts";
+  import { mapKeydownEventToAction } from "$lib/shortcut";
   import { listen } from "@tauri-apps/api/event";
   import { msg } from "$lib/message";
 

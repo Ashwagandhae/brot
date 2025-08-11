@@ -3,6 +3,7 @@
   import { getActionRegistryContext } from "./actions";
   import BoldChars from "./BoldChars.svelte";
   import Icon from "./Icon.svelte";
+  import Shortcut from "./Shortcut.svelte";
 
   let {
     command,
@@ -46,13 +47,21 @@
 </script>
 
 <div class="top" class:selected bind:this={element}>
-  <div class="icon">
-    <Icon name={command.paletteAction.icon ?? "dots"}></Icon>
+  <div class="left">
+    <div class="icon">
+      <Icon name={command.paletteAction.icon ?? "dots"}></Icon>
+    </div>
+    <div class="title">
+      <BoldChars text={command.paletteAction.title} indices={command.indices}
+      ></BoldChars>
+    </div>
   </div>
-  <div class="title">
-    <BoldChars text={command.paletteAction.title} indices={command.indices}
-    ></BoldChars>
-  </div>
+  {#if command.paletteAction.shortcut != null}
+    <div class="shortcut">
+      <Shortcut keyString={command.paletteAction.shortcut} {selected}
+      ></Shortcut>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -67,6 +76,11 @@
 
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
+  }
+  .left {
+    display: flex;
+    flex-direction: row;
   }
   .title {
     padding: 8px;
@@ -77,6 +91,9 @@
     width: 16px;
     height: 16px;
     padding: 8px;
+  }
+  .shortcut {
+    padding: 6px;
   }
   .top.selected {
     background: var(--back-2);
