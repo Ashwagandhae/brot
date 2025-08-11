@@ -23,6 +23,9 @@ export const actions = {
   pasteWithoutFormatting: [],
   historyBack: [],
   historyForward: [],
+  repeatLastAction: [],
+
+  // editor
   setLink: ["url"],
   unsetLink: [],
   insertTable: [],

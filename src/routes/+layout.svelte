@@ -33,6 +33,7 @@
   import { mapKeydownEventToAction } from "$lib/shortcut";
   import { listen } from "@tauri-apps/api/event";
   import { msg } from "$lib/message";
+  import { runLastAction, setLastAction } from "$lib/lastAction";
 
   let { children } = $props();
 
@@ -66,9 +67,8 @@
     handleKeydown = (event: KeyboardEvent) => {
       let action = mapper(event);
       if (action == null) return;
-      continuePartialAction(registry, action, (arg) =>
-        requestNextParam(arg, action)
-      );
+      setLastAction(action);
+      runPartialAction(action);
     };
   });
 
@@ -133,6 +133,9 @@
     historyForward: () => {
       history.forward();
     },
+    repeatLastAction: () => {
+      runLastAction(runPartialAction);
+    },
   });
 
   let commandProvider: CommandProvider | null = $derived.by(() => {
@@ -152,19 +155,20 @@
       completeSearch(true);
     }
     commandPaletteType = null;
+    setLastAction(action);
     await tick();
-    continuePartialAction(registry, action, (arg) =>
-      requestNextParam(arg, action)
-    );
+    runPartialAction(action);
   }
 
-  function requestNextParam(argType: ArgType, action: PartialAction) {
-    commandPaletteType = {
-      type: "arg",
-      argType,
-      action,
-    };
-  }
+  let runPartialAction = $derived((action: PartialAction) => {
+    continuePartialAction(registry, action, (argType) => {
+      commandPaletteType = {
+        type: "arg",
+        argType,
+        action,
+      };
+    });
+  });
 
   let searchPalette: boolean = $state(false);
   async function completeSearch(accepted: boolean) {
