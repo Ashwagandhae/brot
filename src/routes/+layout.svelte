@@ -2,7 +2,7 @@
   import "@fontsource-variable/atkinson-hyperlegible-next";
   import "../global.css";
   import { errorMessage } from "$lib/error";
-  import { initPlatformName, platform } from "$lib/platform";
+  import { getPlatformName, platform } from "$lib/platform";
   import CommandPalette from "$lib/CommandPalette.svelte";
   import {
     stateFromType,
@@ -34,6 +34,7 @@
   import { listen } from "@tauri-apps/api/event";
   import { msg } from "$lib/message";
   import { runLastAction, setLastAction } from "$lib/lastAction";
+  import WindowButtons from "$lib/WindowButtons.svelte";
 
   let { children } = $props();
 
@@ -47,8 +48,9 @@
 
   let handleKeydown: (event: KeyboardEvent) => void = $state(() => {});
   let actions: Actions | null = $state(null);
+
   onMount(async () => {
-    await initPlatformName();
+    $platform = await getPlatformName();
     actions = await msg("getActions");
     if ($platform == "window") {
       await listen("search", () => {
@@ -157,6 +159,7 @@
     commandPaletteType = null;
     setLastAction(action);
     await tick();
+    registry.get("focusNote")?.();
     runPartialAction(action);
   }
 
@@ -184,8 +187,13 @@
     <title>brot</title>
   {/if}
 </svelte:head>
-{@render children()}
 <svelte:document onkeydown={handleKeydown} />
+<WindowButtons {runPartialAction} paletteActive={commandPaletteType != null}>
+  {@render children()}
+</WindowButtons>
+{#if $errorMessage != null}
+  <p class="err">{$errorMessage}</p>
+{/if}
 
 {#key commandPaletteType}
   {#if commandProvider != null}
@@ -196,10 +204,6 @@
     ></CommandPalette>
   {/if}
 {/key}
-
-{#if $errorMessage != null}
-  <p class="err">{$errorMessage}</p>
-{/if}
 
 <style>
   .err {

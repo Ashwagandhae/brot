@@ -10,7 +10,7 @@ use ts_rs::TS;
 
 use crate::{message::folder_manager::read, state::AppState};
 
-const ACTIONS_PATH: &str = "brot_actions.toml";
+const ACTIONS_PATH: &str = "./brot_actions.toml";
 
 #[derive(Serialize, Deserialize, TS, Clone, Default)]
 #[ts(export)]

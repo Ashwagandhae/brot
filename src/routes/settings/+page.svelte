@@ -3,6 +3,7 @@
   import type { Settings } from "../../../src-tauri/bindings/Settings";
   import { getViewStateContext } from "$lib/viewState";
   import { msg } from "$lib/message";
+  import WindowButtons from "$lib/WindowButtons.svelte";
   let viewState = getViewStateContext();
   $viewState = { type: "settings" };
 
@@ -17,18 +18,12 @@
   }
 </script>
 
-<main>
-  <h1>Settings</h1>
-  <form onsubmit={updateSettings}>
-    <textarea bind:value={settings.notesPath}></textarea>
-    <button type="submit">Submit</button>
-    <a href="../">back</a>
-  </form>
-</main>
+<h1>Settings</h1>
+<form onsubmit={updateSettings}>
+  <textarea bind:value={settings.notesPath}></textarea>
+  <button type="submit">Submit</button>
+  <a href="../">back</a>
+</form>
 
 <style>
-  main {
-    width: 100%;
-    height: 100%;
-  }
 </style>

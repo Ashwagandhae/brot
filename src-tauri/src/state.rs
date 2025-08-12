@@ -4,16 +4,22 @@ use anyhow::Result;
 use tauri::{path::BaseDirectory, App, AppHandle, Manager};
 use tokio::sync::{Mutex, RwLock};
 
-use crate::{
-    message::{
-        action::Actions,
-        folder_manager::FolderManager,
-        meta::Meta,
-        palette::Palettes,
-        settings::{read_settings_file, Settings},
-    },
-    window::PinnedWindowState,
+use crate::message::{
+    action::Actions,
+    folder_manager::FolderManager,
+    meta::Meta,
+    palette::Palettes,
+    settings::{read_settings_file, Settings},
 };
+
+#[derive(Debug, Clone)]
+pub enum PinnedWindowState {
+    Focused,
+    Unfocused {
+        visible: bool,
+        last_focused_app_name: Option<String>,
+    },
+}
 
 #[derive(Clone)]
 pub struct AppState {

@@ -77,6 +77,9 @@ pub async fn read(state: &AppState, path: &str) -> Result<Option<String>> {
             }
         }
         FolderManager::Android { ref uri } => {
+            if !file_exists(state, path).await? {
+                return Ok(None);
+            }
             let uri = uri.clone();
             let app = state.handle.clone();
             let path = path.to_owned();
@@ -107,6 +110,17 @@ pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()>
             Ok(())
         }
         FolderManager::Android { ref uri } => {
+            if !file_exists(state, path).await? {
+                let uri = uri.clone();
+                let path = path.to_owned();
+                let app = state.handle.clone();
+                tokio::task::spawn_blocking(move || -> Result<()> {
+                    let api = app.android_fs();
+                    api.create_file(&uri, path, None)?;
+                    Ok(())
+                })
+                .await??;
+            }
             let uri = uri.clone();
             let path = path.to_owned();
             let app = state.handle.clone();
@@ -160,13 +174,24 @@ pub async fn file_exists(state: &AppState, path: &str) -> Result<bool> {
             tokio::task::spawn_blocking(move || {
                 let api = app.android_fs();
                 match api.resolve_uri(&uri, &path) {
-                    Ok(_) => Ok(true),
-                    Err(tauri_plugin_android_fs::Error::Io(e))
-                        if e.kind() == std::io::ErrorKind::NotFound =>
-                    {
-                        Ok(false)
-                    }
-                    Err(e) => Err(e.into()),
+                    Ok(uri) => match api.get_mime_type(&uri) {
+                        Ok(Some(_)) => Ok(true),
+                        Ok(None) => Ok(false),
+                        Err(tauri_plugin_android_fs::Error::Io(e))
+                            if e.kind() == std::io::ErrorKind::NotFound =>
+                        {
+                            Ok(false)
+                        }
+                        // TODO find better solution for this
+                        Err(tauri_plugin_android_fs::Error::PluginInvoke(message))
+                            if message.contains("java.io.FileNotFoundException") =>
+                        {
+                            Ok(false)
+                        }
+
+                        Err(err) => Err(err.into()),
+                    },
+                    Err(err) => Err(err.into()),
                 }
             })
             .await?

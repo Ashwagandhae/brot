@@ -133,23 +133,21 @@
   });
 </script>
 
-<WindowButtons>
-  {#key refreshKey}
-    {#if pinnedPaths != null}
-      {#each pinnedPaths as path (path)}
-        {#if noteActionRegistries[path] != null}
-          <NoteView
-            {path}
-            onfocus={() => {
-              focusPath = path;
-            }}
-            bind:registry={noteActionRegistries[path]}
-            bind:minimized={minimized[path]}
-            focused={focusPath == path}
-            canMinimize
-          ></NoteView>
-        {/if}
-      {/each}
-    {/if}
-  {/key}
-</WindowButtons>
+{#key refreshKey}
+  {#if pinnedPaths != null}
+    {#each pinnedPaths as path (path)}
+      {#if noteActionRegistries[path] != null}
+        <NoteView
+          {path}
+          onfocus={() => {
+            focusPath = path;
+          }}
+          bind:registry={noteActionRegistries[path]}
+          bind:minimized={minimized[path]}
+          focused={focusPath == path}
+          canMinimize
+        ></NoteView>
+      {/if}
+    {/each}
+  {/if}
+{/key}

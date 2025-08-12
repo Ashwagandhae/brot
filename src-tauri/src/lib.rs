@@ -44,10 +44,11 @@ async fn message_command(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = tauri::Builder::default().plugin(tauri_plugin_clipboard_manager::init());
-    let app = app
+    let app = tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_android_fs::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let state = AppState::new(app).expect("failed to init app state");
             app.manage(state.clone());
@@ -65,23 +66,16 @@ pub fn run() {
             }
             Ok(())
         })
-        .plugin(tauri_plugin_opener::init())
-        .invoke_handler({
+        .invoke_handler(tauri::generate_handler![
+            message_command,
+            is_android,
             #[cfg(not(target_os = "android"))]
-            {
-                tauri::generate_handler![
-                    message_command,
-                    is_android,
-                    open_window,
-                    update_window_state,
-                    complete_search
-                ]
-            }
-            #[cfg(target_os = "android")]
-            {
-                tauri::generate_handler![message_command, is_android]
-            }
-        });
+            open_window,
+            #[cfg(not(target_os = "android"))]
+            update_window_state,
+            #[cfg(not(target_os = "android"))]
+            complete_search
+        ]);
 
     let app = {
         #[cfg(not(target_os = "android"))]
@@ -120,6 +114,7 @@ pub fn run() {
             app
         }
     };
+    #[cfg(not(target_os = "android"))]
     app.build(tauri::generate_context!())
         .expect("error building app")
         .run(|_app_handle, event| match event {
@@ -128,4 +123,7 @@ pub fn run() {
             }
             _ => {}
         });
+    #[cfg(target_os = "android")]
+    app.run(tauri::generate_context!())
+        .expect("err while running");
 }

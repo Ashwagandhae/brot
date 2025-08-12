@@ -1,19 +1,60 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { platform } from "./platform";
+  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+  import ActionButton from "./ActionButton.svelte";
+  import { getViewStateContext } from "./viewState";
 
-  let { children } = $props();
+  let {
+    children,
+    runPartialAction,
+    paletteActive,
+  }: {
+    children: Snippet;
+    runPartialAction: (action: PartialAction) => void;
+    paletteActive: boolean;
+  } = $props();
+
+  let viewState = getViewStateContext();
 </script>
 
-<main>
+<main class:android={$platform == "android"}>
   <div class="topbar" data-tauri-drag-region></div>
-  <div class="buttons" class:window={$platform == "window"}>
-    <!-- {#if $platform == "window"}
-      <button onclick={toggleFloat} class:toggled={floating}>f</button>
-    {/if} -->
+  <div class="content">
+    {@render children()}
   </div>
-  {@render children()}
-  {#if $platform == "android"}{/if}
-  <!-- <div class="androidButtons"><button>jello</button></div> -->
+  {#if $platform == "android"}
+    <div class="navButtons">
+      <ActionButton
+        icon="plus"
+        selected={$viewState?.type == "new"}
+        onclick={() =>
+          runPartialAction({ key: "goto", args: ["false", "new"] })}
+      ></ActionButton>
+      <ActionButton
+        icon="hamburger"
+        selected={$viewState?.type == "pinned"}
+        onclick={() =>
+          runPartialAction({ key: "goto", args: ["false", "pinned"] })}
+      ></ActionButton>
+      <ActionButton
+        icon="dots"
+        selected={paletteActive}
+        onclick={() =>
+          runPartialAction({ key: "openPalette", args: ["action"] })}
+      ></ActionButton>
+      <ActionButton
+        icon="gear"
+        selected={$viewState?.type == "settings"}
+        onclick={() =>
+          runPartialAction({ key: "goto", args: ["false", "settings"] })}
+      ></ActionButton>
+      <ActionButton
+        icon="triangleRight"
+        onclick={() => runPartialAction({ key: "historyForward", args: [] })}
+      ></ActionButton>
+    </div>
+  {/if}
 </main>
 
 <style>
@@ -21,6 +62,9 @@
     height: 100vh;
     overflow-y: auto;
     position: relative;
+  }
+  main.android {
+    padding-top: 20px;
   }
   div.topbar {
     position: fixed;
@@ -35,25 +79,19 @@
     background: var(--back);
     z-index: 1;
   }
-
-  .buttons {
-    position: fixed;
-    width: auto;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-
-    top: 0;
-    left: 0;
-    padding-left: 4px;
-    padding-top: 4px;
-    gap: 4px;
-    pointer-events: none;
-    z-index: 10000;
+  .android .content {
+    padding-bottom: 200px;
   }
 
-  .buttons.window {
-    left: 64px;
+  .navButtons {
+    position: fixed;
+    bottom: 0px;
+    flex-direction: row;
+    background: var(--back-1);
+    width: 100%;
+    height: 64px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
   }
 </style>

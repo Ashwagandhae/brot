@@ -3,16 +3,19 @@
   import { getActionRegistryContext } from "./actions";
   import BoldChars from "./BoldChars.svelte";
   import Icon from "./Icon.svelte";
+  import { platform } from "./platform";
   import Shortcut from "./Shortcut.svelte";
 
   let {
     command,
     selected,
     container,
+    onclick,
   }: {
     command: MatchedPaletteAction;
     selected: boolean;
     container: HTMLElement;
+    onclick?: (event: MouseEvent) => void;
   } = $props();
 
   let element: HTMLElement;
@@ -46,7 +49,13 @@
   });
 </script>
 
-<div class="top" class:selected bind:this={element}>
+<button
+  class="top"
+  class:selected
+  bind:this={element}
+  onmousedown={(event) => event.preventDefault()}
+  {onclick}
+>
   <div class="left">
     <div class="icon">
       <Icon name={command.paletteAction.icon ?? "dots"}></Icon>
@@ -56,13 +65,13 @@
       ></BoldChars>
     </div>
   </div>
-  {#if command.paletteAction.shortcut != null}
+  {#if command.paletteAction.shortcut != null && $platform != "android"}
     <div class="shortcut">
       <Shortcut keyString={command.paletteAction.shortcut} {selected}
       ></Shortcut>
     </div>
   {/if}
-</div>
+</button>
 
 <style>
   .top {

@@ -2,9 +2,10 @@
   import { goto } from "$app/navigation";
   import { getViewStateContext } from "$lib/viewState";
   import TextBar from "$lib/TextBar.svelte";
-  import WindowButtons from "$lib/WindowButtons.svelte";
   import { onMount } from "svelte";
   import { msg } from "$lib/message";
+  import Icon from "$lib/Icon.svelte";
+  import { platform } from "$lib/platform";
 
   let viewState = getViewStateContext();
   $viewState = { type: "new" };
@@ -13,6 +14,7 @@
 
   async function createAndGotoNote() {
     let path = await msg("createNote", { title });
+    console.log("created note with path:", path);
     if (path == null) return;
     goto(`./note?p=${path}`);
   }
@@ -24,19 +26,24 @@
   });
 </script>
 
-<WindowButtons>
-  <div class="top">
-    <div class="titleBar">
-      <TextBar
-        bind:value={title}
-        placeholder={"title"}
-        onaccept={createAndGotoNote}
-        autofocus
-        bind:element
-      ></TextBar>
-    </div>
+<div class="top">
+  <div class="titleBar">
+    <TextBar
+      bind:value={title}
+      placeholder={"title"}
+      onaccept={createAndGotoNote}
+      autofocus
+      bind:element
+    ></TextBar>
+    {#if $platform == "android"}
+      <button onclick={createAndGotoNote}>
+        <div class="icon">
+          <Icon name="check"></Icon>
+        </div>
+      </button>
+    {/if}
   </div>
-</WindowButtons>
+</div>
 
 <style>
   .top {
@@ -51,7 +58,7 @@
     position: sticky;
 
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
 
     padding: 4px;
     pointer-events: all;
@@ -61,5 +68,19 @@
     overflow: visible;
 
     z-index: 10;
+
+    gap: 8px;
+  }
+  .icon {
+    width: 24px;
+  }
+  button {
+    display: flex;
+    flex-direction: row;
+    padding: 4px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
   }
 </style>

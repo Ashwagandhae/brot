@@ -40,11 +40,9 @@
   let refreshKey = $state(false);
 </script>
 
-<WindowButtons>
-  {#key refreshKey}
-    {#key path}
-      <NoteView {path} {registry} focused={true} autofocus canMinimize={false}
-      ></NoteView>
-    {/key}
+{#key refreshKey}
+  {#key path}
+    <NoteView {path} {registry} focused={true} autofocus canMinimize={false}
+    ></NoteView>
   {/key}
-</WindowButtons>
+{/key}

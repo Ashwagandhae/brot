@@ -16,9 +16,7 @@
     oncancel?: () => void;
   } = $props();
 
-  let previousFocus: Element | null = null;
   onMount(() => {
-    previousFocus = document.activeElement;
     textElement?.focus();
   });
 
@@ -40,10 +38,6 @@
 
   onDestroy(() => {
     stop?.();
-    if (previousFocus == null) return;
-    if (previousFocus instanceof HTMLElement) {
-      previousFocus.focus();
-    }
   });
 
   async function handleKeydown(event: KeyboardEvent) {
@@ -95,6 +89,9 @@
           selected={selectedIndex == index}
           {command}
           container={choices}
+          onclick={(event) => {
+            onaccept?.(commands[index].paletteAction.action);
+          }}
         ></CommandChoice>
       {/each}
     </div>

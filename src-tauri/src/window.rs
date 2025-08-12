@@ -6,6 +6,7 @@ use tauri::{
     AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
 };
 
+use crate::state::PinnedWindowState;
 use crate::{message::locater::Locater, state::AppState};
 
 fn unique_label(app: &AppHandle, label: String) -> String {
@@ -265,13 +266,4 @@ pub fn complete_search(app: AppHandle, state: State<'_, AppState>, accepted: boo
             }
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum PinnedWindowState {
-    Focused,
-    Unfocused {
-        visible: bool,
-        last_focused_app_name: Option<String>,
-    },
 }

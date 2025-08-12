@@ -5,10 +5,11 @@ let platformName: "tab" | "window" | "android" | null = null;
 
 export type Platform = "tab" | "window" | "android" | null;
 
-async function getPlatformName() {
+export async function getPlatformName() {
+  // return "android";
   if (!isTauri()) {
     platformName = "tab";
-  } else if (await invoke("is_android")) {
+  } else if (await invoke("is_android", {})) {
     platformName = "android";
   } else {
     platformName = "window";
@@ -21,7 +22,3 @@ export function isTauri(): boolean {
 }
 
 export let platform: Writable<Platform> = writable(null);
-
-export async function initPlatformName() {
-  platform.set(await getPlatformName());
-}
