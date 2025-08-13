@@ -177,7 +177,8 @@
   }
 
   .content {
-    padding: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
     overflow: scroll;
     position: relative;
     box-sizing: border-box;
@@ -225,6 +226,6 @@
   .tools {
     position: absolute;
     right: 4px;
-    top: 0;
+    top: 4px;
   }
 </style>

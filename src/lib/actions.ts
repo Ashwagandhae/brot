@@ -26,8 +26,11 @@ export const actions = {
   repeatLastAction: [],
 
   // editor
+  unsetAllMarks: [],
+  // link
   setLink: ["url"],
   unsetLink: [],
+  // table
   insertTable: [],
   addColumnBefore: [],
   addColumnAfter: [],
@@ -42,7 +45,40 @@ export const actions = {
   toggleHeaderRow: [],
   toggleHeaderCell: [],
   mergeOrSplit: [],
-  setCodeBlockLanguage: [],
+  // blockquote
+  toggleBlockquote: [],
+  setBlockquote: [],
+  unsetBlockquote: [],
+  // heading
+  setHeading: ["level"],
+  toggleHeading: ["level"],
+  // horizontal rule
+  setHorizontalRule: [],
+  // paragraph
+  setParagraph: [],
+  // bold
+  setBold: [],
+  unsetBold: [],
+  toggleBold: [],
+  // code
+  setCode: [],
+  unsetCode: [],
+  toggleCode: [],
+  // italic
+  setItalic: [],
+  unsetItalic: [],
+  toggleItalic: [],
+  // strike
+  setStrike: [],
+  unsetStrike: [],
+  toggleStrike: [],
+  // underline
+  setUnderline: [],
+  unsetUnderline: [],
+  toggleUnderline: [],
+  // undo redo
+  undo: [],
+  redo: [],
 } as const;
 
 export type ActionRegistry = BuildActions & {
@@ -108,6 +144,7 @@ type ArgTypesMap = {
   palette: string;
   number: number;
   url: string;
+  level: 1 | 2 | 3 | 4 | 5 | 6;
 };
 export type ArgType = keyof ArgTypesMap;
 
@@ -167,9 +204,11 @@ export async function continuePartialAction(
   }
 }
 
-function verifyEnum<T extends string>(val: string, options: T[]): T {
-  if ((options as string[]).includes(val)) {
-    return val as T;
+function verifyEnum<T extends string>(val: string, options: T[]): T;
+function verifyEnum<T extends number>(val: number, options: T[]): T;
+function verifyEnum<T extends string | number>(val: T, options: T[]): T {
+  if (options.includes(val)) {
+    return val;
   }
   throw new Error(`Failed to verify value ${val}`);
 }
@@ -184,6 +223,7 @@ const parsers: {
   locater: (val) => val as Locater,
   number: (val) => Number(val),
   url: (val) => val,
+  level: (val) => verifyEnum(Number(val), [1, 2, 3, 4, 5, 6]),
 };
 
 export function parseArgType<T extends keyof ArgTypesMap>(

@@ -95,6 +95,9 @@
     padding: 8px;
     padding-left: 0;
     color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .icon {
     width: 16px;

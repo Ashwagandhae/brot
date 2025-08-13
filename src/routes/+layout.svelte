@@ -1,5 +1,7 @@
 <script lang="ts">
   import "@fontsource-variable/atkinson-hyperlegible-next";
+  import "@fontsource-variable/jetbrains-mono";
+
   import "../global.css";
   import { errorMessage } from "$lib/error";
   import { getPlatformName, platform } from "$lib/platform";

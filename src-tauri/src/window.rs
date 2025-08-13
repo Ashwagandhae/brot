@@ -182,6 +182,7 @@ pub fn open_and_get_window(
     let window_state = settings
         .window_states
         .get(&locater)
+        .or(settings.window_states.get(&Locater::New))
         .cloned()
         .unwrap_or_default();
     let window = builder.build().unwrap();

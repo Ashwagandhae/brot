@@ -151,3 +151,10 @@
     {/each}
   {/if}
 {/key}
+<div class="scrollPadding"></div>
+
+<style>
+  .scrollPadding {
+    height: calc(100vh - 64px);
+  }
+</style>

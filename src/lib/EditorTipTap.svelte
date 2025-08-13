@@ -1,5 +1,5 @@
 <script lang="ts">
-  import "./editorTipTap.css";
+  import "./editor.css";
   import { onMount } from "svelte";
   import StarterKit from "@tiptap/starter-kit";
   import { TableKit } from "@tiptap/extension-table";
@@ -89,33 +89,65 @@
       },
     });
     addEditorActions(registry, editor, {
+      unsetAllMarks: () => (chain) => chain.unsetAllMarks().run(),
       setLink: (url?: string) => (chain) =>
         chain
-          .focus()
+
           .extendMarkRange("link")
           .setLink({ href: url ?? "" })
           .run(),
       unsetLink: () => (chain) =>
-        chain.focus().extendMarkRange("link").unsetLink().run(),
+        chain.extendMarkRange("link").unsetLink().run(),
       insertTable: () => (chain) =>
-        chain
-          .focus()
-          .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-          .run(),
-      addColumnBefore: () => (chain) => chain.focus().addColumnBefore().run(),
-      addColumnAfter: () => (chain) => chain.focus().addColumnAfter().run(),
-      deleteColumn: () => (chain) => chain.focus().deleteColumn().run(),
-      addRowBefore: () => (chain) => chain.focus().addRowBefore().run(),
-      addRowAfter: () => (chain) => chain.focus().addRowAfter().run(),
-      deleteRow: () => (chain) => chain.focus().deleteRow().run(),
-      deleteTable: () => (chain) => chain.focus().deleteTable().run(),
-      mergeCells: () => (chain) => chain.focus().mergeCells().run(),
-      splitCell: () => (chain) => chain.focus().splitCell().run(),
-      toggleHeaderColumn: () => (chain) =>
-        chain.focus().toggleHeaderColumn().run(),
-      toggleHeaderRow: () => (chain) => chain.focus().toggleHeaderRow().run(),
-      toggleHeaderCell: () => (chain) => chain.focus().toggleHeaderCell().run(),
-      mergeOrSplit: () => (chain) => chain.focus().mergeOrSplit().run(),
+        chain.insertTable({ rows: 3, cols: 3, withHeaderRow: false }).run(),
+      addColumnBefore: () => (chain) => chain.addColumnBefore().run(),
+      addColumnAfter: () => (chain) => chain.addColumnAfter().run(),
+      deleteColumn: () => (chain) => chain.deleteColumn().run(),
+      addRowBefore: () => (chain) => chain.addRowBefore().run(),
+      addRowAfter: () => (chain) => chain.addRowAfter().run(),
+      deleteRow: () => (chain) => chain.deleteRow().run(),
+      deleteTable: () => (chain) => chain.deleteTable().run(),
+      mergeCells: () => (chain) => chain.mergeCells().run(),
+      splitCell: () => (chain) => chain.splitCell().run(),
+      toggleHeaderColumn: () => (chain) => chain.toggleHeaderColumn().run(),
+      toggleHeaderRow: () => (chain) => chain.toggleHeaderRow().run(),
+      toggleHeaderCell: () => (chain) => chain.toggleHeaderCell().run(),
+      mergeOrSplit: () => (chain) => chain.mergeOrSplit().run(),
+      // blockquote
+      toggleBlockquote: () => (chain) => chain.toggleBlockquote().run(),
+      setBlockquote: () => (chain) => chain.setBlockquote().run(),
+      unsetBlockquote: () => (chain) => chain.unsetBlockquote().run(),
+      // heading
+      setHeading: (level) => (chain) =>
+        chain.setHeading({ level: level ?? 1 }).run(),
+      toggleHeading: (level) => (chain) =>
+        chain.toggleHeading({ level: level ?? 1 }).run(),
+      setHorizontalRule: () => (chain) => chain.setHorizontalRule().run(),
+      // paragraph
+      setParagraph: () => (chain) => chain.setParagraph().run(),
+      // bold
+      setBold: () => (chain) => chain.setBold().run(),
+      unsetBold: () => (chain) => chain.unsetBold().run(),
+      toggleBold: () => (chain) => chain.toggleBold().run(),
+      // code
+      setCode: () => (chain) => chain.setCode().run(),
+      unsetCode: () => (chain) => chain.unsetCode().run(),
+      toggleCode: () => (chain) => chain.toggleCode().run(),
+      // italic
+      setItalic: () => (chain) => chain.setItalic().run(),
+      unsetItalic: () => (chain) => chain.unsetItalic().run(),
+      toggleItalic: () => (chain) => chain.toggleItalic().run(),
+      // strike
+      setStrike: () => (chain) => chain.setStrike().run(),
+      unsetStrike: () => (chain) => chain.unsetStrike().run(),
+      toggleStrike: () => (chain) => chain.toggleStrike().run(),
+      // underline
+      setUnderline: () => (chain) => chain.setUnderline().run(),
+      unsetUnderline: () => (chain) => chain.unsetUnderline().run(),
+      toggleUnderline: () => (chain) => chain.toggleUnderline().run(),
+      // undo redo
+      undo: () => (chain) => chain.undo().run(),
+      redo: () => (chain) => chain.redo().run(),
     });
   }
 
@@ -166,24 +198,24 @@
       element: element,
       extensions: [
         // starterkit:
-        Blockquote,
-        BulletList,
+        Blockquote.extend({ addKeyboardShortcuts: () => ({}) }),
+        BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
         Document,
-        HardBreak,
-        Heading,
+        HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
+        Heading.extend({ addKeyboardShortcuts: () => ({}) }),
         HorizontalRule,
         ListItem,
         OrderedList,
-        Paragraph,
+        Paragraph.extend({ addKeyboardShortcuts: () => ({}) }),
         Text,
-        Bold,
-        Code,
-        Italic,
-        Strike,
-        Underline,
+        Bold.extend({ addKeyboardShortcuts: () => ({}) }),
+        Code.extend({ addKeyboardShortcuts: () => ({}) }),
+        Italic.extend({ addKeyboardShortcuts: () => ({}) }),
+        Strike.extend({ addKeyboardShortcuts: () => ({}) }),
+        Underline.extend({ addKeyboardShortcuts: () => ({}) }),
         Dropcursor,
         Gapcursor,
-        UndoRedo,
+        UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
         ListKeymap,
         // starterkit end
 
