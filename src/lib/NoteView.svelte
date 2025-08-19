@@ -43,7 +43,11 @@
       await saveNote();
       saved = true;
     },
-    focusNote: () => focusNote(),
+    focusScrollNote: () => focusNote(true),
+    focusNote: () => focusNote(false),
+    focusNoteEnd: () => {
+      registry.get("getEditor")?.().chain().focus("end").run();
+    },
     copyUrl: () => {
       navigator.clipboard.writeText(pathToUrl(path));
     },
@@ -55,7 +59,7 @@
       initContent = note.content;
       await tick();
       if (autofocus) {
-        focusNote();
+        focusNote(false);
       }
     }
   });
@@ -91,7 +95,8 @@
 
   let startEditing = $state(() => {});
 
-  function focusNote(scroll = true) {
+  function focusNote(scroll: boolean) {
+    console.log("focus note called");
     let [from, to] = note?.meta.selection ?? [0, 0];
     registry
       .get("getEditor")?.()
@@ -129,7 +134,7 @@
       {path}
       {onfocus}
       {focused}
-      {focusNote}
+      focusNote={() => focusNote(false)}
       bind:startEditing
     />
     <div class="tools">

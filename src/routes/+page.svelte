@@ -11,6 +11,7 @@
     type ActionRegistry,
   } from "$lib/actions";
   import { setPathContext } from "$lib/path";
+  import ScrollPadding from "$lib/ScrollPadding.svelte";
 
   let viewState = getViewStateContext();
 
@@ -39,13 +40,14 @@
       pinnedPaths = await msg("getPinned");
       refreshKey = !refreshKey;
     },
-    focusPinnedNote: (index) => {
+    focusScrollPinnedNote: (index) => {
       let newFocusPath = pinnedPaths?.[index];
       if (newFocusPath == null) return;
-      noteActionRegistries[newFocusPath].get("focusNote")?.();
+      noteActionRegistries[newFocusPath].get("focusScrollNote")?.();
       focusPath = newFocusPath;
     },
-    focusNote: () => untrack(() => registry).get("focusPinnedNote")?.(0),
+    focusScrollNote: () =>
+      untrack(() => registry).get("focusScrollPinnedNote")?.(0),
   });
 
   let pinnedPaths: string[] | null = $state(null);
@@ -151,10 +153,11 @@
     {/each}
   {/if}
 {/key}
-<div class="scrollPadding"></div>
-
-<style>
-  .scrollPadding {
-    height: calc(100vh - 64px);
-  }
-</style>
+<ScrollPadding
+  onclick={() => {
+    if (pinnedPaths == null || pinnedPaths.length == 0) return;
+    let noteRegistry =
+      noteActionRegistries[pinnedPaths[pinnedPaths.length - 1]];
+    noteRegistry.get("focusNoteEnd")?.();
+  }}
+></ScrollPadding>

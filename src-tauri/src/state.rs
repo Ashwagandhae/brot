@@ -4,12 +4,15 @@ use anyhow::Result;
 use tauri::{path::BaseDirectory, App, AppHandle, Manager};
 use tokio::sync::{Mutex, RwLock};
 
-use crate::message::{
-    action::Actions,
-    folder_manager::FolderManager,
-    meta::Meta,
-    palette::Palettes,
-    settings::{read_settings_file, Settings},
+use crate::{
+    message::{
+        action::Actions,
+        folder_manager::FolderManager,
+        meta::Meta,
+        palette::Palettes,
+        settings::{read_settings_file, Settings},
+    },
+    missed_events::EventManager,
 };
 
 #[derive(Debug, Clone)]
@@ -33,6 +36,7 @@ pub struct AppState {
     pub actions: Arc<Mutex<Option<Actions>>>,
     pub palettes: Arc<RwLock<Palettes>>,
     pub handle: AppHandle,
+    pub event_manager: Arc<Mutex<EventManager>>,
 }
 
 impl AppState {
@@ -50,6 +54,7 @@ impl AppState {
         let actions = Arc::new(Mutex::new(None));
         let palettes = Arc::new(RwLock::new(Palettes::new()));
         let handle = app.handle().clone();
+        let event_manager = Arc::new(Mutex::new(EventManager::new(app.handle().clone())));
         Ok(Self {
             build_path,
             config_path,
@@ -61,6 +66,7 @@ impl AppState {
             actions,
             palettes,
             handle,
+            event_manager,
         })
     }
 }

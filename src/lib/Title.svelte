@@ -28,13 +28,14 @@
   let editedTitle = $state("");
 
   startEditing = () => {
+    console.log("editing title");
     editingTitle = true;
     editedTitle = pathToTitle(path);
   };
 
   async function updateTitle() {
     editingTitle = false;
-    focusNote();
+    // focusNote();
     let newPath = await msg("updatePath", {
       currentPath: path,
       newTitle: editedTitle,
@@ -50,7 +51,10 @@
     <TextBar
       bind:value={editedTitle}
       onaccept={updateTitle}
-      oncancel={() => (editingTitle = false)}
+      oncancel={() => {
+        console.log("cancel editing title");
+        editingTitle = false;
+      }}
       {onfocus}
       autofocus
       placeholder={"title"}

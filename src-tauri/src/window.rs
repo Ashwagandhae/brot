@@ -4,8 +4,10 @@ use std::str::FromStr;
 use objc2::rc::autoreleasepool;
 use tauri::{
     AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
+    WindowEvent,
 };
 
+use crate::missed_events::Event;
 use crate::state::PinnedWindowState;
 use crate::{message::locater::Locater, state::AppState};
 
@@ -162,13 +164,14 @@ pub fn open_and_get_window(
         window.set_focus().unwrap();
         return window.clone();
     }
+    let label = if locater == Locater::Pinned {
+        "pinned".to_owned()
+    } else {
+        unique_label(&app, "window".to_owned())
+    };
     let mut builder = tauri::webview::WebviewWindowBuilder::new(
         &app,
-        if locater == Locater::Pinned {
-            "pinned".to_owned()
-        } else {
-            unique_label(&app, "window".to_owned())
-        },
+        label.clone(),
         tauri::WebviewUrl::App(locater.into_path()),
     )
     .title_bar_style(tauri::TitleBarStyle::Overlay)
@@ -197,6 +200,13 @@ pub fn open_and_get_window(
     window.show().unwrap();
     window.set_focus().unwrap();
 
+    let event_manager = state.event_manager.clone();
+    window.on_window_event(move |event| match event {
+        WindowEvent::CloseRequested { .. } => {
+            event_manager.blocking_lock().remove_window(&label);
+        }
+        _ => {}
+    });
     window.clone()
 }
 
@@ -235,8 +245,10 @@ pub fn open_search(app: AppHandle, state: State<'_, AppState>) {
         }
     };
     *state.pinned_state_before_search.blocking_lock() = pinned_window_state;
-    window
-        .emit_to(EventTarget::window("pinned"), "search", ())
+    state
+        .event_manager
+        .blocking_lock()
+        .send_event(window.label(), Event("search".to_owned()))
         .expect("failed to send search event");
 }
 
@@ -256,6 +268,7 @@ pub fn complete_search(app: AppHandle, state: State<'_, AppState>, accepted: boo
         PinnedWindowState::Unfocused {
             visible,
             last_focused_app_name,
+            ..
         } => {
             if !visible {
                 pinned_window.hide().unwrap();

@@ -42,6 +42,7 @@
   }
   onMount(() => {
     if (autofocus) {
+      console.log("focused edit title?");
       element?.focus();
     }
   });

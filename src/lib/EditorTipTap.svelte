@@ -98,6 +98,7 @@
           .run(),
       unsetLink: () => (chain) =>
         chain.extendMarkRange("link").unsetLink().run(),
+      // table
       insertTable: () => (chain) =>
         chain.insertTable({ rows: 3, cols: 3, withHeaderRow: false }).run(),
       addColumnBefore: () => (chain) => chain.addColumnBefore().run(),

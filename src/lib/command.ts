@@ -68,6 +68,8 @@ function getParamActions(
       return [];
     case "palette":
       return [];
+    case "level":
+      return enumPaletteActions(["1", "2", "3", "4", "5", "6"], search, action);
   }
 }
 

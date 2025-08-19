@@ -1,4 +1,5 @@
 use message::{handle_message_and_errors, ClientMessage};
+use missed_events::set_event_ready;
 use state::AppState;
 use tauri::{Manager, State};
 
@@ -14,6 +15,7 @@ use window_state::update_window_state;
 use crate::message::ServerResult;
 
 pub mod message;
+pub mod missed_events;
 pub mod server;
 pub mod state;
 pub mod window_state;
@@ -69,12 +71,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             message_command,
             is_android,
+            set_event_ready,
             #[cfg(not(target_os = "android"))]
             open_window,
             #[cfg(not(target_os = "android"))]
             update_window_state,
             #[cfg(not(target_os = "android"))]
-            complete_search
+            complete_search,
         ]);
 
     let app = {

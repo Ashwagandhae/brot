@@ -4,7 +4,13 @@
 
   import "../global.css";
   import { errorMessage } from "$lib/error";
-  import { getPlatformName, platform } from "$lib/platform";
+  import {
+    getPlatformName,
+    openExternal,
+    platform,
+    sendCompleteSearch,
+    updateWindowState,
+  } from "$lib/platform";
   import CommandPalette from "$lib/CommandPalette.svelte";
   import {
     stateFromType,
@@ -19,7 +25,6 @@
     type ViewState,
   } from "$lib/viewState";
   import { writable, type Writable } from "svelte/store";
-  import { invoke } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
@@ -37,6 +42,8 @@
   import { msg } from "$lib/message";
   import { runLastAction, setLastAction } from "$lib/lastAction";
   import WindowButtons from "$lib/WindowButtons.svelte";
+  import { locaterToUrl } from "$lib/locater";
+  import { invoke } from "@tauri-apps/api/core";
 
   let { children } = $props();
 
@@ -62,6 +69,7 @@
           commandPaletteType = { type: "palette", key: "search" };
         }
       });
+      await invoke("set_event_ready");
     }
   });
 
@@ -96,25 +104,17 @@
     getCurrentWindow().setTitle(title);
   });
   registry.add({
-    goto: (newWindow, locater: Locater) => {
-      if (newWindow) {
-        invoke("open_window", { locater });
+    goto: (shouldOpenExternal, locater: Locater) => {
+      if (shouldOpenExternal) {
+        openExternal(locater);
       } else {
-        if (locater == "pinned") {
-          goto("/");
-        } else if (locater == "settings") {
-          goto("/settings");
-        } else if (locater == "new") {
-          goto("/new");
-        } else {
-          goto("/note?p=" + locater.slice(5));
-        }
+        goto(locaterToUrl(locater));
       }
       return;
     },
     saveWindowState: () => {
       if ($viewState == null) return;
-      invoke("update_window_state", { locater: toLocater($viewState) });
+      updateWindowState(toLocater($viewState));
       return;
     },
     openPalette: (paletteType) => {
@@ -147,22 +147,21 @@
     return stateFromType(commandPaletteType, registry);
   });
 
-  function handleCommandPaletteCancel() {
+  async function handleCommandPaletteFinish(action: PartialAction | null) {
+    if (commandPaletteType == null) return;
     if (searchPalette) {
-      completeSearch(false);
+      completeSearch(action != null);
     }
     commandPaletteType = null;
-  }
-
-  async function handleCommandPaletteAccept(action: PartialAction) {
-    if (searchPalette) {
-      completeSearch(true);
+    if (action != null) {
+      setLastAction(action);
     }
-    commandPaletteType = null;
-    setLastAction(action);
-    await tick();
+    await tick(); // wait until command palette destroyed
     registry.get("focusNote")?.();
-    runPartialAction(action);
+    await new Promise((resolve) => setTimeout(resolve, 0)); // yield to event loop so that note is finished focusing before action
+    if (action != null) {
+      runPartialAction(action);
+    }
   }
 
   let runPartialAction = $derived((action: PartialAction) => {
@@ -178,7 +177,7 @@
   let searchPalette: boolean = $state(false);
   async function completeSearch(accepted: boolean) {
     searchPalette = false;
-    await invoke("complete_search", { accepted });
+    sendCompleteSearch(accepted);
   }
 </script>
 
@@ -201,8 +200,8 @@
   {#if commandProvider != null}
     <CommandPalette
       provider={commandProvider}
-      oncancel={handleCommandPaletteCancel}
-      onaccept={handleCommandPaletteAccept}
+      onfinish={handleCommandPaletteFinish}
+      hideBack={searchPalette}
     ></CommandPalette>
   {/if}
 {/key}

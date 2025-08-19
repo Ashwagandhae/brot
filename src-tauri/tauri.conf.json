@@ -10,7 +10,7 @@
     "frontendDist": "../build"
   },
   "app": {
-    "windows": [{ "title": "brot" }],
+    "windows": [],
     "security": {
       "csp": null
     }

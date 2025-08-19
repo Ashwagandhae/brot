@@ -2,6 +2,7 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import NoteView from "$lib/NoteView.svelte";
+  import ScrollPadding from "$lib/ScrollPadding.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { getActionRegistryContext, ArgsFilter } from "$lib/actions";
 
@@ -46,10 +47,8 @@
     ></NoteView>
   {/key}
 {/key}
-<div class="scrollPadding"></div>
-
-<style>
-  .scrollPadding {
-    height: calc(100vh - 64px);
-  }
-</style>
+<ScrollPadding
+  onclick={() => {
+    registry.get("focusNoteEnd")?.();
+  }}
+></ScrollPadding>

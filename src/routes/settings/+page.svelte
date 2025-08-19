@@ -18,12 +18,16 @@
   }
 </script>
 
-<h1>Settings</h1>
-<form onsubmit={updateSettings}>
-  <textarea bind:value={settings.notesPath}></textarea>
-  <button type="submit">Submit</button>
-  <a href="../">back</a>
-</form>
+<div class="top">
+  <h1>Settings</h1>
+  <form onsubmit={updateSettings}>
+    <textarea bind:value={settings.notesPath}></textarea>
+    <button type="submit">Submit</button>
+  </form>
+</div>
 
 <style>
+  .top {
+    padding-top: var(--topbar-height);
+  }
 </style>

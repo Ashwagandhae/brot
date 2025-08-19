@@ -8,17 +8,13 @@
 
   let {
     provider,
-    onaccept,
-    oncancel,
+    onfinish,
+    hideBack,
   }: {
     provider: CommandProvider;
-    onaccept?: (command: PartialAction) => void;
-    oncancel?: () => void;
+    onfinish?: (command: PartialAction | null) => void;
+    hideBack?: boolean;
   } = $props();
-
-  onMount(() => {
-    textElement?.focus();
-  });
 
   let search: string = $state("");
 
@@ -37,7 +33,7 @@
   });
 
   onDestroy(() => {
-    stop?.();
+    onfinish?.(null);
   });
 
   async function handleKeydown(event: KeyboardEvent) {
@@ -64,22 +60,21 @@
   }
 
   let choices: HTMLElement | null = $state(null);
-  let textElement: HTMLElement | undefined = $state(undefined);
 </script>
 
-<div class="outer">
+<div class="outer" class:hideBack>
   <div class="content">
     <TextBar
       bind:value={search}
-      bind:element={textElement}
+      autofocus
       flat
-      {oncancel}
+      oncancel={() => onfinish?.(null)}
       onaccept={() => {
         if (selectedIndex >= commands.length) {
-          oncancel?.();
+          onfinish?.(null);
           return;
         }
-        onaccept?.(commands[selectedIndex].paletteAction.action);
+        onfinish?.(commands[selectedIndex].paletteAction.action);
       }}
       onkeydown={handleKeydown}
     ></TextBar>
@@ -89,8 +84,8 @@
           selected={selectedIndex == index}
           {command}
           container={choices}
-          onclick={(event) => {
-            onaccept?.(commands[index].paletteAction.action);
+          onclick={() => {
+            onfinish?.(commands[index].paletteAction.action);
           }}
         ></CommandChoice>
       {/each}
@@ -110,6 +105,9 @@
     align-items: center;
     padding-top: 20vh;
     box-sizing: border-box;
+  }
+  div.outer.hideBack {
+    background: var(--back);
   }
 
   .content {

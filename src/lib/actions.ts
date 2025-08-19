@@ -17,8 +17,10 @@ export const actions = {
   refreshPage: [],
   editorToggleBold: [],
   toggleFloating: [],
-  focusPinnedNote: ["number"],
+  focusScrollPinnedNote: ["number"],
+  focusScrollNote: [],
   focusNote: [],
+  focusNoteEnd: [],
   copyUrl: [],
   pasteWithoutFormatting: [],
   historyBack: [],
@@ -189,6 +191,7 @@ export async function continuePartialAction(
   if (actions[key].length <= action.args.length) {
     let fn = registry.get(key);
     if (fn != null) {
+      console.log("doing action", key, [...action.args]);
       (fn as any)(
         ...action.args.map((val, index) =>
           parseArgType(actions[key][index], val)

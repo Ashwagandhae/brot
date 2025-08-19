@@ -1,7 +1,6 @@
 /* Basic editor styles */
 
 .tiptap {
-  max-width: 80ch;
   margin: auto;
 }
 .tiptap:first-child {
