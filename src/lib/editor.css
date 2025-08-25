@@ -62,21 +62,30 @@
 
 /* table  */
 .tiptap table {
-  border-collapse: collapse;
+  border-collapse: seperate;
+  border-spacing: 0;
   margin: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
   table-layout: fixed;
-  width: 100%;
+  width: auto;
+  /* width: 100%; */
 }
 
 .tiptap table td,
 .tiptap table th {
-  border: 1px solid var(--back-3);
+  border-right: var(--line-width) solid var(--line-color);
+  border-bottom: var(--line-width) solid var(--line-color);
   box-sizing: border-box;
   min-width: 1em;
   padding: 6px 8px;
   position: relative;
   vertical-align: top;
+}
+.tiptap table tr :is(td, th):first-child {
+  border-left: var(--line-width) solid var(--line-color);
+}
+.tiptap table tr:first-child :is(td, th) {
+  border-top: var(--line-width) solid var(--line-color);
 }
 
 .tiptap table td > *,
@@ -91,7 +100,7 @@
 }
 
 .tiptap table .selectedCell:after {
-  background: rgb(255, 255, 255, 0.3);
+  background: var(--back-2);
   content: "";
   left: 0;
   right: 0;
@@ -103,13 +112,13 @@
 }
 
 .tiptap table .column-resize-handle {
-  background-color: var(--purple);
+  background-color: var(--line-color-1);
   bottom: -2px;
   pointer-events: none;
   position: absolute;
   right: -2px;
   top: 0;
-  width: 4px;
+  width: 2px;
 }
 
 .tiptap .tableWrapper {

@@ -15,7 +15,7 @@ export interface CommandProvider {
   stop?: () => void;
 }
 
-export type CommandPaletteType =
+export type PaletteType =
   | {
       type: "palette";
       key: string;
@@ -170,8 +170,8 @@ class PaletteCommandProvider implements CommandProvider {
   }
 }
 
-export function stateFromType(
-  type: CommandPaletteType,
+export function providerFromPalette(
+  type: PaletteType,
   registry: ActionRegistryManager
 ): CommandProvider {
   if (type.type == "arg") {

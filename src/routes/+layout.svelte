@@ -3,49 +3,36 @@
   import "@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css";
   import "@fontsource-variable/jetbrains-mono";
 
-  import "../global.css";
   import { errorMessage } from "$lib/error";
   import {
     getPlatformName,
     openExternal,
     platform,
-    sendCompleteSearch,
     updateWindowState,
   } from "$lib/platform";
-  import CommandPalette from "$lib/CommandPalette.svelte";
-  import {
-    stateFromType,
-    type CommandPaletteType,
-    type CommandProvider,
-  } from "$lib/command";
+  import "../global.css";
+
   import { goto } from "$app/navigation";
 
+  import {
+    ActionRegistryManager,
+    setActionRegistryContext,
+  } from "$lib/actions";
+  import { locaterToUrl } from "$lib/locater";
+  import Palette from "$lib/Palette.svelte";
   import {
     setViewStateContext,
     toLocater,
     type ViewState,
   } from "$lib/viewState";
-  import { writable, type Writable } from "svelte/store";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount, tick } from "svelte";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
-  import {
-    ActionRegistryManager,
-    continuePartialAction,
-    setActionRegistryContext,
-    type ActionRegistry,
-    type ArgType,
-  } from "$lib/actions";
-  import type { Locater } from "../../src-tauri/bindings/Locater";
-  import type { Actions } from "../../src-tauri/bindings/Actions";
-  import { mapKeydownEventToAction } from "$lib/shortcut";
-  import { listen } from "@tauri-apps/api/event";
-  import { msg } from "$lib/message";
-  import { runLastAction, setLastAction } from "$lib/lastAction";
   import WindowButtons from "$lib/WindowButtons.svelte";
-  import { locaterToUrl } from "$lib/locater";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { onMount } from "svelte";
+  import { writable, type Writable } from "svelte/store";
+  import type { Locater } from "../../src-tauri/bindings/Locater";
+  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import { invoke } from "@tauri-apps/api/core";
-  import Palette from "$lib/Palette.svelte";
+  import { listen } from "@tauri-apps/api/event";
 
   let { children } = $props();
 
@@ -57,6 +44,12 @@
 
   onMount(async () => {
     $platform = await getPlatformName();
+    if ($platform == "window") {
+      await listen("search", () => {
+        search();
+      });
+      await invoke("set_event_ready");
+    }
   });
 
   let title: string | null = $derived.by(() => {
@@ -109,6 +102,7 @@
 
   let paletteActive: boolean = $state(false);
   let runAction: (action: PartialAction) => void = $state(() => {});
+  let search: () => void = $state(() => {});
 </script>
 
 <svelte:head>
@@ -125,7 +119,7 @@
   <p class="err">{$errorMessage}</p>
 {/if}
 
-<Palette {registry} bind:paletteActive bind:runAction></Palette>
+<Palette {registry} bind:paletteActive bind:runAction bind:search></Palette>
 
 <style>
   .err {

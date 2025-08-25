@@ -255,3 +255,8 @@ export function setActionRegistryContext(registry: ActionRegistryManager) {
 export function getActionRegistryContext(): ActionRegistryManager {
   return getContext("actionRegistry");
 }
+
+// type PartialActionTyped<T extends keyof typeof actions> = {
+//   key: T,
+//   args:
+// }

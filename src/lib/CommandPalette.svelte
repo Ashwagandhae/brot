@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy } from "svelte";
   import type { CommandProvider } from "./command";
   import CommandChoice from "./CommandChoice.svelte";
   import TextBar from "./TextBar.svelte";

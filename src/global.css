@@ -1,7 +1,8 @@
 :root {
-  font-family: "Atkinson Hyperlegible Next Variable", -apple-system,
+  --font: "Atkinson Hyperlegible Next Variable", -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: var(--font);
 
   font-style: normal 90deg oblique 20deg;
 
@@ -18,6 +19,7 @@
   --back-4: hsl(0, 0%, 30%);
   --back-5: hsl(0, 0%, 35%);
   --line-color: hsl(0, 0%, 30%);
+  --line-color-1: hsl(0, 0%, 40%);
   --line-width: 2px;
 
   --topbar-height: 28px;

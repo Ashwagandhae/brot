@@ -5,8 +5,8 @@
   import { listen } from "@tauri-apps/api/event";
   import { getViewStateContext, toLocater } from "./viewState";
   import {
-    stateFromType,
-    type CommandPaletteType,
+    providerFromPalette,
+    type PaletteType,
     type CommandProvider,
   } from "./command";
   import { continuePartialAction, type ActionRegistryManager } from "./actions";
@@ -21,24 +21,25 @@
     registry,
     paletteActive = $bindable(),
     runAction = $bindable(),
+    search = $bindable(),
   }: {
     registry: ActionRegistryManager;
     paletteActive: boolean;
     runAction: (action: PartialAction) => void;
+    search: () => void;
   } = $props();
 
-  let commandPaletteType: CommandPaletteType | null = $state(null);
-  let viewState = getViewStateContext();
+  let paletteType: PaletteType | null = $state(null);
   let searchPalette: boolean = $state(false);
   let actions: Actions | null = $state(null);
   let commandProvider: CommandProvider | null = $derived.by(() => {
-    if (commandPaletteType == null) return null;
-    return stateFromType(commandPaletteType, registry);
+    if (paletteType == null) return null;
+    return providerFromPalette(paletteType, registry);
   });
 
   registry.add({
-    openPalette: (paletteType) => {
-      commandPaletteType = { type: "palette", key: paletteType };
+    openPalette: (key) => {
+      paletteType = { type: "palette", key };
     },
     refresh: async () => {
       await msg("refresh");
@@ -50,21 +51,16 @@
     },
   });
 
+  search = () => {
+    searchPalette = true;
+    paletteType = { type: "palette", key: "search" };
+  };
+
   onMount(async () => {
     actions = await msg("getActions");
-    if ($platform == "window") {
-      await listen("search", () => {
-        if ($viewState == null) return;
-        if (toLocater($viewState) == "pinned") {
-          searchPalette = true;
-          commandPaletteType = { type: "palette", key: "search" };
-        }
-      });
-      await invoke("set_event_ready");
-    }
   });
   $effect(() => {
-    paletteActive = commandPaletteType != null;
+    paletteActive = paletteType != null;
   });
 
   let handleKeydown: (event: KeyboardEvent) => void = $state(() => {});
@@ -82,7 +78,7 @@
   $effect(() => {
     runAction = (action: PartialAction) => {
       continuePartialAction(registry, action, (argType) => {
-        commandPaletteType = {
+        paletteType = {
           type: "arg",
           argType,
           action,
@@ -97,11 +93,11 @@
   }
 
   async function handleCommandPaletteFinish(action: PartialAction | null) {
-    if (commandPaletteType == null) return;
+    if (paletteType == null) return;
     if (searchPalette) {
       completeSearch(action != null);
     }
-    commandPaletteType = null;
+    paletteType = null;
     if (action != null) {
       setLastAction(action);
     }
@@ -115,7 +111,7 @@
 </script>
 
 <svelte:document onkeydown={handleKeydown} />
-{#key commandPaletteType}
+{#key paletteType}
   {#if commandProvider != null}
     <CommandPalette
       provider={commandProvider}
