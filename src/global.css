@@ -3,6 +3,8 @@
     BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 
+  font-style: normal 90deg oblique 20deg;
+
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
@@ -15,6 +17,8 @@
   --back-3: hsl(0, 0%, 25%);
   --back-4: hsl(0, 0%, 30%);
   --back-5: hsl(0, 0%, 35%);
+  --line-color: hsl(0, 0%, 30%);
+  --line-width: 2px;
 
   --topbar-height: 28px;
 

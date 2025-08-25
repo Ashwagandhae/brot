@@ -3,8 +3,7 @@ use std::str::FromStr;
 
 use objc2::rc::autoreleasepool;
 use tauri::{
-    AppHandle, Emitter, EventTarget, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow,
-    WindowEvent,
+    AppHandle, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow, WindowEvent,
 };
 
 use crate::missed_events::Event;
@@ -99,13 +98,16 @@ pub fn toggle_pinned(app: AppHandle, state: State<'_, AppState>) {
     }
     if let Some(pinned_window) = pinned_window {
         if pinned_window.is_focused().unwrap() && pinned_window.is_visible().unwrap() {
-            pinned_window.hide().unwrap();
             let last_focused_app_name = state.last_focused_app_name.blocking_lock();
             if let Some(name) = &*last_focused_app_name {
                 focus_app_by_bundle_id(name);
             }
+            pinned_window.set_always_on_top(false).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(20)); // need to wait to prevent glitch of behind windows popping over
+            pinned_window.hide().unwrap();
         } else {
             pinned_window.show().unwrap();
+            pinned_window.set_always_on_top(true).unwrap();
             pinned_window.set_focus().unwrap();
         }
     } else {

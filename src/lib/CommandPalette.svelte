@@ -5,6 +5,7 @@
   import TextBar from "./TextBar.svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
+  import { platform } from "./platform";
 
   let {
     provider,
@@ -62,7 +63,7 @@
   let choices: HTMLElement | null = $state(null);
 </script>
 
-<div class="outer" class:hideBack>
+<div class="outer" class:hideBack class:android={$platform == "android"}>
   <div class="content">
     <TextBar
       bind:value={search}
@@ -108,6 +109,9 @@
   }
   div.outer.hideBack {
     background: var(--back);
+  }
+  div.outer.android {
+    padding-top: 10vh;
   }
 
   .content {

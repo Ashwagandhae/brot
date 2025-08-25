@@ -29,6 +29,8 @@
     "@tiptap/core": "^3.0.9",
     "@tiptap/extension-code-block-lowlight": "^3.0.9",
     "@tiptap/extension-color": "^3.0.9",
+    "@tiptap/extension-details": "^3.3.0",
+    "@tiptap/extension-hard-break": "^3.3.0",
     "@tiptap/extension-link": "^3.0.9",
     "@tiptap/extension-list": "^3.0.9",
     "@tiptap/extension-list-item": "^3.0.9",

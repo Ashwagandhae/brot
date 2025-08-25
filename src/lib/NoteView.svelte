@@ -77,7 +77,7 @@
       await saveNote();
     }
     saved = true;
-  }, 2000);
+  }, 1000);
   onDestroy(() => {
     clearInterval(interval);
   });

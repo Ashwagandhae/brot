@@ -7,11 +7,11 @@
 
   let {
     children,
-    runPartialAction,
+    runAction,
     paletteActive,
   }: {
     children: Snippet;
-    runPartialAction: (action: PartialAction) => void;
+    runAction: (action: PartialAction) => void;
     paletteActive: boolean;
   } = $props();
 
@@ -28,30 +28,26 @@
       <ActionButton
         icon="plus"
         selected={$viewState?.type == "new"}
-        onclick={() =>
-          runPartialAction({ key: "goto", args: ["false", "new"] })}
+        onclick={() => runAction({ key: "goto", args: ["false", "new"] })}
       ></ActionButton>
       <ActionButton
         icon="hamburger"
         selected={$viewState?.type == "pinned"}
-        onclick={() =>
-          runPartialAction({ key: "goto", args: ["false", "pinned"] })}
+        onclick={() => runAction({ key: "goto", args: ["false", "pinned"] })}
       ></ActionButton>
       <ActionButton
         icon="dots"
         selected={paletteActive}
-        onclick={() =>
-          runPartialAction({ key: "openPalette", args: ["action"] })}
+        onclick={() => runAction({ key: "openPalette", args: ["action"] })}
       ></ActionButton>
       <ActionButton
         icon="gear"
         selected={$viewState?.type == "settings"}
-        onclick={() =>
-          runPartialAction({ key: "goto", args: ["false", "settings"] })}
+        onclick={() => runAction({ key: "goto", args: ["false", "settings"] })}
       ></ActionButton>
       <ActionButton
         icon="triangleRight"
-        onclick={() => runPartialAction({ key: "historyForward", args: [] })}
+        onclick={() => runAction({ key: "historyForward", args: [] })}
       ></ActionButton>
     </div>
   {/if}

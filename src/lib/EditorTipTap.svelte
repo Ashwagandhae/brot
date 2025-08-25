@@ -1,7 +1,6 @@
 <script lang="ts">
   import "./editor.css";
   import { onMount } from "svelte";
-  import StarterKit from "@tiptap/starter-kit";
   import { TableKit } from "@tiptap/extension-table";
   import { Editor } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -30,7 +29,11 @@
   import { OrderedList } from "@tiptap/extension-list";
   import Paragraph from "@tiptap/extension-paragraph";
   import Text from "@tiptap/extension-text";
-  // marks
+  import {
+    Details,
+    DetailsContent,
+    DetailsSummary,
+  } from "@tiptap/extension-details";
   import Bold from "@tiptap/extension-bold";
   import Code from "@tiptap/extension-code";
   import Italic from "@tiptap/extension-italic";
@@ -40,7 +43,6 @@
   import { Dropcursor } from "@tiptap/extensions";
   import { Gapcursor } from "@tiptap/extensions";
   import { UndoRedo } from "@tiptap/extensions";
-  import { ListKeymap } from "@tiptap/extension-list";
   import { addEditorActions } from "./editorAction";
 
   let {
@@ -90,9 +92,20 @@
     });
     addEditorActions(registry, editor, {
       unsetAllMarks: () => (chain) => chain.unsetAllMarks().run(),
+      clearFormatting: () => (chain) =>
+        chain.clearNodes().unsetAllMarks().run(),
+      clearNodes: () => (chain) => chain.clearNodes().run(),
+      // hard break
+      setHardBreak: () => (chain) => chain.setHardBreak().run(),
+      // list
+      toggleBulletList: () => (chain) => chain.toggleBulletList().run(),
+      toggleOrderedList: () => (chain) => chain.toggleOrderedList().run(),
+      splitListItem: () => (chain) => chain.splitListItem("listItem").run(),
+      sinkListItem: () => (chain) => chain.sinkListItem("listItem").run(),
+      liftListItem: () => (chain) => chain.liftListItem("listItem").run(),
+      // link
       setLink: (url?: string) => (chain) =>
         chain
-
           .extendMarkRange("link")
           .setLink({ href: url ?? "" })
           .run(),
@@ -149,6 +162,9 @@
       // undo redo
       undo: () => (chain) => chain.undo().run(),
       redo: () => (chain) => chain.redo().run(),
+      // details
+      setDetails: () => (chain) => chain.setDetails().run(),
+      unsetDetails: () => (chain) => chain.unsetDetails().run(),
     });
   }
 
@@ -158,6 +174,12 @@
   });
   markdown.addRule({
     filter: ["span"],
+    replacement: (element) => {
+      return element.outerHTML;
+    },
+  });
+  markdown.addRule({
+    filter: ["details"],
     replacement: (element) => {
       return element.outerHTML;
     },
@@ -199,10 +221,10 @@
       element: element,
       extensions: [
         // starterkit:
+        HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
         Blockquote.extend({ addKeyboardShortcuts: () => ({}) }),
         BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
         Document,
-        HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
         Heading.extend({ addKeyboardShortcuts: () => ({}) }),
         HorizontalRule,
         ListItem,
@@ -217,10 +239,9 @@
         Dropcursor,
         Gapcursor,
         UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
-        ListKeymap,
         // starterkit end
 
-        TableKit,
+        TableKit.configure({ table: { resizable: true } }),
         CodeBlockLowlight.configure({
           lowlight,
         }),
@@ -231,6 +252,14 @@
           protocols: ["http", "https"],
         }),
         IndentHandler,
+        Details.configure({
+          persist: true,
+          HTMLAttributes: {
+            class: "details",
+          },
+        }),
+        DetailsSummary,
+        DetailsContent,
       ],
       content: markdownToHtml(initContent),
       onUpdate: () => {
@@ -241,6 +270,11 @@
       },
       onSelectionUpdate: () => {
         onselectionchange?.();
+      },
+      onCreate: ({ editor }) => {
+        editor.view.dom.setAttribute("spellcheck", "false");
+        editor.view.dom.setAttribute("autocomplete", "off");
+        editor.view.dom.setAttribute("autocapitalize", "off");
       },
     });
     initRegistry(editor);

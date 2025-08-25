@@ -29,6 +29,16 @@ export const actions = {
 
   // editor
   unsetAllMarks: [],
+  clearNodes: [],
+  clearFormatting: [],
+  // hard break
+  setHardBreak: [],
+  // list
+  toggleBulletList: [],
+  toggleOrderedList: [],
+  splitListItem: [],
+  sinkListItem: [],
+  liftListItem: [],
   // link
   setLink: ["url"],
   unsetLink: [],
@@ -81,6 +91,9 @@ export const actions = {
   // undo redo
   undo: [],
   redo: [],
+  // details
+  setDetails: [],
+  unsetDetails: [],
 } as const;
 
 export type ActionRegistry = BuildActions & {
