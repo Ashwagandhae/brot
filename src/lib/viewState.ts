@@ -8,12 +8,12 @@ export type ViewState =
   | { type: "settings" }
   | { type: "new" };
 
-export function setViewStateContext(view_state: Writable<ViewState | null>) {
-  setContext("view_state", view_state);
+export function setViewStateContext(viewState: Writable<ViewState | null>) {
+  setContext("viewState", viewState);
 }
 
 export function getViewStateContext(): Writable<ViewState | null> {
-  return getContext("view_state");
+  return getContext("viewState");
 }
 
 export function toLocater(viewState: ViewState): Locater {

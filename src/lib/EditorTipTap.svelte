@@ -1,6 +1,6 @@
 <script lang="ts">
   import "./editor.css";
-  import { onMount } from "svelte";
+  import { onMount, type Component, type ComponentProps } from "svelte";
   import { TableKit } from "@tiptap/extension-table";
   import { Editor } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -15,7 +15,7 @@
   import { Marked } from "marked";
   import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
-  import type { ActionRegistryManager } from "./actions";
+  import { ArgsFilter, type ActionRegistryManager } from "./actions";
   import { isTauri } from "./platform";
 
   // nodes
@@ -44,6 +44,15 @@
   import { Gapcursor } from "@tiptap/extensions";
   import { UndoRedo } from "@tiptap/extensions";
   import { addEditorActions } from "./editorAction";
+  import TextIo from "./TextChecker.svelte";
+  import { parseUrlFromString } from "./parse";
+  import { getComponentPaletteContext } from "./componentPalette";
+  import { htmlToMarkdown, markdownToHtml } from "./markdown";
+  import CheckerEdit from "./CheckerEdit.svelte";
+  import TextChecker from "./TextChecker.svelte";
+  import { asClassComponent } from "svelte/legacy";
+  import Palette from "./Palette.svelte";
+  import BoldChars from "./BoldChars.svelte";
 
   let {
     initContent,
@@ -66,30 +75,40 @@
   let editor: Editor | null = null;
   let element: HTMLElement;
   let lowlight = createLowlight(all);
-  let myMarked = new Marked(
-    markedHighlight({
-      emptyLangClass: "",
-      langPrefix: "language-",
-      highlight(code, lang, info) {
-        return code;
-      },
-    })
-  );
+
+  let componentPaletteContext = getComponentPaletteContext();
 
   function initRegistry(editor: Editor) {
-    registry.add({
-      editorToggleBold: () => {
-        editor.chain().focus().toggleBold().run();
-      },
-      getEditor: () => editor,
-      pasteWithoutFormatting: () => {
-        if (isTauri()) {
-          readText().then((val) => {
-            editor.commands.insertContent(val);
+    registry.add(
+      {
+        getEditor: () => editor,
+        pasteWithoutFormatting: () => {
+          if (isTauri()) {
+            readText().then((val) => {
+              editor.commands.insertContent(val);
+            });
+          }
+        },
+        editLink: () => {
+          let initText: string = editor.getAttributes("link")?.href ?? "";
+          let openComponentPalette = componentPaletteContext();
+          openComponentPalette(CheckerEdit<URL, string>, {
+            Checker: TextChecker<URL>,
+            init: initText,
+            setVal: (url: URL) => {
+              if (url != null) {
+                editor.chain().focus().setLink({ href: url.toString() }).run();
+              }
+            },
+            toVal: parseUrlFromString,
           });
-        }
+        },
       },
-    });
+      {
+        editLink: () => ArgsFilter.fromBool(editor.isActive("link")),
+      }
+    );
+
     addEditorActions(registry, editor, {
       unsetAllMarks: () => (chain) => chain.unsetAllMarks().run(),
       clearFormatting: () => (chain) =>
@@ -104,10 +123,10 @@
       sinkListItem: () => (chain) => chain.sinkListItem("listItem").run(),
       liftListItem: () => (chain) => chain.liftListItem("listItem").run(),
       // link
-      setLink: (url?: string) => (chain) =>
+      setLink: (url?: URL) => (chain) =>
         chain
           .extendMarkRange("link")
-          .setLink({ href: url ?? "" })
+          .setLink({ href: url?.toString() ?? "" })
           .run(),
       unsetLink: () => (chain) =>
         chain.extendMarkRange("link").unsetLink().run(),
@@ -166,43 +185,6 @@
       setDetails: () => (chain) => chain.setDetails().run(),
       unsetDetails: () => (chain) => chain.unsetDetails().run(),
     });
-  }
-
-  let markdown = new HTMLarkdown({
-    codeblockTrailingLinebreak: "add",
-    addTrailingLinebreak: false,
-  });
-  markdown.addRule({
-    filter: ["span"],
-    replacement: (element) => {
-      return element.outerHTML;
-    },
-  });
-  markdown.addRule({
-    filter: ["details"],
-    replacement: (element) => {
-      return element.outerHTML;
-    },
-  });
-
-  markdown.addRule({
-    filter: ["pre"],
-    replacement: (element) => {
-      let lang = Array.from(element.querySelector("code")?.classList!)
-        .find((s) => s.startsWith("language-"))
-        ?.substring("language-".length);
-      return "```" + lang + "\n" + element.textContent?.trim() + "\n```\n";
-    },
-  });
-
-  function htmlToMarkdown(html: string) {
-    let md = markdown.convert(html);
-    return md;
-  }
-
-  function markdownToHtml(md: string) {
-    let html = myMarked.parse(md);
-    return html;
   }
 
   getContent = () => {

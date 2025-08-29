@@ -81,11 +81,11 @@
     line-height: 1;
     box-sizing: border-box;
     border-radius: 8px;
-    background: var(--back-1);
 
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    background: none;
   }
   .left {
     display: flex;
@@ -108,6 +108,6 @@
     padding: 6px;
   }
   .top.selected {
-    background: var(--back-2);
+    background: var(--palette-select);
   }
 </style>

@@ -4,6 +4,7 @@
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import ActionButton from "./ActionButton.svelte";
   import { getViewStateContext } from "./viewState";
+  import type { ParsedPartialAction } from "./actions";
 
   let {
     children,
@@ -11,7 +12,7 @@
     paletteActive,
   }: {
     children: Snippet;
-    runAction: (action: PartialAction) => void;
+    runAction: (action: ParsedPartialAction) => void;
     paletteActive: boolean;
   } = $props();
 
@@ -28,26 +29,29 @@
       <ActionButton
         icon="plus"
         selected={$viewState?.type == "new"}
-        onclick={() => runAction({ key: "goto", args: ["false", "new"] })}
+        onclick={() => runAction({ key: "goto", parsedArgs: [false, "new"] })}
       ></ActionButton>
       <ActionButton
         icon="hamburger"
         selected={$viewState?.type == "pinned"}
-        onclick={() => runAction({ key: "goto", args: ["false", "pinned"] })}
+        onclick={() =>
+          runAction({ key: "goto", parsedArgs: [false, "pinned"] })}
       ></ActionButton>
       <ActionButton
         icon="dots"
         selected={paletteActive}
-        onclick={() => runAction({ key: "openPalette", args: ["action"] })}
+        onclick={() =>
+          runAction({ key: "openPalette", parsedArgs: ["action"] })}
       ></ActionButton>
       <ActionButton
         icon="gear"
         selected={$viewState?.type == "settings"}
-        onclick={() => runAction({ key: "goto", args: ["false", "settings"] })}
+        onclick={() =>
+          runAction({ key: "goto", parsedArgs: [false, "settings"] })}
       ></ActionButton>
       <ActionButton
         icon="triangleRight"
-        onclick={() => runAction({ key: "historyForward", args: [] })}
+        onclick={() => runAction({ key: "historyForward", parsedArgs: [] })}
       ></ActionButton>
     </div>
   {/if}

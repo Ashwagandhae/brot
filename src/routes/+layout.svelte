@@ -17,6 +17,7 @@
   import {
     ActionRegistryManager,
     setActionRegistryContext,
+    type ParsedPartialAction,
   } from "$lib/actions";
   import { locaterToUrl } from "$lib/locater";
   import Palette from "$lib/Palette.svelte";
@@ -27,12 +28,16 @@
   } from "$lib/viewState";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
+  import { onMount, type Snippet } from "svelte";
   import { writable, type Writable } from "svelte/store";
   import type { Locater } from "../../src-tauri/bindings/Locater";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import {
+    setComponentPaletteContext,
+    type OpenComponentPalette,
+  } from "$lib/componentPalette";
 
   let { children } = $props();
 
@@ -101,8 +106,10 @@
   });
 
   let paletteActive: boolean = $state(false);
-  let runAction: (action: PartialAction) => void = $state(() => {});
+  let runAction: (action: ParsedPartialAction) => void = $state(() => {});
   let search: () => void = $state(() => {});
+  let openComponentPalette: OpenComponentPalette = $state(() => {});
+  setComponentPaletteContext(() => openComponentPalette);
 </script>
 
 <svelte:head>
@@ -119,7 +126,13 @@
   <p class="err">{$errorMessage}</p>
 {/if}
 
-<Palette {registry} bind:paletteActive bind:runAction bind:search></Palette>
+<Palette
+  {registry}
+  bind:paletteActive
+  bind:runAction
+  bind:search
+  bind:openComponentPalette
+></Palette>
 
 <style>
   .err {

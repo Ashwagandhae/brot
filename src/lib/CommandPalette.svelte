@@ -5,16 +5,13 @@
   import TextBar from "./TextBar.svelte";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
-  import { platform } from "./platform";
 
   let {
     provider,
     onfinish,
-    hideBack,
   }: {
     provider: CommandProvider;
     onfinish?: (command: PartialAction | null) => void;
-    hideBack?: boolean;
   } = $props();
 
   let search: string = $state("");
@@ -63,64 +60,34 @@
   let choices: HTMLElement | null = $state(null);
 </script>
 
-<div class="outer" class:hideBack class:android={$platform == "android"}>
-  <div class="content">
-    <TextBar
-      bind:value={search}
-      autofocus
-      flat
-      oncancel={() => onfinish?.(null)}
-      onaccept={() => {
-        if (selectedIndex >= commands.length) {
-          onfinish?.(null);
-          return;
-        }
-        onfinish?.(commands[selectedIndex].paletteAction.action);
+<TextBar
+  bind:value={search}
+  autofocus
+  flat
+  oncancel={() => onfinish?.(null)}
+  onaccept={() => {
+    if (selectedIndex >= commands.length) {
+      onfinish?.(null);
+      return;
+    }
+    onfinish?.(commands[selectedIndex].paletteAction.action);
+  }}
+  onkeydown={handleKeydown}
+></TextBar>
+<div class="choices" bind:this={choices}>
+  {#each commands as command, index (index)}
+    <CommandChoice
+      selected={selectedIndex == index}
+      {command}
+      container={choices}
+      onclick={() => {
+        onfinish?.(commands[index].paletteAction.action);
       }}
-      onkeydown={handleKeydown}
-    ></TextBar>
-    <div class="choices" bind:this={choices}>
-      {#each commands as command, index (index)}
-        <CommandChoice
-          selected={selectedIndex == index}
-          {command}
-          container={choices}
-          onclick={() => {
-            onfinish?.(commands[index].paletteAction.action);
-          }}
-        ></CommandChoice>
-      {/each}
-    </div>
-  </div>
+    ></CommandChoice>
+  {/each}
 </div>
 
 <style>
-  div.outer {
-    top: 0;
-    width: 100vw;
-    height: 100vh;
-    position: fixed;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 20vh;
-    box-sizing: border-box;
-  }
-  div.outer.hideBack {
-    background: var(--back);
-  }
-  div.outer.android {
-    padding-top: 10vh;
-  }
-
-  .content {
-    width: 100%;
-    max-width: 350px;
-    box-sizing: border-box;
-    background: var(--back-1);
-    border-radius: 8px;
-  }
   div.choices {
     max-height: calc(32px * 10);
     overflow: scroll;

@@ -30,10 +30,11 @@
   }
   .key {
     color: var(--text);
-    background-color: var(--back-2);
+    background-color: var(--palette-back-1);
     border-radius: 4px;
     font-size: 0.8rem;
-    width: 20px;
+    padding: 0 4px;
+    width: auto;
     height: 20px;
     display: flex;
     justify-content: center;
@@ -41,6 +42,6 @@
     font-family: var(--font);
   }
   .selected .key {
-    background-color: var(--back-3);
+    background-color: var(--palette-select-1);
   }
 </style>

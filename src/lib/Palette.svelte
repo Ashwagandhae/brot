@@ -1,41 +1,50 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
-  import { platform, sendCompleteSearch } from "./platform";
-  import { invoke } from "@tauri-apps/api/core";
-  import { listen } from "@tauri-apps/api/event";
-  import { getViewStateContext, toLocater } from "./viewState";
   import {
-    providerFromPalette,
-    type PaletteType,
-    type CommandProvider,
-  } from "./command";
-  import { continuePartialAction, type ActionRegistryManager } from "./actions";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
-  import { runLastAction, setLastAction } from "./lastAction";
-  import CommandPalette from "./CommandPalette.svelte";
-  import { mapKeydownEventToAction } from "./shortcut";
-  import { msg } from "./message";
+    onMount,
+    tick,
+    type Component,
+    type ComponentProps,
+    type Snippet,
+  } from "svelte";
   import type { Actions } from "../../src-tauri/bindings/Actions";
+  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
+  import {
+    continuePartialAction,
+    parsePartialAction,
+    type ActionRegistryManager,
+    type ParsedPartialAction,
+  } from "./actions";
+  import {
+    addArg,
+    paletteForArg,
+    providerForPaletteKey,
+    type PaletteType,
+  } from "./command";
+  import CommandPalette from "./CommandPalette.svelte";
+  import { runLastAction, setLastAction } from "./lastAction";
+  import { msg } from "./message";
+  import PaletteWrapper from "./PaletteWrapper.svelte";
+  import { sendCompleteSearch } from "./platform";
+  import { mapKeydownEventToAction } from "./shortcut";
+  import type { OpenComponentPalette } from "./componentPalette";
 
   let {
     registry,
     paletteActive = $bindable(),
     runAction = $bindable(),
     search = $bindable(),
+    openComponentPalette = $bindable(),
   }: {
     registry: ActionRegistryManager;
     paletteActive: boolean;
-    runAction: (action: PartialAction) => void;
+    runAction: (action: ParsedPartialAction) => void;
     search: () => void;
+    openComponentPalette: OpenComponentPalette;
   } = $props();
 
   let paletteType: PaletteType | null = $state(null);
   let searchPalette: boolean = $state(false);
   let actions: Actions | null = $state(null);
-  let commandProvider: CommandProvider | null = $derived.by(() => {
-    if (paletteType == null) return null;
-    return providerFromPalette(paletteType, registry);
-  });
 
   registry.add({
     openPalette: (key) => {
@@ -51,7 +60,16 @@
     },
   });
 
+  openComponentPalette = (Component: Component, props: Record<string, any>) => {
+    paletteType = {
+      type: "component",
+      Component,
+      props,
+    };
+  };
+
   search = () => {
+    console.log("open search");
     searchPalette = true;
     paletteType = { type: "palette", key: "search" };
   };
@@ -70,13 +88,14 @@
     handleKeydown = (event: KeyboardEvent) => {
       let action = mapper(event);
       if (action == null) return;
-      setLastAction(action);
-      runAction(action);
+      let actionParsed = parsePartialAction(action);
+      setLastAction(actionParsed);
+      runAction(actionParsed);
     };
   });
 
   $effect(() => {
-    runAction = (action: PartialAction) => {
+    runAction = (action: ParsedPartialAction) => {
       continuePartialAction(registry, action, (argType) => {
         paletteType = {
           type: "arg",
@@ -92,11 +111,16 @@
     sendCompleteSearch(accepted);
   }
 
-  async function handleCommandPaletteFinish(action: PartialAction | null) {
+  async function handleCommandPaletteFinish(
+    action: ParsedPartialAction | null
+  ) {
+    console.log("handle finish");
+
     if (paletteType == null) return;
     if (searchPalette) {
       completeSearch(action != null);
     }
+    console.log("setting palettetype null");
     paletteType = null;
     if (action != null) {
       setLastAction(action);
@@ -112,11 +136,39 @@
 
 <svelte:document onkeydown={handleKeydown} />
 {#key paletteType}
-  {#if commandProvider != null}
-    <CommandPalette
-      provider={commandProvider}
-      onfinish={handleCommandPaletteFinish}
-      hideBack={searchPalette}
-    ></CommandPalette>
+  {#if paletteType?.type != null}
+    <PaletteWrapper hideBack={searchPalette}>
+      {#if paletteType.type == "component"}
+        {@const { Component, props } = paletteType}
+        <Component
+          {...props}
+          onfinish={() => {
+            handleCommandPaletteFinish(null);
+          }}
+        ></Component>
+      {:else if paletteType.type == "palette"}
+        <CommandPalette
+          provider={providerForPaletteKey(paletteType.key, registry)}
+          onfinish={(action) => {
+            handleCommandPaletteFinish(
+              action == null ? null : parsePartialAction(action)
+            );
+          }}
+        ></CommandPalette>
+      {:else}
+        {@const { Component, props } = paletteForArg(
+          paletteType.argType,
+          paletteType.action
+        )}
+        {@const prevAction: ParsedPartialAction = paletteType.action}
+        <Component
+          {...props}
+          onfinish={(arg) => {
+            let action = arg == null ? null : addArg(prevAction, arg);
+            handleCommandPaletteFinish(action);
+          }}
+        ></Component>
+      {/if}
+    </PaletteWrapper>
   {/if}
 {/key}

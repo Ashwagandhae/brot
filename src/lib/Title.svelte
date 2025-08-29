@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import TextBar from "./TextBar.svelte";
   import { msg } from "./message";
   import { getPathContext, pathToTitle } from "./path";

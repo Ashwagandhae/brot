@@ -61,7 +61,7 @@
 
 <style>
   input {
-    background: var(--back-1);
+    background: var(--palette-back);
     border: none;
     color: var(--text);
     font-size: 16px;
@@ -71,21 +71,9 @@
     height: 32px;
     width: 100%;
   }
-  input:hover,
-  input:focus {
-    background: var(--back-2);
-    outline: none;
-  }
-  input:active {
-    background: var(--back-3);
-    outline: none;
-  }
+
   input::placeholder {
     color: var(--text-weak);
     opacity: 1;
-  }
-
-  input.flat {
-    background: var(--back-1);
   }
 </style>

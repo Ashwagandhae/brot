@@ -1,8 +1,9 @@
-import { getContext, setContext } from "svelte";
+import { getContext, setContext, type Component, type Snippet } from "svelte";
 import type { Locater } from "../../src-tauri/bindings/Locater";
 import type { Editor } from "@tiptap/core";
 import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
+import { parseUrlFromString } from "./parse";
 
 export const actions = {
   openPalette: ["palette"],
@@ -15,7 +16,6 @@ export const actions = {
   saveWindowState: [],
   refresh: [],
   refreshPage: [],
-  editorToggleBold: [],
   toggleFloating: [],
   focusScrollPinnedNote: ["number"],
   focusScrollNote: [],
@@ -41,6 +41,7 @@ export const actions = {
   liftListItem: [],
   // link
   setLink: ["url"],
+  editLink: [],
   unsetLink: [],
   // table
   insertTable: [],
@@ -115,6 +116,13 @@ export class ArgsFilter {
   static alwaysMatch = new ArgsFilter([[]]);
   static neverMatch = new ArgsFilter([]);
 
+  static fromBool(enabled: boolean): ArgsFilter {
+    if (enabled) {
+      return this.neverMatch;
+    }
+    return this.alwaysMatch;
+  }
+
   toFilters(key: string): PartialActionFilter[] {
     return this.argSetFilters.map((argSetFilter) => ({
       key,
@@ -151,14 +159,14 @@ export class ActionRegistryManager {
   }
 }
 
-type ArgTypesMap = {
+export type ArgTypesMap = {
   locater: Locater;
   notePath: string;
   insertion: "above" | "below";
   boolean: boolean;
   palette: string;
   number: number;
-  url: string;
+  url: URL;
   level: 1 | 2 | 3 | 4 | 5 | 6;
 };
 export type ArgType = keyof ArgTypesMap;
@@ -195,29 +203,60 @@ type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
 
-export async function continuePartialAction(
+// export async function continuePartialAction(
+//   registry: ActionRegistryManager,
+//   action: PartialAction,
+//   requestNextArg: (argType: ArgType) => void
+// ) {
+//   let key = action.key as keyof typeof actions;
+//   if (actions[key].length <= action.args.length) {
+//     let fn = registry.get(key);
+//     if (fn != null) {
+//       console.log("doing action", key, [...action.args]);
+//       (fn as any)(
+//         ...action.args.map((val, index) =>
+//           parseArgType(actions[key][index], val)
+//         )
+//       );
+//     } else {
+//       console.log("didn't do action");
+//     }
+//   } else {
+//     let nextArgIndex = action.args.length;
+//     let argType = actions[key][nextArgIndex as number];
+//     requestNextArg(argType);
+//   }
+// }
+
+export async function continuePartialAction<T extends ActionsKey>(
   registry: ActionRegistryManager,
-  action: PartialAction,
+  action: ParsedPartialAction<T>,
   requestNextArg: (argType: ArgType) => void
 ) {
   let key = action.key as keyof typeof actions;
-  if (actions[key].length <= action.args.length) {
+  if (actions[key].length <= action.parsedArgs.length) {
     let fn = registry.get(key);
     if (fn != null) {
-      console.log("doing action", key, [...action.args]);
-      (fn as any)(
-        ...action.args.map((val, index) =>
-          parseArgType(actions[key][index], val)
-        )
-      );
+      console.log("doing action", key, [...action.parsedArgs]);
+      (fn as any)(...action.parsedArgs);
     } else {
       console.log("didn't do action");
     }
   } else {
-    let nextArgIndex = action.args.length;
+    let nextArgIndex = action.parsedArgs.length;
     let argType = actions[key][nextArgIndex as number];
     requestNextArg(argType);
   }
+}
+
+export function parsePartialAction(action: PartialAction): ParsedPartialAction {
+  let key = action.key as ActionsKey;
+  return {
+    key,
+    parsedArgs: action.args.map((val, index) =>
+      parseArgType(actions[key][index], val)
+    ),
+  } as any;
 }
 
 function verifyEnum<T extends string>(val: string, options: T[]): T;
@@ -238,7 +277,7 @@ const parsers: {
   palette: (val) => val,
   locater: (val) => val as Locater,
   number: (val) => Number(val),
-  url: (val) => val,
+  url: (val) => new URL(val),
   level: (val) => verifyEnum(Number(val), [1, 2, 3, 4, 5, 6]),
 };
 
@@ -256,7 +295,34 @@ export function getActionRegistryContext(): ActionRegistryManager {
   return getContext("actionRegistry");
 }
 
-// type PartialActionTyped<T extends keyof typeof actions> = {
-//   key: T,
-//   args:
-// }
+export type ActionsKey = keyof typeof actions;
+
+export type MapArgs<T extends (keyof ArgTypesMap)[]> = {
+  [K in keyof T]: T[K] extends keyof ArgTypesMap ? ArgTypesMap[T[K]] : never;
+};
+
+// type TypedPartialAction<T extends keyof typeof actions> = {
+//   key: T;
+//   args: MapArgsToTypes<(typeof actions)[T]>;
+// };
+
+type WritableTuple<T extends readonly any[]> = {
+  -readonly [P in keyof T]: T[P];
+};
+
+export type ParsedPartialAction<K extends ActionsKey = ActionsKey> = {
+  [P in K]: {
+    key: P;
+    parsedArgs: PartialTuple<MapArgs<WritableTuple<(typeof actions)[P]>>>;
+  };
+}[K];
+
+type PartialTuple<T extends any[]> = T extends [infer First, ...infer Rest]
+  ? [] | [First] | [First, ...PartialTuple<Rest>]
+  : [];
+
+let y: ActionsKey;
+let x: ParsedPartialAction<ActionsKey> = {
+  key: "goto",
+  parsedArgs: [true, "note:sk"],
+};
