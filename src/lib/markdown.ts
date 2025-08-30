@@ -1,34 +1,34 @@
 import { HTMLarkdown } from "htmlarkdown";
-import { Marked } from "marked";
+import { Marked, marked, type RendererObject } from "marked";
 import { markedHighlight } from "marked-highlight";
 import TurndownService from "turndown";
 
-let markdown = new HTMLarkdown({
-  codeblockTrailingLinebreak: "add",
-  addTrailingLinebreak: false,
-});
-markdown.addRule({
-  filter: ["span"],
-  replacement: (element) => {
-    return element.outerHTML;
-  },
-});
-markdown.addRule({
-  filter: ["details"],
-  replacement: (element) => {
-    return element.outerHTML;
-  },
-});
+// let markdown = new HTMLarkdown({
+//   codeblockTrailingLinebreak: "add",
+//   addTrailingLinebreak: false,
+// });
+// markdown.addRule({
+//   filter: ["span"],
+//   replacement: (element) => {
+//     return element.outerHTML;
+//   },
+// });
+// markdown.addRule({
+//   filter: ["details"],
+//   replacement: (element) => {
+//     return element.outerHTML;
+//   },
+// });
 
-markdown.addRule({
-  filter: ["pre"],
-  replacement: (element) => {
-    let lang = Array.from(element.querySelector("code")?.classList!)
-      .find((s) => s.startsWith("language-"))
-      ?.substring("language-".length);
-    return "```" + lang + "\n" + element.textContent?.trim() + "\n```\n";
-  },
-});
+// markdown.addRule({
+//   filter: ["pre"],
+//   replacement: (element) => {
+//     let lang = Array.from(element.querySelector("code")?.classList!)
+//       .find((s) => s.startsWith("language-"))
+//       ?.substring("language-".length);
+//     return "```" + lang + "\n" + element.textContent?.trim() + "\n```\n";
+//   },
+// });
 
 let myMarked = new Marked(
   markedHighlight({
@@ -40,7 +40,22 @@ let myMarked = new Marked(
   })
 );
 
-let turndownService = new TurndownService();
+const renderer: RendererObject = {
+  code({ text, lang }) {
+    const clean = text.replace(/\n$/, "");
+    const langAttr = lang ? ` class="language-${lang}"` : "";
+    return `<pre><code${langAttr}>${clean}</code></pre>`;
+  },
+};
+
+myMarked.use({ renderer });
+
+let turndownService = new TurndownService({
+  bulletListMarker: "-",
+  fence: "```",
+  strongDelimiter: "**",
+});
+
 turndownService.addRule("code", {
   filter: ["pre"],
   replacement: (content, element) => {
@@ -57,5 +72,6 @@ export function htmlToMarkdown(html: string) {
 
 export function markdownToHtml(md: string) {
   let html = myMarked.parse(md);
+  console.log(html);
   return html;
 }

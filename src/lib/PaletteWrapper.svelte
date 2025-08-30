@@ -5,20 +5,35 @@
   let {
     children,
     hideBack,
+    onclick,
   }: {
     children: Snippet;
     hideBack: boolean;
+    onclick?: (event: MouseEvent) => void;
   } = $props();
+
+  let element: HTMLElement;
 </script>
 
-<div class="outer" class:hideBack class:android={$platform == "android"}>
+<button
+  class="outer"
+  class:hideBack
+  class:android={$platform == "android"}
+  onclick={(event) => {
+    if (event.detail === 0) return;
+    if (event.target == element) {
+      onclick?.(event);
+    }
+  }}
+  bind:this={element}
+>
   <div class="content">
     {@render children()}
   </div>
-</div>
+</button>
 
 <style>
-  div.outer {
+  .outer {
     top: 0;
     width: 100vw;
     height: 100vh;
@@ -29,17 +44,19 @@
     align-items: center;
     padding-top: 20vh;
     box-sizing: border-box;
+    background: none;
   }
-  div.outer.hideBack {
+  .outer.hideBack {
     background: var(--back);
   }
-  div.outer.android {
+  .outer.android {
     padding-top: 10vh;
   }
 
   .content {
-    width: 100%;
-    max-width: 350px;
+    position: relative;
+    width: calc(100% - 16px);
+    max-width: 500px;
     box-sizing: border-box;
     background: var(--palette-back);
     border-radius: 8px;

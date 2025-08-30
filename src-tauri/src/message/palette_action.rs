@@ -27,6 +27,7 @@ pub struct MatchedPaletteAction {
 #[ts(export)]
 pub struct PaletteAction {
     pub title: String,
+    pub path: Option<String>,
     pub icon: Option<String>,
     pub shortcut: Option<String>,
     pub action: PartialAction,
@@ -106,11 +107,11 @@ async fn generate_palette_actions(
         get_all_note_paths(state)
             .await?
             .into_iter()
-            .map(|(locater, title_replace)| {
+            .map(|(path, title_replace)| {
                 let mut args = generator.args.clone();
                 let index = args.iter().position(|a| a == "$note_locater");
                 if let Some(index) = index {
-                    args[index] = format!("note:{}", locater);
+                    args[index] = format!("note:{}", path);
                 }
 
                 (
@@ -120,6 +121,7 @@ async fn generate_palette_actions(
                         key: generator.key.clone(),
                         args,
                     },
+                    Some(path),
                 )
             })
             .collect()
@@ -127,11 +129,11 @@ async fn generate_palette_actions(
         get_all_note_paths(state)
             .await?
             .into_iter()
-            .map(|(locater, title_replace)| {
+            .map(|(path, title_replace)| {
                 let mut args = generator.args.clone();
                 let index = args.iter().position(|a| a == "$note_path");
                 if let Some(index) = index {
-                    args[index] = locater;
+                    args[index] = path.clone();
                 }
                 (
                     title.replace("$note_path", &title_replace),
@@ -140,6 +142,7 @@ async fn generate_palette_actions(
                         key: generator.key.clone(),
                         args,
                     },
+                    Some(path.clone()),
                 )
             })
             .collect()
@@ -151,15 +154,17 @@ async fn generate_palette_actions(
                 key: generator.key,
                 args: generator.args,
             },
+            None,
         )]
     };
     Ok(palette_actions
         .into_iter()
-        .map(|(title, icon, action)| PaletteAction {
+        .map(|(title, icon, action, path)| PaletteAction {
             shortcut: shortcut_map.get(&action).cloned(),
             title,
             icon,
             action,
+            path,
         })
         .collect())
 }

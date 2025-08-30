@@ -44,23 +44,31 @@ impl EventManager {
     }
 
     pub fn send_event(&mut self, label: &str, event: Event) -> Result<()> {
+        println!("sending event to {label}");
         match self.window_states.get_mut(label) {
             None => {
-                self.window_states
-                    .insert(label.to_owned(), WindowEventState::Starting(vec![event]));
+                self.window_states.insert(
+                    label.to_owned(),
+                    WindowEventState::Starting(vec![event.clone()]),
+                );
+                println!("starting with new: [{event:?}]");
             }
             Some(WindowEventState::Starting(events)) => {
                 events.push(event);
+                println!("starting with: {events:?}");
             }
             Some(WindowEventState::Ready) => {
-                self.send_event_ready(label, event)?;
+                self.send_event_ready(label, event.clone())?;
+                println!("ready, sending directly: {event:?}");
             }
         }
         Ok(())
     }
 
     fn send_event_ready(&self, label: &str, event: Event) -> Result<()> {
-        Ok(self.app.emit_to(EventTarget::window(label), &event.0, ())?)
+        Ok(self
+            .app
+            .emit_to(EventTarget::webview_window(label), &event.0, ())?)
     }
 
     pub fn remove_window(&mut self, label: &str) {

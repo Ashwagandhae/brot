@@ -1,23 +1,21 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import { onDestroy } from "svelte";
-  import type { CommandProvider } from "./command";
-  import CommandChoice from "./CommandChoice.svelte";
+  import type { CommandProvider, CommandChoice } from "./command";
+  import CommandChoiceComp from "./CommandChoice.svelte";
   import TextBar from "./TextBar.svelte";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
-  import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
 
   let {
     provider,
     onfinish,
   }: {
-    provider: CommandProvider;
-    onfinish?: (command: PartialAction | null) => void;
+    provider: CommandProvider<T>;
+    onfinish?: (command: T | null) => void;
   } = $props();
 
   let search: string = $state("");
 
   let selectedIndex: number = $state(0);
-  let commands: MatchedPaletteAction[] = $state([]);
+  let commands: CommandChoice<T>[] = $state([]);
 
   $effect(() => {
     (async () => {
@@ -64,26 +62,28 @@
   bind:value={search}
   autofocus
   flat
-  oncancel={() => onfinish?.(null)}
+  oncancel={() => {
+    onfinish?.(null);
+  }}
   onaccept={() => {
     if (selectedIndex >= commands.length) {
       onfinish?.(null);
       return;
     }
-    onfinish?.(commands[selectedIndex].paletteAction.action);
+    onfinish?.(commands[selectedIndex].payload);
   }}
   onkeydown={handleKeydown}
 ></TextBar>
 <div class="choices" bind:this={choices}>
   {#each commands as command, index (index)}
-    <CommandChoice
+    <CommandChoiceComp
       selected={selectedIndex == index}
       {command}
       container={choices}
       onclick={() => {
-        onfinish?.(commands[index].paletteAction.action);
+        onfinish?.(commands[index].payload);
       }}
-    ></CommandChoice>
+    ></CommandChoiceComp>
   {/each}
 </div>
 

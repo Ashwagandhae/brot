@@ -3,8 +3,11 @@
   import TextBar from "./TextBar.svelte";
   import type { ParseResult } from "./parse";
   import type { CheckerProps } from "./checker";
+  import PaletteOutput from "./PaletteOutput.svelte";
+  import Icon from "./Icon.svelte";
 
-  let { onfinish, toVal, init }: CheckerProps<T, string> = $props();
+  let { onfinish, toVal, init, outputDisplay }: CheckerProps<T, string> =
+    $props();
 
   let text: string = $state(init ?? "");
 
@@ -27,30 +30,40 @@
     }
   }}
 ></TextBar>
-<div class="out" class:ok={res.type == "ok"}>
-  {#if res.type == "err"}
-    err: {res.message}
-  {:else if res.type == "ok"}
-    {#if res.message}
-      ok: {res.message}
-    {:else}
-      ok
+<PaletteOutput selected={res.type == "ok"}>
+  <div class="icon">
+    <Icon name={res.type == "ok" ? "check" : "x"}></Icon>
+  </div>
+  <div class="text">
+    {#if res.type == "err"}
+      {res.message}
+    {:else if res.type == "ok"}
+      {#if outputDisplay}
+        {@const { Component, props } = outputDisplay}
+        <Component {...props} val={res.val} message={res.message}></Component>
+      {:else if res.message}
+        {res.message}
+      {:else}
+        ok
+      {/if}
     {/if}
-  {/if}
-</div>
+  </div>
+</PaletteOutput>
 
 <style>
-  .out {
-    width: 100%;
-    font-size: 16px;
-    height: 32px;
-    line-height: 1;
-    box-sizing: border-box;
-    border-radius: 8px;
-    background: var(--palette-back);
+  .icon {
+    width: 16px;
+    height: 16px;
     padding: 8px;
+    flex: 0 0 auto;
   }
-  .out.ok {
-    background: var(--palette-select);
+  .text {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    padding: 6px 8px 6px 0;
+    line-height: 1.25;
+    text-align: left;
   }
 </style>

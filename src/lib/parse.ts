@@ -26,12 +26,34 @@ export function parseErrFromErr<T>(err: unknown): ParseResult<T> {
 
 export function parseUrlFromString(str: string): ParseResult<URL> {
   try {
-    return parseOk(new URL(str));
+    let url = new URL(str);
+    return parseOk(url, url.toString());
   } catch {
     try {
-      return parseOk(new URL("http://" + str));
+      let url = new URL("http://" + str);
+      return parseOk(url, url.toString());
     } catch (err) {
       return parseErrFromErr(err);
     }
   }
+}
+
+export function parseNumberFromString(str: string): ParseResult<number> {
+  if (str.trim() === "") return parseErr("Empty string");
+  let val = Number(str);
+  if (isNaN(val)) return parseErr("Invalid number");
+  return parseOk(val, val.toString());
+}
+
+export function parseLangFromString(str: string): ParseResult<string> {
+  const hasWhitespace = /\s/.test(str);
+  if (hasWhitespace) return parseErr("Contains whitespace");
+  return parseOk(str, str);
+}
+
+export function parseTitleFromString(str: string): ParseResult<string> {
+  if (str.length == 0) return parseErr("Empty string");
+  const onlyWhitespace = str.trim().length == 0;
+  if (onlyWhitespace) return parseErr("Only contains whitespace");
+  return parseOk(str, str);
 }

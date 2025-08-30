@@ -28,7 +28,7 @@
   } from "$lib/viewState";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount, type Snippet } from "svelte";
+  import { onDestroy, onMount, type Snippet } from "svelte";
   import { writable, type Writable } from "svelte/store";
   import type { Locater } from "../../src-tauri/bindings/Locater";
   import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
@@ -47,14 +47,19 @@
   let registry: ActionRegistryManager = new ActionRegistryManager();
   setActionRegistryContext(registry);
 
+  let unlisten = () => {};
   onMount(async () => {
     $platform = await getPlatformName();
     if ($platform == "window") {
-      await listen("search", () => {
+      unlisten = await listen("search", () => {
+        if (getCurrentWindow().label != "pinned") return;
         search();
       });
       await invoke("set_event_ready");
     }
+  });
+  onDestroy(() => {
+    unlisten();
   });
 
   let title: string | null = $derived.by(() => {

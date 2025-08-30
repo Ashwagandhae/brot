@@ -1,10 +1,10 @@
-<script lang="ts">
-  import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
-  import { getActionRegistryContext } from "./actions";
+<script lang="ts" generics="T">
   import BoldChars from "./BoldChars.svelte";
+  import type { CommandChoice } from "./command";
   import Icon from "./Icon.svelte";
   import { platform } from "./platform";
   import Shortcut from "./Shortcut.svelte";
+  import Title from "./Title.svelte";
 
   let {
     command,
@@ -12,15 +12,13 @@
     container,
     onclick,
   }: {
-    command: MatchedPaletteAction;
+    command: CommandChoice<T>;
     selected: boolean;
     container: HTMLElement;
     onclick?: (event: MouseEvent) => void;
   } = $props();
 
   let element: HTMLElement;
-
-  let registry = getActionRegistryContext();
 
   function isElementFullyInContainerView(
     el: HTMLElement,
@@ -58,17 +56,19 @@
 >
   <div class="left">
     <div class="icon">
-      <Icon name={command.paletteAction.icon ?? "dots"}></Icon>
+      <Icon name={command.icon ?? "dots"}></Icon>
     </div>
-    <div class="title">
-      <BoldChars text={command.paletteAction.title} indices={command.indices}
-      ></BoldChars>
+    <div class="title" class:path={command.path}>
+      {#if command.path == null}
+        <BoldChars text={command.title} indices={command.indices}></BoldChars>
+      {:else}
+        <Title path={command.path}></Title>
+      {/if}
     </div>
   </div>
-  {#if command.paletteAction.shortcut != null && $platform != "android"}
+  {#if command.shortcut != null && $platform != "android"}
     <div class="shortcut">
-      <Shortcut keyString={command.paletteAction.shortcut} {selected}
-      ></Shortcut>
+      <Shortcut keyString={command.shortcut} {selected}></Shortcut>
     </div>
   {/if}
 </button>
@@ -92,12 +92,14 @@
     flex-direction: row;
   }
   .title {
-    padding: 8px;
-    padding-left: 0;
+    padding: 8px 8px 8px 0;
     color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .title.path {
+    padding: 6px 6px 6px 0;
   }
   .icon {
     width: 16px;
@@ -108,6 +110,9 @@
     padding: 6px;
   }
   .top.selected {
+    background: var(--palette-select);
+  }
+  .top:active {
     background: var(--palette-select);
   }
 </style>

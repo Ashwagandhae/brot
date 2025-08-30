@@ -32,17 +32,14 @@
     } else if (event.key == "Escape") {
       event.preventDefault();
       event.stopPropagation();
+      console.log("textbar cancelled due to keydown");
       oncancel?.();
     }
   }
-  function handleBlur() {
-    if (document.hasFocus()) {
-      oncancel?.();
-    }
-  }
+
   onMount(() => {
     if (autofocus) {
-      console.log("focused edit title?");
+      console.log("focused edit title automatically");
       element?.focus();
     }
   });
@@ -54,7 +51,6 @@
   type="text"
   bind:value
   onkeydown={handleKeydown}
-  onblur={handleBlur}
   {onfocus}
   {placeholder}
 />
@@ -75,5 +71,9 @@
   input::placeholder {
     color: var(--text-weak);
     opacity: 1;
+  }
+
+  input:focus {
+    outline: none;
   }
 </style>

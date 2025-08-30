@@ -6,9 +6,15 @@
   import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";
   import Title from "./Title.svelte";
-  import { pathToTitle, pathToUrl } from "./path";
+  import { getPathContext, pathToTitleString, pathToUrl } from "./path";
   import Icon from "./Icon.svelte";
   import { msg } from "./message";
+  import { getComponentPaletteContext } from "./componentPalette";
+  import { withProps } from "./componentProps";
+  import CheckerEdit from "./CheckerEdit.svelte";
+  import TextChecker from "./TextChecker.svelte";
+  import { parseTitleFromString } from "./parse";
+  import TitleOutputDisplay from "./TitleOutputDisplay.svelte";
 
   let {
     path,
@@ -33,9 +39,14 @@
   let getContent: () => string = $state(() => "");
   let setContent: (markdown: string) => void = $state(() => {});
 
+  let componentPaletteContext = getComponentPaletteContext();
+  let pathContext = getPathContext();
+
   registry.add({
-    editNoteTitle: () => startEditing(),
-    getNoteTitle: () => pathToTitle(path),
+    editNoteTitle: () => {
+      editTitle();
+    },
+    getNoteTitle: () => pathToTitleString(path),
     toggleNoteMinimized: () => (minimized = !minimized),
     saveNote: async () => {
       let content = getContent();
@@ -93,7 +104,25 @@
     note.meta.selection = [selection.from, selection.to];
   }
 
-  let startEditing = $state(() => {});
+  function editTitle() {
+    componentPaletteContext()(
+      withProps(CheckerEdit<string, string>, {
+        Checker: TextChecker<string>,
+        init: pathToTitleString(path),
+        setVal: async (newTitle: string) => {
+          let newPath = await msg("updatePath", {
+            currentPath: path,
+            newTitle,
+          });
+          if (newPath != null) {
+            pathContext.setPath(path, newPath);
+          }
+        },
+        toVal: parseTitleFromString,
+        outputDisplay: withProps(TitleOutputDisplay, {}),
+      })
+    );
+  }
 
   function focusNote(scroll: boolean) {
     console.log("focus note called");
@@ -128,15 +157,9 @@
 
 <div class="top" bind:this={element}>
   <div class="topBar" class:window={$platform == "window"}>
-    <Title
-      noteExists={note != null}
-      {saved}
-      {path}
-      {onfocus}
-      {focused}
-      focusNote={() => focusNote(false)}
-      bind:startEditing
-    />
+    <button class="titleBack" onclick={editTitle}>
+      <Title {path}></Title>
+    </button>
     <div class="tools">
       {#if canMinimize}
         <button
@@ -196,7 +219,7 @@
     display: flex;
     flex-direction: row;
 
-    padding: 4px;
+    /* padding: 4px; */
     pointer-events: none;
     width: 100%;
     height: 28px;
@@ -207,12 +230,22 @@
 
     z-index: 10;
 
-    /* align-items: center; */
+    align-items: center;
     gap: 4px;
+    padding: 0 3px;
   }
 
   .topBar > :global(*) {
     pointer-events: all;
+  }
+
+  .titleBack {
+    flex: 1;
+    overflow: scroll;
+    background: none;
+  }
+  .titleBack::-webkit-scrollbar {
+    display: none; /* Safari & Chrome */
   }
 
   button.minimize {

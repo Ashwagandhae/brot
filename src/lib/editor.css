@@ -4,9 +4,7 @@
   margin: auto;
   --margin: 0.25em;
 }
-.tiptap:first-child {
-  margin-top: 0;
-}
+
 /* paragraph spacing */
 .tiptap ul,
 .tiptap ol,
@@ -99,16 +97,8 @@
   text-align: left;
 }
 
-.tiptap table .selectedCell:after {
+.tiptap table .selectedCell {
   background: var(--back-2);
-  content: "";
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 2;
 }
 
 .tiptap table .column-resize-handle {

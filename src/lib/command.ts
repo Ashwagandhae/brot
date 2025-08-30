@@ -1,6 +1,3 @@
-import type { Component, ComponentProps, Snippet } from "svelte";
-import type { MatchedPaletteAction } from "../../src-tauri/bindings/MatchedPaletteAction";
-import type { PaletteAction } from "../../src-tauri/bindings/PaletteAction";
 import type { PaletteId } from "../../src-tauri/bindings/PaletteId";
 import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
@@ -15,16 +12,31 @@ import {
 import { msg } from "./message";
 import TextChecker from "./TextChecker.svelte";
 import { withProps, type WithProps } from "./componentProps";
-import { parseUrlFromString } from "./parse";
+import {
+  parseLangFromString,
+  parseNumberFromString,
+  parseUrlFromString,
+} from "./parse";
+import UnsupportedArg from "./UnsupportedArg.svelte";
+import EnumChecker from "./EnumChecker.svelte";
 
-export interface CommandProvider {
+export interface CommandProvider<T> {
   search: (
     search: string,
     start: number,
     end: number
-  ) => Promise<MatchedPaletteAction[]>;
+  ) => Promise<CommandChoice<T>[]>;
   stop?: () => void;
 }
+
+export type CommandChoice<T> = {
+  indices: Array<number>;
+  title: string;
+  icon: string | null;
+  shortcut: string | null;
+  payload: T;
+  path: string | null;
+};
 
 export type PaletteType =
   | {
@@ -38,91 +50,8 @@ export type PaletteType =
     }
   | {
       type: "component";
-      Component: Component<{ onfinish: () => void }>;
-      props: Record<string, any>;
+      withProps: WithProps<{ onfinish: () => void }, "onfinish">;
     };
-
-// function getParamActions(
-//   search: string,
-//   argType: ArgType,
-//   action: PartialAction
-// ): PaletteAction[] {
-//   switch (argType) {
-//     case "boolean":
-//       return enumPaletteActions(["true", "false"], search, action);
-//     case "insertion":
-//       return enumPaletteActions(["above", "below"], search, action);
-//     case "url":
-//       return verifyActions(
-//         (str) => {
-//           try {
-//             new URL(str);
-//             return true;
-//           } catch {
-//             try {
-//               new URL("http://" + str);
-//               return true;
-//             } catch {
-//               return false;
-//             }
-//           }
-//         },
-//         search,
-//         action
-//       );
-//     case "number":
-//       return verifyActions(
-//         (str) => {
-//           return str.trim() !== "" && !isNaN(Number(str));
-//         },
-//         search,
-//         action
-//       );
-//     case "locater":
-//       return [];
-//     case "notePath":
-//       return [];
-//     case "palette":
-//       return [];
-//     case "level":
-//       return enumPaletteActions(["1", "2", "3", "4", "5", "6"], search, action);
-//   }
-// }
-
-// function verifyActions(
-//   verify: (search: string) => boolean,
-//   search: string,
-//   action: PartialAction
-// ): PaletteAction[] {
-//   if (verify(search)) {
-//     return [
-//       {
-//         title: "ok",
-//         icon: "check",
-//         action: addArg(action, search),
-//         shortcut: null,
-//       },
-//     ];
-//   }
-//   return [];
-// }
-
-// function enumPaletteActions(
-//   choices: string[],
-//   search: string,
-//   action: PartialAction
-// ): PaletteAction[] {
-//   return choices
-//     .filter((choice) => choice.includes(search))
-//     .map((choice) => {
-//       return {
-//         title: choice,
-//         icon: null,
-//         action: addArg(action, choice),
-//         shortcut: null,
-//       };
-//     });
-// }
 
 export function addArg<T extends keyof ArgTypesMap, K extends ActionsKey>(
   action: ParsedPartialAction<K>,
@@ -134,7 +63,7 @@ export function addArg<T extends keyof ArgTypesMap, K extends ActionsKey>(
   };
 }
 
-class PaletteCommandProvider implements CommandProvider {
+class PaletteCommandProvider implements CommandProvider<PartialAction> {
   id: PaletteId | null;
   key: string;
   filters: PartialActionFilter[];
@@ -166,7 +95,7 @@ class PaletteCommandProvider implements CommandProvider {
     search: string,
     start: number,
     end: number
-  ): Promise<MatchedPaletteAction[]> {
+  ): Promise<CommandChoice<PartialAction>[]> {
     if (this.id == null) {
       this.id = await this.initId();
     }
@@ -180,7 +109,13 @@ class PaletteCommandProvider implements CommandProvider {
     if (res == null) {
       return [];
     }
-    return res;
+    return res.map((matched) => {
+      let {
+        indices,
+        paletteAction: { title, icon, shortcut, action, path },
+      } = matched;
+      return { title, indices, icon, shortcut, payload: action, path };
+    });
   }
 
   async stop(): Promise<void> {
@@ -189,44 +124,54 @@ class PaletteCommandProvider implements CommandProvider {
   }
 }
 
-export function paletteForArg(
-  argType: ArgType,
-  action: ParsedPartialAction
-): WithProps<{ onfinish: (arg: any | null) => void }, "onfinish"> {
-  switch (argType) {
-    case "boolean":
-      // return enumPaletteActions(["true", "false"], search, action);
-      return [] as any;
-    case "insertion":
-      // return enumPaletteActions(["above", "below"], search, action);
-      return [] as any;
+type ArgPaletteMap = {
+  [K in keyof ArgTypesMap]: WithProps<
+    { onfinish: (arg: ArgTypesMap[K] | null) => void },
+    "onfinish"
+  >;
+};
 
-    case "url":
-      return withProps(TextChecker<URL>, {
-        toVal: parseUrlFromString,
-        init: "",
-      });
+const argPaletteMap: ArgPaletteMap = {
+  url: withProps(TextChecker<URL>, {
+    toVal: parseUrlFromString,
+  }),
+  boolean: withProps(EnumChecker<boolean>, {
+    choices: [
+      { title: "true", payload: true },
+      { title: "false", payload: false },
+    ],
+  }),
+  number: withProps(TextChecker<number>, {
+    toVal: parseNumberFromString,
+  }),
+  insertion: withProps(EnumChecker<"above" | "below">, {
+    choices: [
+      { title: "above", payload: "above" },
+      { title: "below", payload: "below" },
+    ],
+  }),
+  palette: withProps(EnumChecker<string>, {
+    choices: Object.keys(actions).map((key) => ({ title: key, payload: key })),
+  }),
+  level: withProps(EnumChecker<1 | 2 | 3 | 4 | 5 | 6>, {
+    choices: [
+      { title: "1", payload: 1 },
+      { title: "2", payload: 2 },
+      { title: "3", payload: 3 },
+      { title: "4", payload: 4 },
+      { title: "5", payload: 5 },
+      { title: "6", payload: 6 },
+    ],
+  }),
+  locater: withProps(UnsupportedArg<"locater">, { argType: "locater" }),
+  notePath: withProps(UnsupportedArg<"notePath">, { argType: "notePath" }),
+  lang: withProps(TextChecker<string>, { toVal: parseLangFromString }),
+};
 
-    case "number":
-      // return verifyActions(
-      //   (str) => {
-      //     return str.trim() !== "" && !isNaN(Number(str));
-      //   },
-      //   search,
-      //   action
-      // );
-      return [] as any;
-
-    case "locater":
-      return [] as any;
-    case "notePath":
-      return [] as any;
-    case "palette":
-      return [] as any;
-    case "level":
-      return [] as any;
-  }
-  throw new Error(`unknow arg type ${argType}`);
+export function paletteForArg<T extends ArgType>(
+  argType: T
+): WithProps<{ onfinish: (arg: ArgTypesMap[T] | null) => void }, "onfinish"> {
+  return argPaletteMap[argType];
 }
 
 export function providerForPaletteKey(

@@ -60,11 +60,10 @@
     },
   });
 
-  openComponentPalette = (Component: Component, props: Record<string, any>) => {
+  openComponentPalette = (withProps) => {
     paletteType = {
       type: "component",
-      Component,
-      props,
+      withProps,
     };
   };
 
@@ -86,6 +85,9 @@
     if (actions == null) return;
     let mapper = mapKeydownEventToAction(actions);
     handleKeydown = (event: KeyboardEvent) => {
+      if (event.key == "Escape") {
+        handleFinish(null);
+      }
       let action = mapper(event);
       if (action == null) return;
       let actionParsed = parsePartialAction(action);
@@ -111,9 +113,7 @@
     sendCompleteSearch(accepted);
   }
 
-  async function handleCommandPaletteFinish(
-    action: ParsedPartialAction | null
-  ) {
+  async function handleFinish(action: ParsedPartialAction | null) {
     console.log("handle finish");
 
     if (paletteType == null) return;
@@ -137,35 +137,31 @@
 <svelte:document onkeydown={handleKeydown} />
 {#key paletteType}
   {#if paletteType?.type != null}
-    <PaletteWrapper hideBack={searchPalette}>
+    <PaletteWrapper hideBack={searchPalette} onclick={() => handleFinish(null)}>
       {#if paletteType.type == "component"}
-        {@const { Component, props } = paletteType}
+        {@const { Component, props } = paletteType.withProps}
         <Component
           {...props}
           onfinish={() => {
-            handleCommandPaletteFinish(null);
+            handleFinish(null);
           }}
         ></Component>
       {:else if paletteType.type == "palette"}
         <CommandPalette
           provider={providerForPaletteKey(paletteType.key, registry)}
           onfinish={(action) => {
-            handleCommandPaletteFinish(
-              action == null ? null : parsePartialAction(action)
-            );
+            console.log("command palette finished");
+            handleFinish(action == null ? null : parsePartialAction(action));
           }}
         ></CommandPalette>
       {:else}
-        {@const { Component, props } = paletteForArg(
-          paletteType.argType,
-          paletteType.action
-        )}
+        {@const { Component, props } = paletteForArg(paletteType.argType)}
         {@const prevAction: ParsedPartialAction = paletteType.action}
         <Component
           {...props}
           onfinish={(arg) => {
             let action = arg == null ? null : addArg(prevAction, arg);
-            handleCommandPaletteFinish(action);
+            handleFinish(action);
           }}
         ></Component>
       {/if}

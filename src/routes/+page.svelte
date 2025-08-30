@@ -78,6 +78,7 @@
     $viewState = { type: "pinned", focusPath: focusPath };
   });
 
+  let loaded = false;
   onMount(async () => {
     pinnedPaths = await msg("getPinned");
     if (pinnedPaths.length > 0) {
@@ -88,6 +89,7 @@
     for (let path of pinnedPaths) {
       minimized[path] = minimizedPinnedPaths?.includes(path) ?? false;
     }
+    loaded = true;
   });
 
   function changeDictKeys<T>(
@@ -130,6 +132,7 @@
       if (Object.keys(minimized).length == 0) return;
       let settings = await msg("getSettings");
       settings.minimizedPinnedPaths = minimizedPinnedPaths;
+      if (untrack(() => !loaded)) return;
       await msg("updateSettings", { settings });
     })();
   });

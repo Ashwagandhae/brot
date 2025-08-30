@@ -1,91 +1,72 @@
 <script lang="ts">
-  import TextBar from "./TextBar.svelte";
-  import { msg } from "./message";
-  import { getPathContext, pathToTitle } from "./path";
+  import { pathToTitleNodes } from "./path";
 
-  let pathContext = getPathContext();
+  let { path }: { path: string } = $props();
 
-  let {
-    noteExists,
-    saved,
-    path,
-    onfocus,
-    focusNote,
-    focused,
-    startEditing = $bindable(),
-  }: {
-    noteExists: boolean;
-    saved: boolean;
-    path: string;
-    onfocus?: () => void;
-    focused: boolean;
-    focusNote: () => void;
-    startEditing: () => void;
-  } = $props();
-
-  let editingTitle = $state(false);
-  let editedTitle = $state("");
-
-  startEditing = () => {
-    console.log("editing title");
-    editingTitle = true;
-    editedTitle = pathToTitle(path);
-  };
-
-  async function updateTitle() {
-    editingTitle = false;
-    // focusNote();
-    let newPath = await msg("updatePath", {
-      currentPath: path,
-      newTitle: editedTitle,
-    });
-    if (newPath != null) {
-      pathContext.setPath(path, newPath);
-    }
-  }
+  let nodes = $derived(pathToTitleNodes(path));
 </script>
 
-{#if editingTitle && noteExists}
-  <div class="titleText">
-    <TextBar
-      bind:value={editedTitle}
-      onaccept={updateTitle}
-      oncancel={() => {
-        console.log("cancel editing title");
-        editingTitle = false;
-      }}
-      {onfocus}
-      autofocus
-      placeholder={"title"}
-    ></TextBar>
-  </div>
-{:else}
-  <button
-    class="title"
-    disabled={!noteExists}
-    onclick={startEditing}
-    class:toggled={focused}
-  >
-    {#if !noteExists}no note{:else}{pathToTitle(path)}{#if !saved}*{/if}{/if}
-  </button>
-{/if}
+<div class="top">
+  {#each nodes as node}
+    {#if node.type == "text"}
+      <div class="text">{node.content}</div>
+    {:else if node.type == "tag"}
+      <div class="tag">
+        {#each node.parts as part}
+          <div class="tagPart">
+            {part.content.replaceAll("-", " ")}
+          </div>
+        {/each}
+      </div>
+    {/if}
+  {/each}
+</div>
 
 <style>
-  .titleText {
-    width: 180px;
-  }
-  button.title {
-    width: auto;
-    height: 20px;
-    box-sizing: border-box;
-    padding: 0 10px;
-    border-radius: 10px 10px;
-    flex-direction: column;
+  .top {
+    display: flex;
+    flex-direction: row;
+    font-size: 16px;
     align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    line-height: 20px;
-    color: var(--text-strong);
-    border: none;
+
+    --radius-small: 0px;
+    --radius-big: 16px;
+    --padding-vertical: 2px;
+    gap: 2px;
+  }
+  .text {
+    padding: var(--padding-vertical) 1px;
+    line-height: 1;
+  }
+  .tag {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+  .tagPart {
+    background: hsla(0, 0%, 100%, 0.15);
+    padding: var(--padding-vertical) 2px;
+    line-height: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: var(--radius-small);
+    white-space: nowrap;
+  }
+  .tagPart:first-child {
+    border-radius: var(--radius-big) var(--radius-small) var(--radius-small)
+      var(--radius-big);
+    padding: var(--padding-vertical) 2px var(--padding-vertical) 4px;
+  }
+  .tagPart:last-child {
+    border-radius: var(--radius-small) var(--radius-big) var(--radius-big)
+      var(--radius-small);
+    padding: var(--padding-vertical) 4px var(--padding-vertical) 2px;
+  }
+  .tagPart:only-child {
+    border-radius: var(--radius-big) var(--radius-big) var(--radius-big)
+      var(--radius-big);
+    padding: var(--padding-vertical) 4px var(--padding-vertical) 4px;
   }
 </style>

@@ -26,6 +26,7 @@ export const actions = {
   historyBack: [],
   historyForward: [],
   repeatLastAction: [],
+  copySelectionMd: [],
 
   // editor
   unsetAllMarks: [],
@@ -95,6 +96,10 @@ export const actions = {
   // details
   setDetails: [],
   unsetDetails: [],
+  // code block
+  setCodeBlock: [],
+  toggleCodeBlock: [],
+  editCodeBlockLang: [],
 } as const;
 
 export type ActionRegistry = BuildActions & {
@@ -168,6 +173,7 @@ export type ArgTypesMap = {
   number: number;
   url: URL;
   level: 1 | 2 | 3 | 4 | 5 | 6;
+  lang: string;
 };
 export type ArgType = keyof ArgTypesMap;
 
@@ -202,31 +208,6 @@ type BuildArgs<T extends readonly string[]> = {
 type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
-
-// export async function continuePartialAction(
-//   registry: ActionRegistryManager,
-//   action: PartialAction,
-//   requestNextArg: (argType: ArgType) => void
-// ) {
-//   let key = action.key as keyof typeof actions;
-//   if (actions[key].length <= action.args.length) {
-//     let fn = registry.get(key);
-//     if (fn != null) {
-//       console.log("doing action", key, [...action.args]);
-//       (fn as any)(
-//         ...action.args.map((val, index) =>
-//           parseArgType(actions[key][index], val)
-//         )
-//       );
-//     } else {
-//       console.log("didn't do action");
-//     }
-//   } else {
-//     let nextArgIndex = action.args.length;
-//     let argType = actions[key][nextArgIndex as number];
-//     requestNextArg(argType);
-//   }
-// }
 
 export async function continuePartialAction<T extends ActionsKey>(
   registry: ActionRegistryManager,
@@ -279,6 +260,7 @@ const parsers: {
   number: (val) => Number(val),
   url: (val) => new URL(val),
   level: (val) => verifyEnum(Number(val), [1, 2, 3, 4, 5, 6]),
+  lang: (val) => val,
 };
 
 export function parseArgType<T extends keyof ArgTypesMap>(

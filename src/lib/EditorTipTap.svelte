@@ -2,7 +2,7 @@
   import "./editor.css";
   import { onMount, type Component, type ComponentProps } from "svelte";
   import { TableKit } from "@tiptap/extension-table";
-  import { Editor } from "@tiptap/core";
+  import { Editor, generateHTML } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
   import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
@@ -10,10 +10,7 @@
 
   import { all, createLowlight } from "lowlight";
 
-  import { HTMLarkdown } from "htmlarkdown";
   import "katex/dist/katex.min.css";
-  import { Marked } from "marked";
-  import { markedHighlight } from "marked-highlight";
   import { IndentHandler } from "./editorTabExtension";
   import { ArgsFilter, type ActionRegistryManager } from "./actions";
   import { isTauri } from "./platform";
@@ -44,15 +41,12 @@
   import { Gapcursor } from "@tiptap/extensions";
   import { UndoRedo } from "@tiptap/extensions";
   import { addEditorActions } from "./editorAction";
-  import TextIo from "./TextChecker.svelte";
-  import { parseUrlFromString } from "./parse";
+  import { parseLangFromString, parseUrlFromString } from "./parse";
   import { getComponentPaletteContext } from "./componentPalette";
   import { htmlToMarkdown, markdownToHtml } from "./markdown";
   import CheckerEdit from "./CheckerEdit.svelte";
   import TextChecker from "./TextChecker.svelte";
-  import { asClassComponent } from "svelte/legacy";
-  import Palette from "./Palette.svelte";
-  import BoldChars from "./BoldChars.svelte";
+  import { withProps } from "./componentProps";
 
   let {
     initContent,
@@ -89,23 +83,53 @@
             });
           }
         },
+        copySelectionMd: () => {
+          let html = getSelectionHTML(editor);
+          if (html == null) return;
+          navigator.clipboard.writeText(htmlToMarkdown(html));
+        },
         editLink: () => {
-          let initText: string = editor.getAttributes("link")?.href ?? "";
-          let openComponentPalette = componentPaletteContext();
-          openComponentPalette(CheckerEdit<URL, string>, {
-            Checker: TextChecker<URL>,
-            init: initText,
-            setVal: (url: URL) => {
-              if (url != null) {
-                editor.chain().focus().setLink({ href: url.toString() }).run();
-              }
-            },
-            toVal: parseUrlFromString,
-          });
+          componentPaletteContext()(
+            withProps(CheckerEdit<URL, string>, {
+              Checker: TextChecker<URL>,
+              init: editor.getAttributes("link")?.href ?? "",
+              setVal: (url: URL) => {
+                if (url != null) {
+                  editor
+                    .chain()
+                    .focus()
+                    .extendMarkRange("link")
+                    .setLink({ href: url.toString() })
+                    .run();
+                }
+              },
+              toVal: parseUrlFromString,
+            })
+          );
+        },
+        editCodeBlockLang: () => {
+          componentPaletteContext()(
+            withProps(CheckerEdit<string, string>, {
+              Checker: TextChecker<string>,
+              init: editor.getAttributes("codeBlock").language,
+              setVal: (language: string) => {
+                if (language != null) {
+                  editor
+                    .chain()
+                    .focus()
+                    .updateAttributes("codeBlock", { language })
+                    .run();
+                }
+              },
+              toVal: parseLangFromString,
+            })
+          );
         },
       },
       {
         editLink: () => ArgsFilter.fromBool(editor.isActive("link")),
+        editCodeBlockLang: () =>
+          ArgsFilter.fromBool(editor.isActive("codeBlock")),
       }
     );
 
@@ -184,6 +208,9 @@
       // details
       setDetails: () => (chain) => chain.setDetails().run(),
       unsetDetails: () => (chain) => chain.unsetDetails().run(),
+      // codeblock
+      setCodeBlock: () => (chain) => chain.setCodeBlock().run(),
+      toggleCodeBlock: () => (chain) => chain.toggleCodeBlock().run(),
     });
   }
 
@@ -226,7 +253,8 @@
         TableKit.configure({ table: { resizable: true } }),
         CodeBlockLowlight.configure({
           lowlight,
-        }),
+          defaultLanguage: "plaintext",
+        }).extend({ addKeyboardShortcuts: () => ({}) }),
         Link.configure({
           openOnClick: false,
           autolink: true,
@@ -261,6 +289,19 @@
     });
     initRegistry(editor);
   });
+
+  function getSelectionHTML(editor: Editor): string | null {
+    const { state } = editor;
+    const { selection, doc, schema } = state;
+
+    if (selection.empty) {
+      return null;
+    }
+
+    const slice = doc.cut(selection.from, selection.to);
+
+    return generateHTML(slice.toJSON(), editor.extensionManager.extensions);
+  }
 </script>
 
 <div id="editor" bind:this={element}></div>
