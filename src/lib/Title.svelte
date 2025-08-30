@@ -1,7 +1,8 @@
 <script lang="ts">
+  import BoldChars from "./BoldChars.svelte";
   import { pathToTitleNodes } from "./path";
 
-  let { path }: { path: string } = $props();
+  let { path, indices }: { path: string; indices?: number[] } = $props();
 
   let nodes = $derived(pathToTitleNodes(path));
 </script>
@@ -9,12 +10,25 @@
 <div class="top">
   {#each nodes as node}
     {#if node.type == "text"}
-      <div class="text">{node.content}</div>
+      <div class="text">
+        <BoldChars
+          text={node.content}
+          indices={indices ?? []}
+          offset={node.range.from + node.startPadding}
+        ></BoldChars>
+      </div>
     {:else if node.type == "tag"}
       <div class="tag">
         {#each node.parts as part}
           <div class="tagPart">
-            {part.content.replaceAll("-", " ")}
+            <BoldChars
+              text={part.content.replaceAll("-", " ")}
+              indices={indices ?? []}
+              offset={node.range.from +
+                node.startPadding +
+                part.range.from +
+                part.startPadding}
+            ></BoldChars>
           </div>
         {/each}
       </div>

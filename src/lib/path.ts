@@ -41,17 +41,23 @@ function seperateChar(
 }
 
 function partToTagParts(part: string): TagPartNode[] {
-  let seperated = seperateChar(part, "--");
+  let seperated = seperateChar(part.slice(1), "--");
   let res: TagPartNode[] = [];
   let currentChar: number = 0;
   let currentSepCount: number = 0;
-  for (let part of seperated) {
+  for (let i = 0; i < seperated.length; i++) {
+    let part = seperated[i];
     if (part.sep) {
       currentSepCount += 1;
-      currentChar += 2;
     } else {
       let startPadding = currentSepCount * 2;
-      let range = { from: currentChar, to: currentChar + part.content.length };
+      if (i == 0) {
+        startPadding += 1;
+      }
+      let range = {
+        from: currentChar,
+        to: currentChar + startPadding + part.content.length,
+      };
       res.push({
         content: part.content,
         startPadding,
@@ -74,14 +80,16 @@ export function pathToTitleNodes(path: string): TitleNode[] {
   for (let part of underscoreSeperated) {
     if (part.sep) {
       currentSepCount += 1;
-      currentChar += 1;
     } else {
       let startPadding = currentSepCount;
-      let range = { from: currentChar, to: currentChar + part.content.length };
+      let range = {
+        from: currentChar,
+        to: currentChar + startPadding + part.content.length,
+      };
       if (part.content.startsWith("-")) {
         res.push({
           type: "tag",
-          parts: partToTagParts(part.content.slice(1)),
+          parts: partToTagParts(part.content),
           startPadding,
           range,
         });

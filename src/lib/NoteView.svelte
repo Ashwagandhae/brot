@@ -42,26 +42,28 @@
   let componentPaletteContext = getComponentPaletteContext();
   let pathContext = getPathContext();
 
-  registry.add({
-    editNoteTitle: () => {
-      editTitle();
-    },
-    getNoteTitle: () => pathToTitleString(path),
-    toggleNoteMinimized: () => (minimized = !minimized),
-    saveNote: async () => {
-      let content = getContent();
-      setContent(content);
-      await saveNote();
-      saved = true;
-    },
-    focusScrollNote: () => focusNote(true),
-    focusNote: () => focusNote(false),
-    focusNoteEnd: () => {
-      registry.get("getEditor")?.().chain().focus("end").run();
-    },
-    copyUrl: () => {
-      navigator.clipboard.writeText(pathToUrl(path));
-    },
+  onMount(() => {
+    registry.add({
+      editNoteTitle: () => {
+        editTitle();
+      },
+      getNoteTitle: () => pathToTitleString(path),
+      toggleNoteMinimized: () => (minimized = !minimized),
+      saveNote: async () => {
+        let content = getContent();
+        setContent(content);
+        await saveNote();
+        saved = true;
+      },
+      focusScrollNote: () => focusNote(true),
+      focusNote: () => focusNote(false),
+      focusNoteEnd: () => {
+        registry.get("getEditor")?.().chain().focus("end").run();
+      },
+      copyUrl: () => {
+        navigator.clipboard.writeText(pathToUrl(path));
+      },
+    });
   });
 
   onMount(async () => {

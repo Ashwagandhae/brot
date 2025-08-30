@@ -4,10 +4,15 @@
   import NoteView from "$lib/NoteView.svelte";
   import ScrollPadding from "$lib/ScrollPadding.svelte";
   import WindowButtons from "$lib/WindowButtons.svelte";
-  import { getActionRegistryContext, ArgsFilter } from "$lib/actions";
+  import {
+    getActionRegistryContext,
+    ArgsFilter,
+    ActionRegistryManager,
+  } from "$lib/actions";
 
   import { setPathContext } from "$lib/path";
   import { getViewStateContext } from "$lib/viewState";
+  import { onMount } from "svelte";
 
   let viewState = getViewStateContext();
 
@@ -31,6 +36,8 @@
       toggleNoteMinimized: () => ArgsFilter.alwaysMatch,
     }
   );
+  let noteRegistry = new ActionRegistryManager();
+  registry.setOverride(noteRegistry);
 
   setPathContext({
     setPath: (_, to) => {
@@ -43,7 +50,12 @@
 
 {#key refreshKey}
   {#key path}
-    <NoteView {path} {registry} focused={true} autofocus canMinimize={false}
+    <NoteView
+      {path}
+      registry={noteRegistry}
+      focused={true}
+      autofocus
+      canMinimize={false}
     ></NoteView>
   {/key}
 {/key}

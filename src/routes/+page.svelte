@@ -7,6 +7,7 @@
 
   import {
     ActionRegistryManager,
+    ArgsFilter,
     getActionRegistryContext,
     type ActionRegistry,
   } from "$lib/actions";
@@ -16,39 +17,46 @@
   let viewState = getViewStateContext();
 
   let registry = getActionRegistryContext();
-  registry.add({
-    addPinned: async (insertion, path) => {
-      if (pinnedPaths == null) return;
-      if (pinnedPaths.length == 0) {
-        await msg("addPinned", { path, position: 0 });
-      } else {
-        let position = pinnedPaths.findIndex((path) => path == focusPath);
-        if (insertion == "below") {
-          position += 1;
+  registry.add(
+    {
+      addPinned: async (insertion, path) => {
+        if (pinnedPaths == null) return;
+        if (pinnedPaths.length == 0) {
+          await msg("addPinned", { path, position: 0 });
+        } else {
+          let position = pinnedPaths.findIndex((path) => path == focusPath);
+          if (insertion == "below") {
+            position += 1;
+          }
+          await msg("addPinned", { path, position });
         }
-        await msg("addPinned", { path, position });
-      }
-      pinnedPaths = await msg("getPinned");
-      refreshKey = !refreshKey;
+        pinnedPaths = await msg("getPinned");
+        refreshKey = !refreshKey;
+      },
+      removeCurrentPinned: async () => {
+        if (focusPath == null) return;
+        await msg("removePinned", { path: focusPath });
+        pinnedPaths = await msg("getPinned");
+      },
+      refreshPage: async () => {
+        pinnedPaths = await msg("getPinned");
+        refreshKey = !refreshKey;
+      },
+      focusScrollPinnedNote: (index) => {
+        let newFocusPath = pinnedPaths?.[index];
+        if (newFocusPath == null) return;
+        noteActionRegistries[newFocusPath].get("focusScrollNote")?.();
+        focusPath = newFocusPath;
+      },
+      focusScrollNote: () =>
+        untrack(() => registry).get("focusScrollPinnedNote")?.(0),
     },
-    removeCurrentPinned: async () => {
-      if (focusPath == null) return;
-      await msg("removePinned", { path: focusPath });
-      pinnedPaths = await msg("getPinned");
-    },
-    refreshPage: async () => {
-      pinnedPaths = await msg("getPinned");
-      refreshKey = !refreshKey;
-    },
-    focusScrollPinnedNote: (index) => {
-      let newFocusPath = pinnedPaths?.[index];
-      if (newFocusPath == null) return;
-      noteActionRegistries[newFocusPath].get("focusScrollNote")?.();
-      focusPath = newFocusPath;
-    },
-    focusScrollNote: () =>
-      untrack(() => registry).get("focusScrollPinnedNote")?.(0),
-  });
+    {
+      openPalette: () => ArgsFilter.neverMatch,
+      removeCurrentPinned: () => ArgsFilter.neverMatch,
+      toggleNoteMinimized: () => ArgsFilter.neverMatch,
+    }
+  );
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);

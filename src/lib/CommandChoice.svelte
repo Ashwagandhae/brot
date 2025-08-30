@@ -62,7 +62,7 @@
       {#if command.path == null}
         <BoldChars text={command.title} indices={command.indices}></BoldChars>
       {:else}
-        <Title path={command.path}></Title>
+        <Title path={command.path} indices={command.indices}></Title>
       {/if}
     </div>
   </div>
