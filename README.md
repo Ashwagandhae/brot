@@ -1,7 +1,8 @@
-# Tauri + SvelteKit + TypeScript
+# Brot: markdown note-taking app
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+I created this app for personal use to take notes. 
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+## features
+- performant fuzzy searching of all note titles as you type
+- rich text editing including headings, tables, urls, code blocks with syntax highlighting, etc.
+- availability on desktop and mobile through tauri
