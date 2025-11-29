@@ -9,13 +9,13 @@
   import TextChecker from "$lib/TextChecker.svelte";
   import TitleOutputDisplay from "$lib/TitleOutputDisplay.svelte";
   import { parseTitleFromString } from "$lib/parse";
+  import { TagSuggestionProvider } from "$lib/suggestion";
 
   let viewState = getViewStateContext();
   $viewState = { type: "new" };
 
   async function createAndGotoNote(title: string) {
     let path = await msg("createNote", { title });
-    console.log("created note with path:", path);
     if (path == null) {
       openTitlePalette();
       return;
@@ -27,7 +27,9 @@
   function openTitlePalette() {
     componentPaletteContext()(
       withProps(CheckerEdit<string, string>, {
-        Checker: TextChecker<string>,
+        checker: withProps(TextChecker<string>, {
+          suggestionProvider: new TagSuggestionProvider(),
+        }),
         init: "",
         setVal: async (newTitle: string) => {
           createAndGotoNote(newTitle);

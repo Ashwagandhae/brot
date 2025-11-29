@@ -20,9 +20,10 @@
   --back-5: hsl(0, 0%, 35%);
 
   --palette-back: hsl(0, 0%, 0%);
-  --palette-back-1: hsl(0, 0%, 15%);
-  --palette-select: hsl(0, 0%, 20%);
-  --palette-select-1: hsl(0, 0%, 30%);
+  --palette-back-1: hsl(0, 0%, 8%);
+  --palette-back-2: hsl(0, 0%, 16%);
+  --palette-back-3: hsl(0, 0%, 24%);
+  --palette-back-4: hsl(0, 0%, 32%);
 
   --line-color: hsl(0, 0%, 30%);
   --line-color-1: hsl(0, 0%, 40%);

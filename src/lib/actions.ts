@@ -27,6 +27,9 @@ export const actions = {
   historyForward: [],
   repeatLastAction: [],
   copySelectionMd: [],
+  setSpellCheck: [],
+  unsetSpellCheck: [],
+  openLink: [],
 
   // editor
   unsetAllMarks: [],

@@ -18,9 +18,9 @@ use crate::{
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
-pub struct MatchedPaletteAction {
+pub struct Matched<T> {
     pub indices: Vec<u32>,
-    pub palette_action: PaletteAction,
+    pub payload: T,
 }
 
 #[derive(Serialize, Deserialize, TS, Clone)]
@@ -170,8 +170,10 @@ async fn generate_palette_actions(
 }
 
 async fn get_all_note_paths(state: &AppState) -> Result<Vec<(String, String)>> {
-    read_meta(state, |meta| {
-        meta.notes
+    read_meta(state, |holder| {
+        holder
+            .meta()
+            .notes
             .iter()
             .map(|(path, _)| (path.clone(), path_to_title(path)))
             .collect()

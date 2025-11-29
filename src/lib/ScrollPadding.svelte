@@ -6,7 +6,7 @@
 
 <style>
   .scrollPadding {
-    height: calc(100vh - 64px);
+    height: calc(100vh - 35px);
     width: 100%;
     background: none;
   }

@@ -38,6 +38,8 @@
     setComponentPaletteContext,
     type OpenComponentPalette,
   } from "$lib/componentPalette";
+  import { setTagConfigsContext, type TagConfigs } from "$lib/tagConfig";
+  import { msg } from "$lib/message";
 
   let { children } = $props();
 
@@ -46,6 +48,9 @@
 
   let registry: ActionRegistryManager = new ActionRegistryManager();
   setActionRegistryContext(registry);
+
+  let tagConfigs: TagConfigs = $state({});
+  setTagConfigsContext(() => tagConfigs);
 
   let unlisten = () => {};
   onMount(async () => {
@@ -57,6 +62,7 @@
       });
       await invoke("set_event_ready");
     }
+    tagConfigs = await msg("getTagConfigs");
   });
   onDestroy(() => {
     unlisten();

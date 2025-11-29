@@ -8,9 +8,11 @@ use crate::{
     message::{
         action::Actions,
         folder_manager::FolderManager,
-        meta::Meta,
-        palette::Palettes,
+        meta::MetaHolder,
+        palette_action::PaletteAction,
+        searcher::SearcherManager,
         settings::{read_settings_file, Settings},
+        suggester::Suggestion,
     },
     missed_events::EventManager,
 };
@@ -29,12 +31,13 @@ pub struct AppState {
     pub build_path: PathBuf,
     pub config_path: PathBuf,
     pub folder_manager: FolderManager,
-    pub meta: Arc<Mutex<Option<Meta>>>,
+    pub meta: Arc<Mutex<Option<MetaHolder>>>,
     pub settings: Arc<Mutex<Settings>>,
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
     pub actions: Arc<Mutex<Option<Actions>>>,
-    pub palettes: Arc<RwLock<Palettes>>,
+    pub palettes: Arc<RwLock<SearcherManager<PaletteAction>>>,
+    pub suggesters: Arc<RwLock<SearcherManager<Suggestion>>>,
     pub handle: AppHandle,
     pub event_manager: Arc<Mutex<EventManager>>,
 }
@@ -52,7 +55,12 @@ impl AppState {
             last_focused_app_name: None,
         }));
         let actions = Arc::new(Mutex::new(None));
-        let palettes = Arc::new(RwLock::new(Palettes::new()));
+        let palettes = Arc::new(RwLock::new(SearcherManager::<PaletteAction>::new(
+            |action| action.title.clone(),
+        )));
+        let suggesters = Arc::new(RwLock::new(SearcherManager::<Suggestion>::new(
+            |suggestion| suggestion.value.clone(),
+        )));
         let handle = app.handle().clone();
         let event_manager = Arc::new(Mutex::new(EventManager::new(app.handle().clone())));
         Ok(Self {
@@ -65,6 +73,7 @@ impl AppState {
             pinned_state_before_search,
             actions,
             palettes,
+            suggesters,
             handle,
             event_manager,
         })

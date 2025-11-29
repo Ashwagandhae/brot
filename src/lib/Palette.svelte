@@ -27,6 +27,7 @@
   import { sendCompleteSearch } from "./platform";
   import { mapKeydownEventToAction } from "./shortcut";
   import type { OpenComponentPalette } from "./componentPalette";
+  import { setTagConfigsContext, type TagConfigs } from "./tagConfig";
 
   let {
     registry,

@@ -2,22 +2,27 @@
   import type { Component } from "svelte";
   import type { CheckerProps } from "./checker";
   import type { ParseResult } from "./parse";
+  import type { WithProps } from "./componentProps";
 
   let {
-    Checker,
+    checker,
     onfinish,
     setVal,
     init,
     toVal,
     outputDisplay,
   }: {
-    Checker: Component<CheckerProps<StoreType, InputType>>;
+    checker: WithProps<
+      CheckerProps<StoreType, InputType>,
+      "toVal" | "onfinish" | "init" | "outputDisplay"
+    >;
     toVal: (text: InputType) => ParseResult<StoreType>;
     onfinish: () => void;
     init: InputType;
     setVal: (val: StoreType) => void;
     outputDisplay?: CheckerProps<StoreType, InputType>["outputDisplay"];
   } = $props();
+  let Checker = checker.Component;
 </script>
 
 <Checker
@@ -30,4 +35,5 @@
     }
     onfinish();
   }}
+  {...checker.props}
 ></Checker>

@@ -15,6 +15,7 @@
   import TextChecker from "./TextChecker.svelte";
   import { parseTitleFromString } from "./parse";
   import TitleOutputDisplay from "./TitleOutputDisplay.svelte";
+  import { TagSuggestionProvider, type SuggestionProvider } from "./suggestion";
 
   let {
     path,
@@ -48,7 +49,7 @@
         editTitle();
       },
       getNoteTitle: () => pathToTitleString(path),
-      toggleNoteMinimized: () => (minimized = !minimized),
+      toggleNoteMinimized: () => toggleMinimize(),
       saveNote: async () => {
         let content = getContent();
         setContent(content);
@@ -109,7 +110,9 @@
   function editTitle() {
     componentPaletteContext()(
       withProps(CheckerEdit<string, string>, {
-        Checker: TextChecker<string>,
+        checker: withProps(TextChecker<string>, {
+          suggestionProvider: new TagSuggestionProvider(),
+        }),
         init: pathToTitleString(path),
         setVal: async (newTitle: string) => {
           let newPath = await msg("updatePath", {
@@ -154,6 +157,13 @@
     lastMinimized = minimized;
   });
 
+  function toggleMinimize() {
+    if (!minimized) {
+      initContent = getContent();
+    }
+    minimized = !minimized;
+  }
+
   let element: HTMLElement | null = $state(null);
 </script>
 
@@ -167,7 +177,7 @@
         <button
           class="minimize hidden"
           aria-label="minimize"
-          onclick={() => (minimized = !minimized)}
+          onclick={toggleMinimize}
         >
           {#if minimized}
             <Icon name="triangleDown"></Icon>

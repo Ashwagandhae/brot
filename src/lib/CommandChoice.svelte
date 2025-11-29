@@ -110,9 +110,9 @@
     padding: 6px;
   }
   .top.selected {
-    background: var(--palette-select);
+    background: var(--palette-back-2);
   }
   .top:active {
-    background: var(--palette-select);
+    background: var(--palette-back-2);
   }
 </style>

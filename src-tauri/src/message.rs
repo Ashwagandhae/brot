@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use meta::{read_meta, write_meta};
 use note::Note;
 use note::{create_note, read_note, write_note};
@@ -6,10 +8,15 @@ use settings::{write_settings, Settings};
 use ts_rs::TS;
 
 use crate::message::action::{read_actions, Actions, PartialActionFilter};
+use crate::message::meta::TagConfig;
 use crate::message::note::update_path;
-use crate::message::palette::{create_palette, delete_palette, search_palette, PaletteId};
-use crate::message::palette_action::MatchedPaletteAction;
+use crate::message::palette::{create_palette, delete_palette, search_palette};
+use crate::message::palette_action::{Matched, PaletteAction};
+use crate::message::searcher::SearcherId;
 use crate::message::settings::read_settings_file;
+use crate::message::suggester::{
+    create_suggester, delete_suggester, search_suggester, SuggesterSource, Suggestion,
+};
 use crate::state::AppState;
 
 use anyhow::Result;
@@ -21,7 +28,10 @@ pub mod meta;
 pub mod note;
 pub mod palette;
 pub mod palette_action;
+pub mod searcher;
 pub mod settings;
+pub mod suggester;
+pub mod tag;
 pub mod title;
 
 #[derive(Serialize, Deserialize, TS)]
@@ -58,11 +68,24 @@ pub enum ClientMessage {
     },
     #[serde(rename_all = "camelCase")]
     DeletePalette {
-        id: PaletteId,
+        id: SearcherId,
+    },
+    #[serde(rename_all = "camelCase")]
+    CreateSuggester {
+        suggester_source: SuggesterSource,
+    },
+    #[serde(rename_all = "camelCase")]
+    SearchSuggester {
+        id: SearcherId,
+        search: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    DeleteSuggester {
+        id: SearcherId,
     },
     #[serde(rename_all = "camelCase")]
     SearchPalette {
-        id: PaletteId,
+        id: SearcherId,
         search: String,
         start: u32,
         end: u32,
@@ -78,6 +101,7 @@ pub enum ClientMessage {
     },
     GetPinned,
     GetActions,
+    GetTagConfigs,
     Refresh,
 }
 
@@ -93,13 +117,17 @@ pub enum ServerMessage {
     UpdatePath(Option<String>),
     CreateNote(Option<String>),
     Note(Option<Note>),
-    CreatePalette(PaletteId),
-    SearchPalette(Option<Vec<MatchedPaletteAction>>),
+    CreatePalette(SearcherId),
+    SearchPalette(Option<Vec<Matched<PaletteAction>>>),
     DeletePalette,
+    CreateSuggester(SearcherId),
+    SearchSuggester(Option<Vec<Matched<Suggestion>>>),
+    DeleteSuggester,
     AddPinned,
     RemovePinned,
     GetPinned(Vec<String>),
     GetActions(Actions),
+    GetTagConfigs(HashMap<String, TagConfig>),
     Refresh,
 }
 
@@ -146,23 +174,39 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             delete_palette(state, id).await;
             Ok(ServerMessage::DeletePalette)
         }
+        CreateSuggester { suggester_source } => Ok(ServerMessage::CreateSuggester(
+            create_suggester(state, suggester_source).await?,
+        )),
+        SearchSuggester { id, search } => Ok(ServerMessage::SearchSuggester(
+            search_suggester(state, id, search).await?,
+        )),
+        DeleteSuggester { id } => {
+            delete_suggester(state, id).await;
+            Ok(ServerMessage::DeleteSuggester)
+        }
         GetPinned => Ok(ServerMessage::GetPinned(
-            read_meta(state, |meta| meta.pinned.clone()).await?,
+            read_meta(state, |holder| holder.meta().pinned.clone()).await?,
         )),
         AddPinned { path, position } => {
-            if read_meta(state, |meta| meta.pinned.contains(&path)).await? {
+            if read_meta(state, |holder| holder.meta().pinned.contains(&path)).await? {
                 return Ok(ServerMessage::AddPinned);
             }
-            write_meta(state, |meta| meta.pinned.insert(position, path.clone())).await?;
+            write_meta(state, |holder| {
+                holder.update_meta(|meta| meta.pinned.insert(position, path.clone()))
+            })
+            .await?;
             Ok(ServerMessage::AddPinned)
         }
         RemovePinned { path } => {
-            write_meta(state, |meta| {
-                meta.pinned.retain(|p| *p != path);
+            write_meta(state, |holder| {
+                holder.update_meta(|meta| meta.pinned.retain(|p| *p != path));
             })
             .await?;
             Ok(ServerMessage::RemovePinned)
         }
+        GetTagConfigs => Ok(ServerMessage::GetTagConfigs(
+            read_meta(state, |holder| holder.meta().tag_configs.clone()).await?,
+        )),
         Refresh => {
             *state.meta.lock().await = None;
             let config_path = state.config_path.clone();

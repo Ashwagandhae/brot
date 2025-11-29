@@ -24,6 +24,6 @@
     flex-direction: row;
   }
   .out.selected {
-    background: var(--palette-select);
+    background: var(--palette-back-2);
   }
 </style>

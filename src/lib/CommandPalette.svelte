@@ -61,7 +61,6 @@
 <TextBar
   bind:value={search}
   autofocus
-  flat
   oncancel={() => {
     onfinish?.(null);
   }}

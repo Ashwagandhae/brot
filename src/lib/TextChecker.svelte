@@ -5,8 +5,15 @@
   import type { CheckerProps } from "./checker";
   import PaletteOutput from "./PaletteOutput.svelte";
   import Icon from "./Icon.svelte";
+  import type { SuggestionProvider } from "./suggestion";
 
-  let { onfinish, toVal, init, outputDisplay }: CheckerProps<T, string> =
+  let {
+    onfinish,
+    toVal,
+    init,
+    outputDisplay,
+    suggestionProvider,
+  }: CheckerProps<T, string> & { suggestionProvider?: SuggestionProvider } =
     $props();
 
   let text: string = $state(init ?? "");
@@ -19,7 +26,6 @@
 <TextBar
   bind:value={text}
   autofocus
-  flat
   oncancel={() => onfinish(null)}
   onaccept={() => {
     let res = toVal(text);
@@ -29,6 +35,7 @@
       onfinish(res.val);
     }
   }}
+  {suggestionProvider}
 ></TextBar>
 <PaletteOutput selected={res.type == "ok"}>
   <div class="icon">

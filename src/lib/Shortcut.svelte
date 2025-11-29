@@ -42,6 +42,6 @@
     font-family: var(--font);
   }
   .selected .key {
-    background-color: var(--palette-select-1);
+    background-color: var(--palette-back-3);
   }
 </style>

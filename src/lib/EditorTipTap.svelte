@@ -1,8 +1,10 @@
 <script lang="ts">
   import "./editor.css";
-  import { onMount, type Component, type ComponentProps } from "svelte";
+  import { onMount } from "svelte";
+  import { openUrl } from "@tauri-apps/plugin-opener";
+
   import { TableKit } from "@tiptap/extension-table";
-  import { Editor, generateHTML } from "@tiptap/core";
+  import { Editor } from "@tiptap/core";
   import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
   import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
@@ -26,6 +28,7 @@
   import { OrderedList } from "@tiptap/extension-list";
   import Paragraph from "@tiptap/extension-paragraph";
   import Text from "@tiptap/extension-text";
+  import { Markdown, MarkdownManager } from "@tiptap/markdown";
   import {
     Details,
     DetailsContent,
@@ -43,7 +46,6 @@
   import { addEditorActions } from "./editorAction";
   import { parseLangFromString, parseUrlFromString } from "./parse";
   import { getComponentPaletteContext } from "./componentPalette";
-  import { htmlToMarkdown, markdownToHtml } from "./markdown";
   import CheckerEdit from "./CheckerEdit.svelte";
   import TextChecker from "./TextChecker.svelte";
   import { withProps } from "./componentProps";
@@ -84,14 +86,16 @@
           }
         },
         copySelectionMd: () => {
-          let html = getSelectionHTML(editor);
-          if (html == null) return;
-          navigator.clipboard.writeText(htmlToMarkdown(html));
+          let node = getSelectionNode(editor);
+          if (node == null) return;
+          navigator.clipboard.writeText(
+            editor.markdown!.renderNodeToMarkdown(node.toJSON())
+          );
         },
         editLink: () => {
           componentPaletteContext()(
             withProps(CheckerEdit<URL, string>, {
-              Checker: TextChecker<URL>,
+              checker: withProps(TextChecker<URL>, {}),
               init: editor.getAttributes("link")?.href ?? "",
               setVal: (url: URL) => {
                 if (url != null) {
@@ -110,7 +114,7 @@
         editCodeBlockLang: () => {
           componentPaletteContext()(
             withProps(CheckerEdit<string, string>, {
-              Checker: TextChecker<string>,
+              checker: withProps(TextChecker<string>, {}),
               init: editor.getAttributes("codeBlock").language,
               setVal: (language: string) => {
                 if (language != null) {
@@ -124,6 +128,22 @@
               toVal: parseLangFromString,
             })
           );
+        },
+        setSpellCheck: () => {
+          editor.view.dom.setAttribute("spellcheck", "true");
+        },
+        unsetSpellCheck: () => {
+          editor.view.dom.setAttribute("spellcheck", "false");
+        },
+        openLink: () => {
+          let href = editor.getAttributes("link")?.href;
+          if (href == null) return;
+          if (isTauri()) {
+            openUrl(href);
+          } else {
+            let newTab = window.open(href, "_blank");
+            newTab?.focus();
+          }
         },
       },
       {
@@ -156,7 +176,7 @@
         chain.extendMarkRange("link").unsetLink().run(),
       // table
       insertTable: () => (chain) =>
-        chain.insertTable({ rows: 3, cols: 3, withHeaderRow: false }).run(),
+        chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
       addColumnBefore: () => (chain) => chain.addColumnBefore().run(),
       addColumnAfter: () => (chain) => chain.addColumnAfter().run(),
       deleteColumn: () => (chain) => chain.deleteColumn().run(),
@@ -215,63 +235,75 @@
   }
 
   getContent = () => {
-    return htmlToMarkdown(editor!.getHTML());
+    return editor!.getMarkdown();
   };
 
   setContent = (markdown: string) => {
     if (editor == null) return;
     const { from, to } = editor.state.selection;
-    editor.commands.setContent(markdownToHtml(markdown));
+    editor.commands.setContent(markdown, { contentType: "markdown" });
     editor.commands.setTextSelection({ from, to });
   };
 
   onMount(() => {
+    let extensions = [
+      // starterkit:
+      HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
+      Blockquote.extend({ addKeyboardShortcuts: () => ({}) }),
+      BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
+      Document,
+      Heading.extend({ addKeyboardShortcuts: () => ({}) }),
+      HorizontalRule,
+      ListItem,
+      OrderedList,
+      Paragraph.extend({ addKeyboardShortcuts: () => ({}) }),
+      Text,
+      Bold.extend({
+        addKeyboardShortcuts: () => ({}),
+        addInputRules: () => ({}),
+        addPasteRules: () => ({}),
+      }),
+      Code.extend({ addKeyboardShortcuts: () => ({}) }),
+      Italic.extend({
+        addKeyboardShortcuts: () => ({}),
+        addInputRules: () => ({}),
+        addPasteRules: () => ({}),
+      }),
+      Strike.extend({ addKeyboardShortcuts: () => ({}) }),
+      Underline.extend({ addKeyboardShortcuts: () => ({}) }),
+      Dropcursor,
+      Gapcursor,
+      UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
+      // starterkit end
+
+      TableKit.configure({ table: { resizable: true } }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        defaultLanguage: "plaintext",
+      }).extend({ addKeyboardShortcuts: () => ({}) }),
+      Link.configure({
+        openOnClick: !isTauri(),
+        autolink: true,
+        defaultProtocol: "https",
+        protocols: ["http", "https"],
+      }),
+      IndentHandler,
+      Details.configure({
+        persist: true,
+        HTMLAttributes: {
+          class: "details",
+        },
+      }),
+      DetailsSummary,
+      DetailsContent,
+      Markdown,
+    ];
+
     editor = new Editor({
       element: element,
-      extensions: [
-        // starterkit:
-        HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
-        Blockquote.extend({ addKeyboardShortcuts: () => ({}) }),
-        BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
-        Document,
-        Heading.extend({ addKeyboardShortcuts: () => ({}) }),
-        HorizontalRule,
-        ListItem,
-        OrderedList,
-        Paragraph.extend({ addKeyboardShortcuts: () => ({}) }),
-        Text,
-        Bold.extend({ addKeyboardShortcuts: () => ({}) }),
-        Code.extend({ addKeyboardShortcuts: () => ({}) }),
-        Italic.extend({ addKeyboardShortcuts: () => ({}) }),
-        Strike.extend({ addKeyboardShortcuts: () => ({}) }),
-        Underline.extend({ addKeyboardShortcuts: () => ({}) }),
-        Dropcursor,
-        Gapcursor,
-        UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
-        // starterkit end
-
-        TableKit.configure({ table: { resizable: true } }),
-        CodeBlockLowlight.configure({
-          lowlight,
-          defaultLanguage: "plaintext",
-        }).extend({ addKeyboardShortcuts: () => ({}) }),
-        Link.configure({
-          openOnClick: false,
-          autolink: true,
-          defaultProtocol: "https",
-          protocols: ["http", "https"],
-        }),
-        IndentHandler,
-        Details.configure({
-          persist: true,
-          HTMLAttributes: {
-            class: "details",
-          },
-        }),
-        DetailsSummary,
-        DetailsContent,
-      ],
-      content: markdownToHtml(initContent),
+      extensions,
+      content: initContent,
+      contentType: "markdown",
       onUpdate: () => {
         onupdate?.();
       },
@@ -283,14 +315,13 @@
       },
       onCreate: ({ editor }) => {
         editor.view.dom.setAttribute("spellcheck", "false");
-        editor.view.dom.setAttribute("autocomplete", "off");
         editor.view.dom.setAttribute("autocapitalize", "off");
       },
     });
     initRegistry(editor);
   });
 
-  function getSelectionHTML(editor: Editor): string | null {
+  function getSelectionNode(editor: Editor) {
     const { state } = editor;
     const { selection, doc, schema } = state;
 
@@ -299,8 +330,7 @@
     }
 
     const slice = doc.cut(selection.from, selection.to);
-
-    return generateHTML(slice.toJSON(), editor.extensionManager.extensions);
+    return slice;
   }
 </script>
 

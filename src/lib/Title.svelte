@@ -1,40 +1,34 @@
 <script lang="ts">
   import BoldChars from "./BoldChars.svelte";
   import { pathToTitleNodes } from "./path";
+  import Tag from "./Tag.svelte";
+  import { getTagConfigsContext } from "./tagConfig";
 
   let { path, indices }: { path: string; indices?: number[] } = $props();
 
   let nodes = $derived(pathToTitleNodes(path));
 </script>
 
-<div class="top">
+<span class="top">
   {#each nodes as node}
     {#if node.type == "text"}
-      <div class="text">
+      <span class="text">
         <BoldChars
           text={node.content}
           indices={indices ?? []}
           offset={node.range.from + node.startPadding}
         ></BoldChars>
-      </div>
+      </span>
     {:else if node.type == "tag"}
-      <div class="tag">
-        {#each node.parts as part}
-          <div class="tagPart">
-            <BoldChars
-              text={part.content.replaceAll("-", " ")}
-              indices={indices ?? []}
-              offset={node.range.from +
-                node.startPadding +
-                part.range.from +
-                part.startPadding}
-            ></BoldChars>
-          </div>
-        {/each}
-      </div>
+      <Tag
+        parts={node.parts}
+        startPadding={node.startPadding}
+        range={node.range}
+        {indices}
+      ></Tag>
     {/if}
   {/each}
-</div>
+</span>
 
 <style>
   .top {
@@ -51,36 +45,5 @@
   .text {
     padding: var(--padding-vertical) 1px;
     line-height: 1;
-  }
-  .tag {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-  }
-  .tagPart {
-    background: hsla(0, 0%, 100%, 0.15);
-    padding: var(--padding-vertical) 2px;
-    line-height: 1;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    border-radius: var(--radius-small);
-    white-space: nowrap;
-  }
-  .tagPart:first-child {
-    border-radius: var(--radius-big) var(--radius-small) var(--radius-small)
-      var(--radius-big);
-    padding: var(--padding-vertical) 2px var(--padding-vertical) 4px;
-  }
-  .tagPart:last-child {
-    border-radius: var(--radius-small) var(--radius-big) var(--radius-big)
-      var(--radius-small);
-    padding: var(--padding-vertical) 4px var(--padding-vertical) 2px;
-  }
-  .tagPart:only-child {
-    border-radius: var(--radius-big) var(--radius-big) var(--radius-big)
-      var(--radius-big);
-    padding: var(--padding-vertical) 4px var(--padding-vertical) 4px;
   }
 </style>

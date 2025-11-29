@@ -19,6 +19,7 @@ import {
 } from "./parse";
 import UnsupportedArg from "./UnsupportedArg.svelte";
 import EnumChecker from "./EnumChecker.svelte";
+import type { SearcherId } from "../../src-tauri/bindings/SearcherId";
 
 export interface CommandProvider<T> {
   search: (
@@ -64,7 +65,7 @@ export function addArg<T extends keyof ArgTypesMap, K extends ActionsKey>(
 }
 
 class PaletteCommandProvider implements CommandProvider<PartialAction> {
-  id: PaletteId | null;
+  id: SearcherId | null;
   key: string;
   filters: PartialActionFilter[];
   constructor(key: string, filters: PartialActionFilter[]) {
@@ -80,7 +81,7 @@ class PaletteCommandProvider implements CommandProvider<PartialAction> {
   }
   private async searchPalette(
     search: string,
-    id: PaletteId,
+    id: SearcherId,
     start: number,
     end: number
   ) {
@@ -109,10 +110,11 @@ class PaletteCommandProvider implements CommandProvider<PartialAction> {
     if (res == null) {
       return [];
     }
+    console.log("got here", res);
     return res.map((matched) => {
       let {
         indices,
-        paletteAction: { title, icon, shortcut, action, path },
+        payload: { title, icon, shortcut, action, path },
       } = matched;
       return { title, indices, icon, shortcut, payload: action, path };
     });
