@@ -76,11 +76,6 @@ export function initExtensions() {
     Dropcursor,
     Gapcursor,
     UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
-    // starterkit end
-
-    // TableKit.configure({ table: { resizable: true } }).extend({
-    //   renderMarkdown: renderTableToMarkdown,
-    // }),
 
     Table.configure({ resizable: true }).extend({
       renderMarkdown(node, helpers, ctx) {
@@ -119,54 +114,54 @@ export function initExtensions() {
   return extensions;
 }
 
-function renderTableToHtml(node: JSONContent, extensions: AnyExtension[]) {
-  if (!node || !node.content || node.content.length === 0) {
-    return "";
-  }
+export function renderTableToHtml(
+  node: JSONContent,
+  extensions: AnyExtension[]
+) {
+  if (!node) return "";
+
+  //
+  const rawHtml = generateHTML({ type: "doc", content: [node] }, extensions);
+
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = rawHtml;
+  const table = tempDiv.firstElementChild as HTMLTableElement;
+
+  if (!table) return "";
 
   const lines: string[] = [];
-
-  const parserDiv = document.createElement("div");
-
   lines.push("<table>");
 
-  node.content.forEach((rowNode) => {
+  Array.from(table.rows).forEach((row) => {
     lines.push("  <tr>");
 
-    if (rowNode.content) {
-      rowNode.content.forEach((cellNode) => {
-        const isHeader = cellNode.type === "tableHeader";
-        const tag = isHeader ? "th" : "td";
-
-        let cellHtml = "";
-
-        if (cellNode.content && cellNode.content.length > 0) {
-          // 1. Generate HTML string from JSON
-          const jsonDoc = {
-            type: "doc",
-            content: cellNode.content,
-          };
-          const fullHtml = generateHTML(jsonDoc, extensions);
-
-          // 2. Parse HTML using the browser DOM
-          parserDiv.innerHTML = fullHtml;
-
-          // 3. Check structure: If exactly 1 child and it is a <p>
-          if (
-            parserDiv.childElementCount === 1 &&
-            parserDiv.firstElementChild?.tagName === "P"
-          ) {
-            // Unwrap: use the inner HTML of the paragraph
-            cellHtml = parserDiv.firstElementChild.innerHTML;
-          } else {
-            // Keep original structure (multiple paragraphs, lists, etc.)
-            cellHtml = fullHtml;
-          }
+    Array.from(row.cells).forEach((cell) => {
+      if (
+        cell.childElementCount === 1 &&
+        cell.firstElementChild?.tagName === "P"
+      ) {
+        const p = cell.firstElementChild;
+        while (p.firstChild) {
+          cell.insertBefore(p.firstChild, p);
         }
+        p.remove();
+      }
 
-        lines.push(`    <${tag}>${cellHtml}</${tag}>`);
-      });
-    }
+      if (cell.getAttribute("colspan") === "1") {
+        cell.removeAttribute("colspan");
+      }
+      if (cell.getAttribute("rowspan") === "1") {
+        cell.removeAttribute("rowspan");
+      }
+
+      const colwidth = cell.getAttribute("data-colwidth");
+      if (colwidth) {
+        cell.style.width = `${colwidth}px`;
+        cell.removeAttribute("data-colwidth");
+      }
+
+      lines.push(`    ${cell.outerHTML}`);
+    });
 
     lines.push("  </tr>");
   });
@@ -179,23 +174,21 @@ function renderTableToHtml(node: JSONContent, extensions: AnyExtension[]) {
 export function shouldRenderAsHTML(tableNode: JSONContent): boolean {
   const rows = tableNode.content || [];
 
-  // 1. Must have rows
+  // 1. must have rows
   if (rows.length === 0) return false;
 
-  // 2. First row must be a header row (check first cell of first row)
+  // 2. first row must be a header row
   const firstRow = rows[0];
   const firstCell = firstRow.content?.[0];
   if (firstCell?.type !== "tableHeader") {
     return true; // Fallback to HTML if no header row
   }
 
-  // Iterate all rows to check for complex content or merged cells
   for (const row of rows) {
     if (!row.content) continue;
 
     for (const cell of row.content) {
-      // 3. Check for Merged Cells (Colspan/Rowspan)
-      // Tiptap stores these in attrs. If attrs doesn't exist, it's default (1).
+      // 3. check for Merged Cells (Colspan/Rowspan)
       const colspan = cell.attrs?.colSpan ?? 1;
       const rowspan = cell.attrs?.rowSpan ?? 1;
 
@@ -203,8 +196,7 @@ export function shouldRenderAsHTML(tableNode: JSONContent): boolean {
         return true; // Complex geometry -> HTML
       }
 
-      // 4. Check Content Complexity
-      // Must have exactly one child
+      // 4. check Content Complexity
       if (!cell.content || cell.content.length !== 1) {
         // Exception: Empty cells (length 0) are fine in Markdown
         if (cell.content && cell.content.length === 0) continue;
@@ -216,9 +208,12 @@ export function shouldRenderAsHTML(tableNode: JSONContent): boolean {
       if (child.type !== "paragraph") {
         return true; // Lists, headings, code blocks -> HTML
       }
+
+      // 6. Tiptap stores colwidth as an array of numbers (e.g. [150]) or null
+      if (cell.attrs?.colwidth && cell.attrs.colwidth.length > 0) {
+        return true; // Widths exist -> Must use HTML to preserve them
+      }
     }
   }
-
-  // If we passed all gauntlets, it's safe to render as a pretty Markdown table
   return false;
 }

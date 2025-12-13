@@ -43,6 +43,8 @@
   let componentPaletteContext = getComponentPaletteContext();
   let pathContext = getPathContext();
 
+  const defaultEditorFontSize = 16;
+  let editorFontSize: number = $state(defaultEditorFontSize);
   onMount(() => {
     registry.add({
       editNoteTitle: () => {
@@ -63,6 +65,17 @@
       },
       copyUrl: () => {
         navigator.clipboard.writeText(pathToUrl(path));
+      },
+      increaseEditorFontSize() {
+        editorFontSize = Math.round(editorFontSize * 1.25);
+      },
+
+      reduceEditorFontSize() {
+        editorFontSize = Math.round(editorFontSize * 0.8);
+      },
+
+      resetEditorFontSize() {
+        editorFontSize = defaultEditorFontSize;
       },
     });
   });
@@ -167,7 +180,11 @@
   let element: HTMLElement | null = $state(null);
 </script>
 
-<div class="top" bind:this={element}>
+<div
+  class="top"
+  bind:this={element}
+  style="--editor-font-size: {editorFontSize}px"
+>
   <div class="topBar" class:window={$platform == "window"}>
     <button class="titleBack" onclick={editTitle}>
       <Title {path} level={2}></Title>

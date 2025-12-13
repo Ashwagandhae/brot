@@ -30,6 +30,9 @@ export const actions = {
   setSpellCheck: [],
   unsetSpellCheck: [],
   openLink: [],
+  increaseEditorFontSize: [],
+  reduceEditorFontSize: [],
+  resetEditorFontSize: [],
 
   // editor
   unsetAllMarks: [],
