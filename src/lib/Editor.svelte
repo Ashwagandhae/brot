@@ -3,45 +3,12 @@
   import { onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
 
-  import { TableKit } from "@tiptap/extension-table";
   import { Editor } from "@tiptap/core";
-  import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
   import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
-  import Link from "@tiptap/extension-link";
-
-  import { all, createLowlight } from "lowlight";
-
-  import { IndentHandler } from "./editorTabExtension";
   import { ArgsFilter, type ActionRegistryManager } from "./actions";
   import { isTauri } from "./platform";
 
-  // nodes
-  import Blockquote from "@tiptap/extension-blockquote";
-  import { BulletList } from "@tiptap/extension-list";
-  import Document from "@tiptap/extension-document";
-  import HardBreak from "@tiptap/extension-hard-break";
-  import Heading from "@tiptap/extension-heading";
-  import Mathematics from "@tiptap/extension-mathematics";
-  import { ListItem } from "@tiptap/extension-list";
-  import { OrderedList } from "@tiptap/extension-list";
-  import Paragraph from "@tiptap/extension-paragraph";
-  import Text from "@tiptap/extension-text";
-  import { Markdown } from "@tiptap/markdown";
-  import {
-    Details,
-    DetailsContent,
-    DetailsSummary,
-  } from "@tiptap/extension-details";
-  import Bold from "@tiptap/extension-bold";
-  import Code from "@tiptap/extension-code";
-  import Italic from "@tiptap/extension-italic";
-  import Strike from "@tiptap/extension-strike";
-  import Underline from "@tiptap/extension-underline";
-  // extensions
-  import { Dropcursor } from "@tiptap/extensions";
-  import { Gapcursor } from "@tiptap/extensions";
-  import { UndoRedo } from "@tiptap/extensions";
   import { addEditorActions } from "./editorAction";
   import {
     parseLangFromString,
@@ -54,6 +21,7 @@
   import TextChecker from "./TextChecker.svelte";
   import { withProps } from "./componentProps";
   import LatexOutputDisplay from "./LatexOutputDisplay.svelte";
+  import { initExtensions } from "./editorInit";
 
   let {
     initContent,
@@ -75,7 +43,6 @@
 
   let editor: Editor | null = null;
   let element: HTMLElement;
-  let lowlight = createLowlight(all);
 
   let componentPaletteContext = getComponentPaletteContext();
 
@@ -290,59 +257,7 @@
   };
 
   onMount(() => {
-    let extensions = [
-      // starterkit:
-      HardBreak.extend({ addKeyboardShortcuts: () => ({}) }),
-      Blockquote.extend({ addKeyboardShortcuts: () => ({}) }),
-      BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
-      Document,
-      Heading.extend({ addKeyboardShortcuts: () => ({}) }),
-      ListItem,
-      OrderedList,
-      Paragraph.extend({ addKeyboardShortcuts: () => ({}) }),
-      Text,
-      Bold.extend({
-        addKeyboardShortcuts: () => ({}),
-        addInputRules: () => [],
-        addPasteRules: () => [],
-      }),
-      Code.extend({ addKeyboardShortcuts: () => ({}) }),
-      Italic.extend({
-        addKeyboardShortcuts: () => ({}),
-        addInputRules: () => [],
-        addPasteRules: () => [],
-      }),
-      Strike.extend({ addKeyboardShortcuts: () => ({}) }),
-      Underline.extend({ addKeyboardShortcuts: () => ({}) }),
-      Dropcursor,
-      Gapcursor,
-      UndoRedo.extend({ addKeyboardShortcuts: () => ({}) }),
-      // starterkit end
-
-      TableKit.configure({ table: { resizable: true } }),
-      CodeBlockLowlight.configure({
-        lowlight,
-        defaultLanguage: "plaintext",
-      }).extend({ addKeyboardShortcuts: () => ({}) }),
-      Link.configure({
-        openOnClick: !isTauri(),
-        autolink: true,
-        defaultProtocol: "https",
-        protocols: ["http", "https"],
-      }),
-      IndentHandler,
-      Details.configure({
-        persist: true,
-        HTMLAttributes: {
-          class: "details",
-        },
-      }),
-      DetailsSummary,
-      DetailsContent,
-      Markdown,
-      Mathematics,
-    ];
-
+    let extensions = initExtensions();
     editor = new Editor({
       element: element,
       extensions,
@@ -367,7 +282,7 @@
 
   function getSelectionNode(editor: Editor) {
     const { state } = editor;
-    const { selection, doc, schema } = state;
+    const { selection, doc } = state;
 
     if (selection.empty) {
       return null;

@@ -2,7 +2,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
 
-  import EditorTipTap from "./EditorTipTap.svelte";
+  import Editor from "./Editor.svelte";
   import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";
   import Title from "./Title.svelte";
@@ -194,7 +194,7 @@
       {#if note == null || initContent == null}
         <p>no note found</p>
       {:else}
-        <EditorTipTap
+        <Editor
           {initContent}
           bind:getContent
           bind:setContent
@@ -202,7 +202,7 @@
           {onfocus}
           onupdate={handleUpdate}
           onselectionchange={handleSelectionChange}
-        ></EditorTipTap>
+        ></Editor>
       {/if}
     </div>
   {/if}
