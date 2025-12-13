@@ -12,7 +12,6 @@
 
   import { all, createLowlight } from "lowlight";
 
-  import "katex/dist/katex.min.css";
   import { IndentHandler } from "./editorTabExtension";
   import { ArgsFilter, type ActionRegistryManager } from "./actions";
   import { isTauri } from "./platform";
@@ -23,12 +22,12 @@
   import Document from "@tiptap/extension-document";
   import HardBreak from "@tiptap/extension-hard-break";
   import Heading from "@tiptap/extension-heading";
-  import HorizontalRule from "@tiptap/extension-horizontal-rule";
+  import Mathematics from "@tiptap/extension-mathematics";
   import { ListItem } from "@tiptap/extension-list";
   import { OrderedList } from "@tiptap/extension-list";
   import Paragraph from "@tiptap/extension-paragraph";
   import Text from "@tiptap/extension-text";
-  import { Markdown, MarkdownManager } from "@tiptap/markdown";
+  import { Markdown } from "@tiptap/markdown";
   import {
     Details,
     DetailsContent,
@@ -44,11 +43,17 @@
   import { Gapcursor } from "@tiptap/extensions";
   import { UndoRedo } from "@tiptap/extensions";
   import { addEditorActions } from "./editorAction";
-  import { parseLangFromString, parseUrlFromString } from "./parse";
+  import {
+    parseLangFromString,
+    parseLatexFromString,
+    parseUrlFromString,
+    type Latex,
+  } from "./parse";
   import { getComponentPaletteContext } from "./componentPalette";
   import CheckerEdit from "./CheckerEdit.svelte";
   import TextChecker from "./TextChecker.svelte";
   import { withProps } from "./componentProps";
+  import LatexOutputDisplay from "./LatexOutputDisplay.svelte";
 
   let {
     initContent,
@@ -117,13 +122,11 @@
               checker: withProps(TextChecker<string>, {}),
               init: editor.getAttributes("codeBlock").language,
               setVal: (language: string) => {
-                if (language != null) {
-                  editor
-                    .chain()
-                    .focus()
-                    .updateAttributes("codeBlock", { language })
-                    .run();
-                }
+                editor
+                  .chain()
+                  .focus()
+                  .updateAttributes("codeBlock", { language })
+                  .run();
               },
               toVal: parseLangFromString,
             })
@@ -145,11 +148,48 @@
             newTab?.focus();
           }
         },
+        editInlineMath: () => {
+          componentPaletteContext()(
+            withProps(CheckerEdit<Latex, string>, {
+              checker: withProps(TextChecker<Latex>, {}),
+              init: editor.getAttributes("inlineMath").latex,
+              setVal: (latex: Latex) => {
+                editor
+                  .chain()
+                  .focus()
+                  .updateInlineMath({ latex: latex.str })
+                  .run();
+              },
+              outputDisplay: withProps(LatexOutputDisplay, {}),
+              toVal: parseLatexFromString,
+            })
+          );
+        },
+        editBlockMath: () => {
+          componentPaletteContext()(
+            withProps(CheckerEdit<Latex, string>, {
+              checker: withProps(TextChecker<Latex>, {}),
+              init: editor.getAttributes("blockMath").latex,
+              setVal: (latex: Latex) => {
+                editor
+                  .chain()
+                  .focus()
+                  .updateBlockMath({ latex: latex.str })
+                  .run();
+              },
+              outputDisplay: withProps(LatexOutputDisplay, {}),
+              toVal: parseLatexFromString,
+            })
+          );
+        },
       },
       {
         editLink: () => ArgsFilter.fromBool(editor.isActive("link")),
         editCodeBlockLang: () =>
           ArgsFilter.fromBool(editor.isActive("codeBlock")),
+        editInlineMath: () =>
+          ArgsFilter.fromBool(editor.isActive("inlineMath")),
+        editBlockMath: () => ArgsFilter.fromBool(editor.isActive("blockMath")),
       }
     );
 
@@ -199,7 +239,6 @@
         chain.setHeading({ level: level ?? 1 }).run(),
       toggleHeading: (level) => (chain) =>
         chain.toggleHeading({ level: level ?? 1 }).run(),
-      setHorizontalRule: () => (chain) => chain.setHorizontalRule().run(),
       // paragraph
       setParagraph: () => (chain) => chain.setParagraph().run(),
       // bold
@@ -231,6 +270,11 @@
       // codeblock
       setCodeBlock: () => (chain) => chain.setCodeBlock().run(),
       toggleCodeBlock: () => (chain) => chain.toggleCodeBlock().run(),
+      // math
+      insertInlineMath: (latex?: Latex) => (chain) =>
+        chain.insertInlineMath({ latex: latex?.str ?? "1 + 1" }).run(),
+      insertBlockMath: (latex?: Latex) => (chain) =>
+        chain.insertBlockMath({ latex: latex?.str ?? "1 + 1" }).run(),
     });
   }
 
@@ -253,21 +297,20 @@
       BulletList.extend({ addKeyboardShortcuts: () => ({}) }),
       Document,
       Heading.extend({ addKeyboardShortcuts: () => ({}) }),
-      HorizontalRule,
       ListItem,
       OrderedList,
       Paragraph.extend({ addKeyboardShortcuts: () => ({}) }),
       Text,
       Bold.extend({
         addKeyboardShortcuts: () => ({}),
-        addInputRules: () => ({}),
-        addPasteRules: () => ({}),
+        addInputRules: () => [],
+        addPasteRules: () => [],
       }),
       Code.extend({ addKeyboardShortcuts: () => ({}) }),
       Italic.extend({
         addKeyboardShortcuts: () => ({}),
-        addInputRules: () => ({}),
-        addPasteRules: () => ({}),
+        addInputRules: () => [],
+        addPasteRules: () => [],
       }),
       Strike.extend({ addKeyboardShortcuts: () => ({}) }),
       Underline.extend({ addKeyboardShortcuts: () => ({}) }),
@@ -297,6 +340,7 @@
       DetailsSummary,
       DetailsContent,
       Markdown,
+      Mathematics,
     ];
 
     editor = new Editor({

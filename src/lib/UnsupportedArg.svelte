@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends ArgType">
-  import { type ArgType, type ArgTypesMap } from "./actions";
+  import { type ArgType } from "./actions";
+  import type { ArgTypesMap } from "./arg";
   import PaletteOutput from "./PaletteOutput.svelte";
 
   let {

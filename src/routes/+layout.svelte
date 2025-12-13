@@ -2,6 +2,7 @@
   import "@fontsource-variable/atkinson-hyperlegible-next";
   import "@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css";
   import "@fontsource-variable/jetbrains-mono";
+  import "katex/dist/katex.min.css";
 
   import { errorMessage } from "$lib/error";
   import {
@@ -28,10 +29,9 @@
   } from "$lib/viewState";
   import WindowButtons from "$lib/WindowButtons.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onDestroy, onMount, type Snippet } from "svelte";
+  import { onDestroy, onMount } from "svelte";
   import { writable, type Writable } from "svelte/store";
   import type { Locater } from "../../src-tauri/bindings/Locater";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import {
@@ -113,6 +113,10 @@
     },
     historyForward: () => {
       history.forward();
+    },
+
+    refreshTagConfigs: async () => {
+      tagConfigs = await msg("getTagConfigs");
     },
   });
 

@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import Icon from "./Icon.svelte";
 
   let { selected, children }: { selected: boolean; children: Snippet } =
     $props();

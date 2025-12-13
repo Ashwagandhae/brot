@@ -1,4 +1,3 @@
-import type { PaletteId } from "../../src-tauri/bindings/PaletteId";
 import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
 import {
@@ -6,20 +5,13 @@ import {
   type ActionRegistryManager,
   type ActionsKey,
   type ArgType,
-  type ArgTypesMap,
   type ParsedPartialAction,
 } from "./actions";
 import { msg } from "./message";
-import TextChecker from "./TextChecker.svelte";
-import { withProps, type WithProps } from "./componentProps";
-import {
-  parseLangFromString,
-  parseNumberFromString,
-  parseUrlFromString,
-} from "./parse";
-import UnsupportedArg from "./UnsupportedArg.svelte";
-import EnumChecker from "./EnumChecker.svelte";
+import { type WithProps } from "./componentProps";
 import type { SearcherId } from "../../src-tauri/bindings/SearcherId";
+import { type ArgTypesMap } from "./arg";
+import { argPaletteMap } from "./argPaletteMap";
 
 export interface CommandProvider<T> {
   search: (
@@ -110,7 +102,6 @@ class PaletteCommandProvider implements CommandProvider<PartialAction> {
     if (res == null) {
       return [];
     }
-    console.log("got here", res);
     return res.map((matched) => {
       let {
         indices,
@@ -125,50 +116,6 @@ class PaletteCommandProvider implements CommandProvider<PartialAction> {
     await msg("deletePalette", { id: this.id });
   }
 }
-
-type ArgPaletteMap = {
-  [K in keyof ArgTypesMap]: WithProps<
-    { onfinish: (arg: ArgTypesMap[K] | null) => void },
-    "onfinish"
-  >;
-};
-
-const argPaletteMap: ArgPaletteMap = {
-  url: withProps(TextChecker<URL>, {
-    toVal: parseUrlFromString,
-  }),
-  boolean: withProps(EnumChecker<boolean>, {
-    choices: [
-      { title: "true", payload: true },
-      { title: "false", payload: false },
-    ],
-  }),
-  number: withProps(TextChecker<number>, {
-    toVal: parseNumberFromString,
-  }),
-  insertion: withProps(EnumChecker<"above" | "below">, {
-    choices: [
-      { title: "above", payload: "above" },
-      { title: "below", payload: "below" },
-    ],
-  }),
-  palette: withProps(EnumChecker<string>, {
-    choices: Object.keys(actions).map((key) => ({ title: key, payload: key })),
-  }),
-  level: withProps(EnumChecker<1 | 2 | 3 | 4 | 5 | 6>, {
-    choices: [
-      { title: "1", payload: 1 },
-      { title: "2", payload: 2 },
-      { title: "3", payload: 3 },
-      { title: "4", payload: 4 },
-      { title: "5", payload: 5 },
-      { title: "6", payload: 6 },
-    ],
-  }),
-  locater: withProps(UnsupportedArg<"locater">, { argType: "locater" }),
-  notePath: withProps(UnsupportedArg<"notePath">, { argType: "notePath" }),
-  lang: withProps(TextChecker<string>, { toVal: parseLangFromString }),
-};
 
 export function paletteForArg<T extends ArgType>(
   argType: T

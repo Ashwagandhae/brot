@@ -25,11 +25,40 @@
   padding-left: 1.5em;
 }
 
+/* ordered list */
+.tiptap ol {
+  list-style-type: decimal;
+}
+
+.tiptap ol ol {
+  list-style-type: lower-alpha;
+}
+
+.tiptap ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.tiptap ol ol ol ol {
+  list-style-type: upper-alpha;
+}
+
+.tiptap ol ol ol ol ol {
+  list-style-type: upper-roman;
+}
+
+.tiptap ol ol ol ol ol ol {
+  list-style-type: decimal;
+}
+/* link */
+.tiptap a {
+  color: oklch(0.8 calc(var(--text-chroma) * 4) var(--back-hue-front));
+}
+
 /* code block */
 .tiptap code {
   font-family: "JetBrains Mono Variable", monospace;
   font-feature-settings: "calt" 1, "liga" 1;
-  background-color: var(--back-1);
+  background-color: var(--transparent-back);
   font-size: 0.85em;
   border-radius: 0.4em;
   padding: 0.2em 0.3em;
@@ -37,7 +66,7 @@
 }
 
 .tiptap pre {
-  background: var(--back-1);
+  background: var(--transparent-back);
   border-radius: 0.5em;
   color: var(--white);
   font-family: "JetBrains Mono Variable", monospace;
@@ -92,13 +121,13 @@
 }
 
 .tiptap table th {
-  background-color: var(--back-1);
+  background-color: var(--transparent-back);
   font-weight: bold;
   text-align: left;
 }
 
 .tiptap table .selectedCell {
-  background: var(--back-2);
+  background: var(--transparent-back-1);
 }
 
 .tiptap table .column-resize-handle {
@@ -171,6 +200,17 @@
 
 .tiptap .details .details {
   margin: var(--margin) 0;
+}
+
+/* math */
+/* .tiptap .tiptap-mathematics-render[data-type="block-math"] {
+} */
+
+/* selected node */
+.tiptap .ProseMirror-selectednode {
+  outline: 1px solid var(--text);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 /*

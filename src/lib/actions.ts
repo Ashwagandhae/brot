@@ -1,9 +1,8 @@
 import { getContext, setContext, type Component, type Snippet } from "svelte";
-import type { Locater } from "../../src-tauri/bindings/Locater";
 import type { Editor } from "@tiptap/core";
 import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
 import type { PartialActionFilter } from "../../src-tauri/bindings/PartialActionFilter";
-import { parseUrlFromString } from "./parse";
+import { parsers, type ArgTypesMap } from "./arg";
 
 export const actions = {
   openPalette: ["palette"],
@@ -16,6 +15,7 @@ export const actions = {
   saveWindowState: [],
   refresh: [],
   refreshPage: [],
+  refreshTagConfigs: [],
   toggleFloating: [],
   focusScrollPinnedNote: ["number"],
   focusScrollNote: [],
@@ -69,8 +69,6 @@ export const actions = {
   // heading
   setHeading: ["level"],
   toggleHeading: ["level"],
-  // horizontal rule
-  setHorizontalRule: [],
   // paragraph
   setParagraph: [],
   // bold
@@ -103,6 +101,11 @@ export const actions = {
   setCodeBlock: [],
   toggleCodeBlock: [],
   editCodeBlockLang: [],
+  // math
+  insertInlineMath: ["latex"],
+  editInlineMath: [],
+  insertBlockMath: ["latex"],
+  editBlockMath: [],
 } as const;
 
 export type ActionRegistry = BuildActions & {
@@ -167,17 +170,6 @@ export class ActionRegistryManager {
   }
 }
 
-export type ArgTypesMap = {
-  locater: Locater;
-  notePath: string;
-  insertion: "above" | "below";
-  boolean: boolean;
-  palette: string;
-  number: number;
-  url: URL;
-  level: 1 | 2 | 3 | 4 | 5 | 6;
-  lang: string;
-};
 export type ArgType = keyof ArgTypesMap;
 
 export type BuildRegistry<
@@ -242,29 +234,6 @@ export function parsePartialAction(action: PartialAction): ParsedPartialAction {
     ),
   } as any;
 }
-
-function verifyEnum<T extends string>(val: string, options: T[]): T;
-function verifyEnum<T extends number>(val: number, options: T[]): T;
-function verifyEnum<T extends string | number>(val: T, options: T[]): T {
-  if (options.includes(val)) {
-    return val;
-  }
-  throw new Error(`Failed to verify value ${val}`);
-}
-
-const parsers: {
-  [K in keyof ArgTypesMap]: (val: string) => ArgTypesMap[K];
-} = {
-  notePath: (val) => val,
-  insertion: (val) => verifyEnum(val, ["above", "below"]),
-  boolean: (val) => val === "true",
-  palette: (val) => val,
-  locater: (val) => val as Locater,
-  number: (val) => Number(val),
-  url: (val) => new URL(val),
-  level: (val) => verifyEnum(Number(val), [1, 2, 3, 4, 5, 6]),
-  lang: (val) => val,
-};
 
 export function parseArgType<T extends keyof ArgTypesMap>(
   type: T,

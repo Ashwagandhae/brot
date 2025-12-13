@@ -3,16 +3,15 @@
   import { page } from "$app/state";
   import NoteView from "$lib/NoteView.svelte";
   import ScrollPadding from "$lib/ScrollPadding.svelte";
-  import WindowButtons from "$lib/WindowButtons.svelte";
   import {
     getActionRegistryContext,
     ArgsFilter,
     ActionRegistryManager,
   } from "$lib/actions";
 
-  import { setPathContext } from "$lib/path";
+  import { getPathHues, setCssVarsFromHues, setPathContext } from "$lib/path";
+  import { getTagConfigsContext } from "$lib/tagConfig";
   import { getViewStateContext } from "$lib/viewState";
-  import { onMount } from "svelte";
 
   let viewState = getViewStateContext();
 
@@ -43,6 +42,11 @@
     setPath: (_, to) => {
       goto("/note?p=" + to);
     },
+  });
+
+  let tagConfigs = getTagConfigsContext();
+  $effect(() => {
+    setCssVarsFromHues(getPathHues(path, tagConfigs()), document.body);
   });
 
   let refreshKey = $state(false);

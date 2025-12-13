@@ -1,6 +1,6 @@
 <script lang="ts">
   import BoldChars from "./BoldChars.svelte";
-  import type { Range, TagPartNode } from "./path";
+  import { getPartConfigKeys, type Range, type TagPartNode } from "./path";
   import { getTagConfigsContext } from "./tagConfig";
 
   let {
@@ -8,48 +8,63 @@
     range,
     startPadding,
     indices,
+    level,
   }: {
     parts: TagPartNode[];
     range: Range;
     startPadding: number;
     indices: number[] | undefined;
+    level: number;
   } = $props();
 
   let tagConfigs = getTagConfigsContext();
 
-  let partKeys = $derived.by(() => {
-    let curr = "";
-    let res = [];
-    for (let part of parts) {
-      curr += part.content;
-      res.push(curr);
-      curr += "--";
+  let partConfigs = $derived(
+    getPartConfigKeys(parts).map((x) => tagConfigs()[x])
+  );
+
+  let partColors = $derived.by(() => {
+    let hues: (number | undefined)[] = [];
+    for (let config of partConfigs) {
+      hues.push(config?.hue ?? hues.at(-1)); // inherit parent's hue if don't have one
     }
-    return res;
+    return hues.map((hue) => {
+      if (hue == null) return { hue: 0, chroma: 0 };
+      return { hue, chroma: 0.085 };
+    });
   });
 
-  let partConfigs = $derived(partKeys.map((x) => tagConfigs()[x]));
-
-  let partHues = $derived(
-    partConfigs.map((config) => {
-      let hue = config?.hue;
-      if (hue == null) return { hue: 0, chroma: 0 };
-      return { hue, chroma: 0.2 };
-    })
-  );
+  function atLeastOneBold(
+    indices: number[] | undefined,
+    offset: number,
+    content: string
+  ): boolean {
+    if (indices == null) return false;
+    return (
+      indices.find((i) => i >= offset && i <= offset + content.length) != null
+    );
+  }
 </script>
 
-<span class="tag">
+<span class="tag" style="--lightness: var(--level-{level + 1})">
   {#each parts as part, i}
+    {@const offset =
+      range.from + startPadding + part.range.from + part.startPadding}
     <span
       class="tagPart"
-      style="--hue: {partHues[i].hue}; --chroma: {partHues[i].chroma}"
+      style="--hue: {partColors[i].hue}; --chroma: {partColors[i].chroma}"
     >
-      <BoldChars
-        text={part.content.replaceAll("-", " ")}
-        indices={indices ?? []}
-        offset={range.from + startPadding + part.range.from + part.startPadding}
-      ></BoldChars>
+      {#if partConfigs[i]?.abbreviation != null}
+        <span class:bold={atLeastOneBold(indices, offset, part.content)}>
+          {partConfigs[i].abbreviation}
+        </span>
+      {:else}
+        <BoldChars
+          text={part.content.replaceAll("-", " ")}
+          indices={indices ?? []}
+          {offset}
+        ></BoldChars>
+      {/if}
     </span>
   {/each}
 </span>
@@ -57,7 +72,8 @@
 <style>
   .tagPart {
     /* background: hsla(0, 0%, 100%, 0.15); */
-    background: oklch(0.5 var(--chroma) var(--hue) / 0.4);
+    /* --level: 0.3; */
+    background: oklch(var(--lightness) var(--chroma) var(--hue));
     padding: var(--padding-vertical) 2px;
     line-height: 1;
     display: flex;
@@ -66,6 +82,7 @@
     border-radius: var(--radius-small);
     white-space: nowrap;
   }
+
   .tagPart:first-child {
     border-radius: var(--radius-big) var(--radius-small) var(--radius-small)
       var(--radius-big);
@@ -87,5 +104,9 @@
     flex-direction: row;
     align-items: center;
     gap: 3px;
+  }
+
+  .bold {
+    font-weight: bold;
   }
 </style>

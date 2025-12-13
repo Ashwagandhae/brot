@@ -9,30 +9,32 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-  --text: hsl(0, 0%, 90%);
-  --text-strong: hsl(0, 0%, 100%);
-  --text-weak: hsl(0, 0%, 60%);
-  --back: hsl(0, 0%, 10%);
-  --back-1: hsl(0, 0%, 15%);
-  --back-2: hsl(0, 0%, 20%);
-  --back-3: hsl(0, 0%, 25%);
-  --back-4: hsl(0, 0%, 30%);
-  --back-5: hsl(0, 0%, 35%);
 
-  --palette-back: hsl(0, 0%, 0%);
-  --palette-back-1: hsl(0, 0%, 8%);
-  --palette-back-2: hsl(0, 0%, 16%);
-  --palette-back-3: hsl(0, 0%, 24%);
-  --palette-back-4: hsl(0, 0%, 32%);
+  /* --level-0: 0;
+  --level-1: 0.15;
+  --level-2: 0.21;
+  --level-3: 0.26;
+  --level-4: 0.32;
+  --level-5: 0.37;
+  --level-6: 0.41;
+  --level-7: 0.46;
+  --level-8: 0.51;
+  --level-9: 0.55;
+  --level-10: 0.59;
+  --level-11: 0.64;
+  --level-12: 0.68; */
 
-  --line-color: hsl(0, 0%, 30%);
-  --line-color-1: hsl(0, 0%, 40%);
+  --level-0: 0.08;
+  --level-1: 0.19;
+  --level-2: 0.26;
+  --level-3: 0.35;
+  --level-4: 0.44;
+  --level-5: 0.53;
+  --level-6: 0.62;
+
   --line-width: 2px;
 
   --topbar-height: 28px;
-
-  color: var(--text);
-  background-color: var(--back);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -41,13 +43,47 @@
   -webkit-text-size-adjust: 100%;
 }
 
-a {
-  color: lightblue;
-}
-
 body {
   margin: 0;
   overflow: clip;
+
+  --back-hue-back: 0;
+  --back-hue-front: 0;
+  --back-color-chroma: 0.03;
+  --back-chroma: 0;
+
+  --back: oklch(var(--level-1) var(--back-chroma) var(--back-hue-back));
+  --back-1: oklch(var(--level-2) var(--back-chroma) var(--back-hue-back));
+  --back-2: oklch(var(--level-3) var(--back-chroma) var(--back-hue-back));
+  --back-3: oklch(var(--level-4) var(--back-chroma) var(--back-hue-back));
+  --back-4: oklch(var(--level-5) var(--back-chroma) var(--back-hue-back));
+  --back-5: oklch(var(--level-6) var(--back-chroma) var(--back-hue-back));
+
+  --line-color: oklch(var(--level-3) var(--back-chroma) var(--back-hue-back));
+  --line-color-1: oklch(var(--level-4) var(--back-chroma) var(--back-hue-back));
+
+  --palette-back: oklch(var(--level-0) 0 0);
+  --palette-back-1: oklch(var(--level-1) 0 0);
+  --palette-back-2: oklch(var(--level-2) 0 0);
+  --palette-back-3: oklch(var(--level-3) 0 0);
+  --palette-back-4: oklch(var(--level-4) 0 0);
+
+  --back-gradient: oklch(var(--level-1) 0 0);
+
+  --transparent-back: oklch(100% 0 0 / 0.08);
+  --transparent-back-1: oklch(100% 0 0 / 0.2);
+
+  --text-color-chroma: 0.03;
+  --text-chroma: 0;
+  --text: oklch(0.88 var(--text-chroma) var(--back-hue-front));
+  --text-strong: oklch(1 var(--text-chroma) var(--back-hue-front));
+  --text-weak: oklch(0.6 var(--text-chroma) var(--back-hue-front));
+
+  color: var(--text);
+
+  background: var(--back-gradient);
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 button {

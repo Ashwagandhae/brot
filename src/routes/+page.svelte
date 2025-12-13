@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import WindowButtons from "$lib/WindowButtons.svelte";
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
   import { msg } from "$lib/message";
@@ -9,10 +8,10 @@
     ActionRegistryManager,
     ArgsFilter,
     getActionRegistryContext,
-    type ActionRegistry,
   } from "$lib/actions";
-  import { setPathContext } from "$lib/path";
+  import { getPathHues, setCssVarsFromHues, setPathContext } from "$lib/path";
   import ScrollPadding from "$lib/ScrollPadding.svelte";
+  import { getTagConfigsContext } from "$lib/tagConfig";
 
   let viewState = getViewStateContext();
 
@@ -143,6 +142,13 @@
       if (untrack(() => !loaded)) return;
       await msg("updateSettings", { settings });
     })();
+  });
+
+  let tagConfigs = getTagConfigsContext();
+
+  $effect(() => {
+    let pathHues = focusPath ? getPathHues(focusPath, tagConfigs()) : [];
+    setCssVarsFromHues(pathHues, document.body);
   });
 </script>
 

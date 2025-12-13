@@ -15,7 +15,7 @@
   import TextChecker from "./TextChecker.svelte";
   import { parseTitleFromString } from "./parse";
   import TitleOutputDisplay from "./TitleOutputDisplay.svelte";
-  import { TagSuggestionProvider, type SuggestionProvider } from "./suggestion";
+  import { TagSuggestionProvider } from "./suggestion";
 
   let {
     path,
@@ -170,7 +170,7 @@
 <div class="top" bind:this={element}>
   <div class="topBar" class:window={$platform == "window"}>
     <button class="titleBack" onclick={editTitle}>
-      <Title {path}></Title>
+      <Title {path} level={2}></Title>
     </button>
     <div class="tools">
       {#if canMinimize}

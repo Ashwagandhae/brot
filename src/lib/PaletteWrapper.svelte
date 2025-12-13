@@ -47,7 +47,7 @@
     background: none;
   }
   .outer.hideBack {
-    background: var(--back);
+    background: oklch(var(--level-1) 0 0);
   }
   .outer.android {
     padding-top: 10vh;

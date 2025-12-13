@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import { platform } from "./platform";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import ActionButton from "./ActionButton.svelte";
   import { getViewStateContext } from "./viewState";
   import type { ParsedPartialAction } from "./actions";
@@ -77,10 +76,34 @@
     width: 100%;
     font-size: 16px;
     background: var(--back);
+    background-attachment: fixed;
+    background-size: cover;
     z-index: 1;
+    overflow: hidden;
   }
-  .android .content {
-    padding-bottom: 200px;
+
+  div.topbar::before {
+    content: "";
+    position: absolute; /* Fits to the container, not the window */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh; /* Matches the exact height of .my-container */
+
+    /* Your background styles */
+    background: var(--back-gradient);
+    background-size: cover;
+    background-position: center;
+
+    /* Send to back */
+    z-index: -1;
+
+    /* Performance optimization */
+    will-change: transform;
+  }
+
+  .android .topbar {
+    height: calc(20px + var(--topbar-height));
   }
 
   .navButtons {
@@ -88,6 +111,7 @@
     bottom: 0px;
     flex-direction: row;
     background: var(--back-1);
+
     width: 100%;
     height: 64px;
     display: flex;

@@ -5,4 +5,4 @@
   let path = $derived(val.replaceAll(" ", "_"));
 </script>
 
-<Title {path}></Title>
+<Title {path} level={3}></Title>

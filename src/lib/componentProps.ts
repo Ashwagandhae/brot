@@ -27,6 +27,15 @@ export function withProps<
 >(
   Component: T,
   props: Omit<ComponentProps<T>, OmitKeys>
+): WithProps<Props, OmitKeys>;
+
+export function withProps<
+  Props extends Record<string, any>,
+  OmitKeys extends keyof Props,
+  T extends Component<Props>
+>(
+  Component: T,
+  props: Omit<ComponentProps<T>, OmitKeys>
 ): WithProps<Props, OmitKeys> {
   return {
     Component,

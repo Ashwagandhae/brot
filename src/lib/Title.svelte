@@ -2,9 +2,12 @@
   import BoldChars from "./BoldChars.svelte";
   import { pathToTitleNodes } from "./path";
   import Tag from "./Tag.svelte";
-  import { getTagConfigsContext } from "./tagConfig";
 
-  let { path, indices }: { path: string; indices?: number[] } = $props();
+  let {
+    path,
+    indices,
+    level,
+  }: { path: string; indices?: number[]; level: number } = $props();
 
   let nodes = $derived(pathToTitleNodes(path));
 </script>
@@ -25,6 +28,7 @@
         startPadding={node.startPadding}
         range={node.range}
         {indices}
+        {level}
       ></Tag>
     {/if}
   {/each}

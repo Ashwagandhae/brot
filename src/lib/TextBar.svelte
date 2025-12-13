@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
   import type { Suggestion, SuggestionProvider } from "./suggestion";
-  import BoldChars from "./BoldChars.svelte";
   import Title from "./Title.svelte";
 
   let {
@@ -161,8 +160,12 @@
       <div class="suggestions">
         {#if showSuggestions}
           {#each suggestions as suggestion, index}
-            <div class="suggestion" class:selected={selectedIndex == index}>
-              <Title path={suggestion.display} indices={suggestion.indices}
+            {@const selected = selectedIndex == index}
+            <div class="suggestion" class:selected>
+              <Title
+                path={suggestion.display}
+                indices={suggestion.indices}
+                level={selected ? 5 : 4}
               ></Title>
             </div>
           {/each}

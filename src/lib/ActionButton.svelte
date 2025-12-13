@@ -29,6 +29,8 @@
   }
   button.selected {
     background: var(--back-3);
+    background-attachment: fixed;
+    background-size: cover;
   }
   .icon {
     width: 24px;

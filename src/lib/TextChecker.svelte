@@ -1,5 +1,4 @@
 <script lang="ts" generics="T">
-  import { stringToDom } from "htmlarkdown";
   import TextBar from "./TextBar.svelte";
   import type { ParseResult } from "./parse";
   import type { CheckerProps } from "./checker";
@@ -29,9 +28,7 @@
   oncancel={() => onfinish(null)}
   onaccept={() => {
     let res = toVal(text);
-    if (res.type == "err") {
-      onfinish(null);
-    } else {
+    if (res.type != "err") {
       onfinish(res.val);
     }
   }}

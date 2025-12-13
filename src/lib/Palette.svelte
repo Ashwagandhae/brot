@@ -1,13 +1,6 @@
 <script lang="ts">
-  import {
-    onMount,
-    tick,
-    type Component,
-    type ComponentProps,
-    type Snippet,
-  } from "svelte";
+  import { onMount, tick } from "svelte";
   import type { Actions } from "../../src-tauri/bindings/Actions";
-  import type { PartialAction } from "../../src-tauri/bindings/PartialAction";
   import {
     continuePartialAction,
     parsePartialAction,
@@ -27,7 +20,6 @@
   import { sendCompleteSearch } from "./platform";
   import { mapKeydownEventToAction } from "./shortcut";
   import type { OpenComponentPalette } from "./componentPalette";
-  import { setTagConfigsContext, type TagConfigs } from "./tagConfig";
 
   let {
     registry,
@@ -54,6 +46,7 @@
     refresh: async () => {
       await msg("refresh");
       actions = await msg("getActions");
+      registry.get("refreshTagConfigs")?.();
       registry.get("refreshPage")?.();
     },
     repeatLastAction: () => {

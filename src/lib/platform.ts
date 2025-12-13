@@ -8,6 +8,8 @@ let $platform: "tab" | "window" | "android" | null = null;
 export type Platform = "tab" | "window" | "android" | null;
 
 export async function getPlatformName() {
+  // $platform = "android";
+  // return $platform;
   if (!isTauri()) {
     $platform = "tab";
   } else if (await invoke("is_android", {})) {
