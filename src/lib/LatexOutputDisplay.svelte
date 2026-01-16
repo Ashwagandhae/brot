@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Latex } from "./parse";
+  import type { LatexRender } from "./parse";
 
-  let { val }: { val: Latex; message?: string } = $props();
+  let { val }: { val: LatexRender; message?: string } = $props();
 </script>
 
 {@html val.html}

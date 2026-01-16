@@ -79,7 +79,8 @@ body {
   --text-chroma: 0;
   --text: oklch(0.88 var(--text-chroma) var(--back-hue-front));
   --text-strong: oklch(1 var(--text-chroma) var(--back-hue-front));
-  --text-weak: oklch(0.6 var(--text-chroma) var(--back-hue-front));
+  --text-error: oklch(0.7 0.2 10);
+  --text-weak: oklch(0.7 var(--text-chroma) var(--back-hue-front));
 
   color: var(--text);
 

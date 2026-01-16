@@ -32,6 +32,7 @@ import {
   renderTableToMarkdown,
 } from "@tiptap/extension-table";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { createVirtualCursor } from "prosemirror-virtual-cursor";
 
 import Link from "@tiptap/extension-link";
 
@@ -40,11 +41,12 @@ import { isTauri } from "./platform";
 
 import { all, createLowlight } from "lowlight";
 import {
+  Extension,
   generateHTML,
   type AnyExtension,
   type JSONContent,
-  type MarkdownRendererHelpers,
 } from "@tiptap/core";
+import { MathBlock, MathInline } from "./MathExtension";
 
 let lowlight = createLowlight(all);
 
@@ -108,7 +110,14 @@ export function initExtensions() {
     DetailsSummary,
     DetailsContent,
     Markdown,
-    Mathematics,
+    // Mathematics,
+    MathBlock,
+    MathInline,
+    Extension.create({
+      addProseMirrorPlugins() {
+        return [createVirtualCursor()];
+      },
+    }),
   ];
 
   return extensions;

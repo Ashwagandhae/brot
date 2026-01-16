@@ -183,6 +183,7 @@
 <div
   class="top"
   bind:this={element}
+  class:focused
   style="--editor-font-size: {editorFontSize}px"
 >
   <div class="topBar" class:window={$platform == "window"}>
@@ -272,6 +273,10 @@
     flex: 1;
     overflow: scroll;
     background: none;
+    color: var(--text-weak);
+  }
+  .focused .titleBack {
+    color: var(--text);
   }
   .titleBack::-webkit-scrollbar {
     display: none; /* Safari & Chrome */

@@ -3,7 +3,9 @@
 .tiptap {
   margin: auto;
   --margin: 0.25em;
+  max-width: 50em;
   font-size: var(--editor-font-size);
+  overflow: visible;
 }
 
 /* paragraph spacing */
@@ -217,14 +219,65 @@
 }
 
 /* math */
-/* .tiptap .tiptap-mathematics-render[data-type="block-math"] {
-} */
 
-/* selected node */
+.tiptap .tiptap-mathematics-render[data-type="block-math"] {
+  text-align: center;
+}
+
 .tiptap .ProseMirror-selectednode {
   outline: 1px solid var(--text);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+.math {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  cursor: text;
+}
+.math-display {
+  display: flex;
+  text-align: center;
+  justify-content: center;
+}
+.math .display .error {
+  color: var(--text-error);
+}
+
+.math:not(.focused) .display {
+  display: inline;
+}
+
+.math:not(.focused) .guard,
+.math:not(.focused) .content {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.math.focused .display {
+  font-size: 0;
+  opacity: 0;
+}
+
+.math.focused .guard {
+  display: inline;
+  color: var(--text-weak);
+  font-family: monospace;
+  user-select: none;
+}
+
+.math.focused .content {
+  display: inline-block;
+  min-width: 0.1ch;
+  min-height: 1em;
+  outline: none;
+  font-family: "JetBrains Mono Variable", monospace;
+  color: var(--text);
+  vertical-align: bottom;
 }
 
 /*
@@ -322,4 +375,64 @@ hue-6-2: #e6c07b
 
 .hljs-link {
   text-decoration: underline;
+}
+
+/* caret */
+.ProseMirror.virtual-cursor-enabled {
+  /* Hide the native cursor */
+  caret-color: transparent;
+}
+
+.ProseMirror-focused {
+  /* Color of the virtual cursor */
+  --prosemirror-virtual-cursor-color: white;
+}
+
+.ProseMirror .prosemirror-virtual-cursor {
+  position: absolute;
+  cursor: text;
+  pointer-events: none;
+  transform: translate(-1px);
+  user-select: none;
+  -webkit-user-select: none;
+  border-left: 2px solid var(--prosemirror-virtual-cursor-color);
+}
+
+.ProseMirror .prosemirror-virtual-cursor-left {
+  width: 1ch;
+  transform: translate(calc(-1ch + -1px));
+  border-bottom: 2px solid var(--prosemirror-virtual-cursor-color);
+  border-right: 2px solid var(--prosemirror-virtual-cursor-color);
+  border-left: none;
+}
+
+.ProseMirror .prosemirror-virtual-cursor-right {
+  width: 1ch;
+  border-bottom: 2px solid var(--prosemirror-virtual-cursor-color);
+  border-left: 2px solid var(--prosemirror-virtual-cursor-color);
+  border-right: none;
+}
+
+.ProseMirror-focused .prosemirror-virtual-cursor-animation {
+  animation: prosemirror-virtual-cursor-blink 1s ease-in-out infinite;
+
+  animation-delay: 0.5s;
+}
+
+@keyframes prosemirror-virtual-cursor-blink {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }

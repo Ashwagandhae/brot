@@ -12,9 +12,9 @@
   import { addEditorActions } from "./editorAction";
   import {
     parseLangFromString,
-    parseLatexFromString,
+    parseLatexRenderFromString,
     parseUrlFromString,
-    type Latex,
+    type LatexRender,
   } from "./parse";
   import { getComponentPaletteContext } from "./componentPalette";
   import CheckerEdit from "./CheckerEdit.svelte";
@@ -115,48 +115,11 @@
             newTab?.focus();
           }
         },
-        editInlineMath: () => {
-          componentPaletteContext()(
-            withProps(CheckerEdit<Latex, string>, {
-              checker: withProps(TextChecker<Latex>, {}),
-              init: editor.getAttributes("inlineMath").latex,
-              setVal: (latex: Latex) => {
-                editor
-                  .chain()
-                  .focus()
-                  .updateInlineMath({ latex: latex.str })
-                  .run();
-              },
-              outputDisplay: withProps(LatexOutputDisplay, {}),
-              toVal: parseLatexFromString,
-            })
-          );
-        },
-        editBlockMath: () => {
-          componentPaletteContext()(
-            withProps(CheckerEdit<Latex, string>, {
-              checker: withProps(TextChecker<Latex>, {}),
-              init: editor.getAttributes("blockMath").latex,
-              setVal: (latex: Latex) => {
-                editor
-                  .chain()
-                  .focus()
-                  .updateBlockMath({ latex: latex.str })
-                  .run();
-              },
-              outputDisplay: withProps(LatexOutputDisplay, {}),
-              toVal: parseLatexFromString,
-            })
-          );
-        },
       },
       {
         editLink: () => ArgsFilter.fromBool(editor.isActive("link")),
         editCodeBlockLang: () =>
           ArgsFilter.fromBool(editor.isActive("codeBlock")),
-        editInlineMath: () =>
-          ArgsFilter.fromBool(editor.isActive("inlineMath")),
-        editBlockMath: () => ArgsFilter.fromBool(editor.isActive("blockMath")),
       }
     );
 
@@ -238,10 +201,6 @@
       setCodeBlock: () => (chain) => chain.setCodeBlock().run(),
       toggleCodeBlock: () => (chain) => chain.toggleCodeBlock().run(),
       // math
-      insertInlineMath: (latex?: Latex) => (chain) =>
-        chain.insertInlineMath({ latex: latex?.str ?? "1 + 1" }).run(),
-      insertBlockMath: (latex?: Latex) => (chain) =>
-        chain.insertBlockMath({ latex: latex?.str ?? "1 + 1" }).run(),
     });
   }
 

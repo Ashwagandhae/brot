@@ -5,11 +5,11 @@ import EnumChecker from "./EnumChecker.svelte";
 import LatexOutputDisplay from "./LatexOutputDisplay.svelte";
 import {
   parseLangFromString,
-  parseLatexFromString,
+  parseLatexRenderFromString,
   parseNumberFromString,
   parseUrlFromString,
   unwrapParse,
-  type Latex,
+  type LatexRender,
 } from "./parse";
 import TextChecker from "./TextChecker.svelte";
 import UnsupportedArg from "./UnsupportedArg.svelte";
@@ -24,7 +24,7 @@ export type ArgTypesMap = {
   url: URL;
   level: 1 | 2 | 3 | 4 | 5 | 6;
   lang: string;
-  latex: Latex;
+  latex: LatexRender;
 };
 
 function verifyEnum<T extends string>(val: string, options: T[]): T;
@@ -48,7 +48,7 @@ export const parsers: {
   number: unwrapParse(parseNumberFromString),
   url: unwrapParse(parseUrlFromString),
   lang: unwrapParse(parseLangFromString),
-  latex: unwrapParse(parseLatexFromString),
+  latex: unwrapParse(parseLatexRenderFromString),
 };
 
 export type ArgPaletteMap = {

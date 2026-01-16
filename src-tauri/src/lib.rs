@@ -89,16 +89,34 @@ pub fn run() {
                         "command+semicolon",
                         "command+quote",
                         "command+shift+semicolon",
+                        "command+control+alt+shift+semicolon",
+                        "command+control+alt+shift+quote",
                     ])
                     .expect("failed to set shortcuts")
                     .with_handler(|app, shortcut, event| {
                         let state = app.state::<AppState>();
                         if event.state == ShortcutState::Pressed {
-                            if shortcut.matches(Modifiers::SUPER, Code::Semicolon) {
+                            if shortcut.matches(Modifiers::SUPER, Code::Semicolon)
+                                || shortcut.matches(
+                                    Modifiers::SUPER
+                                        | Modifiers::CONTROL
+                                        | Modifiers::ALT
+                                        | Modifiers::SHIFT,
+                                    Code::Semicolon,
+                                )
+                            {
                                 use crate::window::toggle_pinned;
                                 toggle_pinned(app.clone(), state.clone());
                             }
-                            if shortcut.matches(Modifiers::SUPER, Code::Quote) {
+                            if shortcut.matches(Modifiers::SUPER, Code::Quote)
+                                || shortcut.matches(
+                                    Modifiers::SUPER
+                                        | Modifiers::CONTROL
+                                        | Modifiers::ALT
+                                        | Modifiers::SHIFT,
+                                    Code::Quote,
+                                )
+                            {
                                 open_search(app.clone(), state.clone());
                             }
                             if shortcut

@@ -1,4 +1,5 @@
 import * as katex from "katex";
+import { tex2typst, typst2tex } from "tex2typst";
 
 export type ParseResult<T> =
   | {
@@ -60,22 +61,41 @@ export function parseTitleFromString(str: string): ParseResult<string> {
   return parseOk(str, str);
 }
 
-export function parseLatexFromString(str: string): ParseResult<Latex> {
+export function parseLatexRenderFromString(
+  str: string,
+  block = false
+): ParseResult<LatexRender> {
   if (str.length == 0) return parseErr("empty string");
   try {
-    var html = katex.renderToString(str);
+    let html = katex.renderToString(str, { strict: false, displayMode: block });
     return parseOk({ html, str });
   } catch (e) {
-    if (e instanceof katex.ParseError) {
-      return parseErr("Error in LaTeX" + e.message);
-      // .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    } else {
-      return parseErrFromErr(e);
-    }
+    return parseErrFromErr(e);
   }
 }
 
-export type Latex = {
+export function parseLatexFromTypst(
+  latex: string,
+  block = false
+): ParseResult<string> {
+  try {
+    let typst = typst2tex(latex, { blockMathMode: block });
+    return parseOk(typst);
+  } catch (e) {
+    return parseErrFromErr(e);
+  }
+}
+
+export function parseTypstFromLatex(typst: string): ParseResult<string> {
+  try {
+    let latex = tex2typst(typst);
+    return parseOk(latex);
+  } catch (e) {
+    return parseErrFromErr(e);
+  }
+}
+
+export type LatexRender = {
   html: string;
   str: string;
 };

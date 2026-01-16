@@ -3,6 +3,7 @@
   import "@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css";
   import "@fontsource-variable/jetbrains-mono";
   import "katex/dist/katex.min.css";
+  import "@benrbray/prosemirror-math/dist/prosemirror-math.css";
 
   import { errorMessage } from "$lib/error";
   import {

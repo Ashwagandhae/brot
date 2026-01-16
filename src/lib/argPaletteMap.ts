@@ -5,10 +5,10 @@ import EnumChecker from "./EnumChecker.svelte";
 import LatexOutputDisplay from "./LatexOutputDisplay.svelte";
 import {
   parseLangFromString,
-  parseLatexFromString,
+  parseLatexRenderFromString,
   parseNumberFromString,
   parseUrlFromString,
-  type Latex,
+  type LatexRender,
 } from "./parse";
 import TextChecker from "./TextChecker.svelte";
 import UnsupportedArg from "./UnsupportedArg.svelte";
@@ -48,8 +48,8 @@ export const argPaletteMap: ArgPaletteMap = {
   locater: withProps(UnsupportedArg<"locater">, { argType: "locater" }),
   notePath: withProps(UnsupportedArg<"notePath">, { argType: "notePath" }),
   lang: withProps(TextChecker<string>, { toVal: parseLangFromString }),
-  latex: withProps(TextChecker<Latex>, {
-    toVal: parseLatexFromString,
+  latex: withProps(TextChecker<LatexRender>, {
+    toVal: parseLatexRenderFromString,
     outputDisplay: withProps(LatexOutputDisplay, {}),
   }),
 };

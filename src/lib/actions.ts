@@ -105,10 +105,6 @@ export const actions = {
   toggleCodeBlock: [],
   editCodeBlockLang: [],
   // math
-  insertInlineMath: ["latex"],
-  editInlineMath: [],
-  insertBlockMath: ["latex"],
-  editBlockMath: [],
 } as const;
 
 export type ActionRegistry = BuildActions & {
