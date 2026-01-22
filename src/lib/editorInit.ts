@@ -46,7 +46,7 @@ import {
   type AnyExtension,
   type JSONContent,
 } from "@tiptap/core";
-import { MathBlock, MathInline } from "./MathExtension";
+import { MathInline, MathBlock } from "./MathExtension";
 
 let lowlight = createLowlight(all);
 
@@ -111,8 +111,9 @@ export function initExtensions() {
     DetailsContent,
     Markdown,
     // Mathematics,
-    MathBlock,
+    // MathBlock,
     MathInline,
+    MathBlock,
     Extension.create({
       addProseMirrorPlugins() {
         return [createVirtualCursor()];
@@ -125,7 +126,7 @@ export function initExtensions() {
 
 export function renderTableToHtml(
   node: JSONContent,
-  extensions: AnyExtension[]
+  extensions: AnyExtension[],
 ) {
   if (!node) return "";
 

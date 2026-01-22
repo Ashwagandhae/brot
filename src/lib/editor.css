@@ -17,6 +17,10 @@
   line-height: 1.5;
 }
 
+.tiptap p {
+  /* white-space: normal; */
+}
+
 .tiptap :is(h1, h2, h3, h4, h5, h6) {
   line-height: 1.5;
   margin-top: var(--margin);
@@ -59,8 +63,10 @@
 
 /* code block */
 .tiptap code {
-  font-family: "JetBrains Mono Variable", monospace;
-  font-feature-settings: "calt" 1, "liga" 1;
+  font-family: var(--code-font);
+  font-feature-settings:
+    "calt" 1,
+    "liga" 1;
   background-color: var(--transparent-back);
   font-size: 0.85em;
   border-radius: 0.4em;
@@ -72,7 +78,7 @@
   background: var(--transparent-back);
   border-radius: 0.5em;
   color: var(--white);
-  font-family: "JetBrains Mono Variable", monospace;
+  font-family: var(--code-font);
   margin: var(--margin) 0;
   padding: 0.25em 0.3em;
   line-height: 1.4;
@@ -220,64 +226,53 @@
 
 /* math */
 
-.tiptap .tiptap-mathematics-render[data-type="block-math"] {
-  text-align: center;
-}
-
 .tiptap .ProseMirror-selectednode {
   outline: 1px solid var(--text);
   outline-offset: 2px;
   border-radius: 8px;
 }
 
-.math {
-  display: inline-flex;
-  align-items: baseline;
-  white-space: nowrap;
-  cursor: text;
-}
-.math-display {
-  display: flex;
-  text-align: center;
-  justify-content: center;
-}
-.math .display .error {
-  color: var(--text-error);
-}
-
-.math:not(.focused) .display {
-  display: inline;
-}
-
-.math:not(.focused) .guard,
-.math:not(.focused) .content {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
-.math.focused .display {
-  font-size: 0;
-  opacity: 0;
-}
-
-.math.focused .guard {
-  display: inline;
-  color: var(--text-weak);
-  font-family: monospace;
-  user-select: none;
-}
-
-.math.focused .content {
+.tiptap-mathematics-render {
   display: inline-block;
-  min-width: 0.1ch;
-  min-height: 1em;
-  outline: none;
-  font-family: "JetBrains Mono Variable", monospace;
+  position: relative;
+}
+.tiptap-mathematics-render.math-render-block {
+  width: 100%;
+  text-align: center;
+}
+
+.tiptap-mathematics-render .math-input {
+  display: none;
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  caret-color: auto;
+
+  background: var(--back-1);
   color: var(--text);
-  vertical-align: bottom;
+  border: none;
+  border-radius: 0.4em;
+  padding: 4px 4px;
+  font-family: var(--code-font);
+  font-size: calc(0.9 * var(--editor-font-size));
+  width: auto;
+  text-align: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.tiptap-mathematics-render .katex-display {
+  margin: 0;
+}
+
+.tiptap-mathematics-render.ProseMirror-selectednode .math-input {
+  display: block;
+}
+
+.tiptap-mathematics-render.math-error .math-preview {
+  color: var(--text-error);
 }
 
 /*
