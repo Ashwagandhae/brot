@@ -104,6 +104,7 @@ export const actions = {
   setCodeBlock: [],
   toggleCodeBlock: [],
   editCodeBlockLang: [],
+  runCodeBlock: [],
   // math
 } as const;
 
@@ -160,7 +161,7 @@ export class ActionRegistryManager {
     return this.override?.get(key) ?? this.registry[key];
   }
   getArgsFilter<K extends keyof DisabledRegistry>(
-    key: K
+    key: K,
   ): (() => ArgsFilter) | undefined {
     return this.override?.getArgsFilter(key) ?? this.disabled[key];
   }
@@ -173,7 +174,7 @@ export type ArgType = keyof ArgTypesMap;
 
 export type BuildRegistry<
   T extends Record<string, readonly string[]>,
-  U
+  U,
 > = Partial<
   Mutable<{
     [K in keyof T]: T[K] extends readonly []
@@ -184,7 +185,7 @@ export type BuildRegistry<
 
 export type BuildRegistryPartialArgs<
   T extends Record<string, readonly string[]>,
-  U
+  U,
 > = Partial<
   Mutable<{
     [K in keyof T]: T[K] extends readonly []
@@ -206,7 +207,7 @@ type Mutable<T> = {
 export async function continuePartialAction<T extends ActionsKey>(
   registry: ActionRegistryManager,
   action: ParsedPartialAction<T>,
-  requestNextArg: (argType: ArgType) => void
+  requestNextArg: (argType: ArgType) => void,
 ) {
   let key = action.key as keyof typeof actions;
   if (actions[key].length <= action.parsedArgs.length) {
@@ -229,14 +230,14 @@ export function parsePartialAction(action: PartialAction): ParsedPartialAction {
   return {
     key,
     parsedArgs: action.args.map((val, index) =>
-      parseArgType(actions[key][index], val)
+      parseArgType(actions[key][index], val),
     ),
   } as any;
 }
 
 export function parseArgType<T extends keyof ArgTypesMap>(
   type: T,
-  val: string
+  val: string,
 ): ArgTypesMap[T] {
   console.log("parsing arg of type: ", type);
   return parsers[type](val);

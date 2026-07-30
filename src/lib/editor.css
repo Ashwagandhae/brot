@@ -17,10 +17,6 @@
   line-height: 1.5;
 }
 
-.tiptap p {
-  /* white-space: normal; */
-}
-
 .tiptap :is(h1, h2, h3, h4, h5, h6) {
   line-height: 1.5;
   margin-top: var(--margin);
@@ -63,15 +59,26 @@
 
 /* code block */
 .tiptap code {
+  background-color: var(--transparent-back);
+  border-radius: 0.4em;
+  padding: 0.2em 0.3em;
+}
+.tiptap pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+.tiptap pre,
+code {
   font-family: var(--code-font);
   font-feature-settings:
     "calt" 1,
     "liga" 1;
-  background-color: var(--transparent-back);
-  font-size: 0.85em;
-  border-radius: 0.4em;
-  padding: 0.2em 0.3em;
-  tab-size: 2ch;
+  font-size: calc(0.85 * var(--editor-font-size));
+}
+
+.tiptap .code-output-node.is-error {
+  color: var(--text-error);
 }
 
 .tiptap pre {
@@ -81,12 +88,7 @@
   font-family: var(--code-font);
   margin: var(--margin) 0;
   padding: 0.25em 0.3em;
-  line-height: 1.4;
-}
-.tiptap pre code {
-  background: none;
-  color: inherit;
-  padding: 0;
+  tab-size: 2ch;
 }
 
 /* blockquote */

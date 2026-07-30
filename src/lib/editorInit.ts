@@ -47,6 +47,12 @@ import {
   type JSONContent,
 } from "@tiptap/core";
 import { MathInline, MathBlock } from "./MathExtension";
+import {
+  CodeOutput,
+  CodeSyncPlugin,
+  EnhancedCodeBlock,
+} from "./CodeSyncExtension";
+import { runCode } from "./runCode";
 
 let lowlight = createLowlight(all);
 
@@ -90,10 +96,15 @@ export function initExtensions() {
     TableCell,
     TableHeader,
     TableRow,
-    CodeBlockLowlight.configure({
+    CodeOutput,
+    EnhancedCodeBlock.configure({
       lowlight,
       defaultLanguage: "plaintext",
     }).extend({ addKeyboardShortcuts: () => ({}) }),
+    CodeSyncPlugin.configure({
+      debounceMs: 200,
+      runCode: runCode,
+    }),
     Link.configure({
       openOnClick: !isTauri(),
       autolink: true,

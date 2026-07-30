@@ -12,6 +12,7 @@ use crate::message::meta::TagConfig;
 use crate::message::note::update_path;
 use crate::message::palette::{create_palette, delete_palette, search_palette};
 use crate::message::palette_action::{Matched, PaletteAction};
+use crate::message::run_code::{run_python, CodeResult};
 use crate::message::searcher::SearcherId;
 use crate::message::settings::read_settings_file;
 use crate::message::suggester::{
@@ -28,6 +29,7 @@ pub mod meta;
 pub mod note;
 pub mod palette;
 pub mod palette_action;
+pub mod run_code;
 pub mod searcher;
 pub mod settings;
 pub mod suggester;
@@ -103,6 +105,9 @@ pub enum ClientMessage {
     GetActions,
     GetTagConfigs,
     Refresh,
+    RunCode {
+        code: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -129,6 +134,7 @@ pub enum ServerMessage {
     GetActions(Actions),
     GetTagConfigs(HashMap<String, TagConfig>),
     Refresh,
+    RunCode(CodeResult),
 }
 
 pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<ServerMessage> {
@@ -219,6 +225,7 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
         GetActions => Ok(ServerMessage::GetActions(
             read_actions(state, |a| a.clone()).await?,
         )),
+        RunCode { code } => Ok(ServerMessage::RunCode(run_python(&code))),
     }
 }
 

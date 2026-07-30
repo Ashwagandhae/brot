@@ -61,7 +61,7 @@
           let node = getSelectionNode(editor);
           if (node == null) return;
           navigator.clipboard.writeText(
-            editor.markdown!.renderNodeToMarkdown(node.toJSON())
+            editor.markdown!.renderNodeToMarkdown(node.toJSON()),
           );
         },
         editLink: () => {
@@ -80,7 +80,7 @@
                 }
               },
               toVal: parseUrlFromString,
-            })
+            }),
           );
         },
         editCodeBlockLang: () => {
@@ -96,7 +96,7 @@
                   .run();
               },
               toVal: parseLangFromString,
-            })
+            }),
           );
         },
         setSpellCheck: () => {
@@ -120,7 +120,7 @@
         editLink: () => ArgsFilter.fromBool(editor.isActive("link")),
         editCodeBlockLang: () =>
           ArgsFilter.fromBool(editor.isActive("codeBlock")),
-      }
+      },
     );
 
     addEditorActions(registry, editor, {
@@ -200,6 +200,7 @@
       // codeblock
       setCodeBlock: () => (chain) => chain.setCodeBlock().run(),
       toggleCodeBlock: () => (chain) => chain.toggleCodeBlock().run(),
+      runCodeBlock: () => (chain) => chain.runCodeBlock().run(),
       // math
     });
   }
