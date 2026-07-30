@@ -3,7 +3,7 @@ use rustpython_vm as vm;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use ts_rs::TS;
-use vm::{AsObject, Interpreter, Settings};
+use vm::{Interpreter, Settings};
 
 #[derive(Serialize, Deserialize, TS)]
 #[ts(export)]

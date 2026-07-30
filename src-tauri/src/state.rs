@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Result;
-use tauri::{path::BaseDirectory, App, AppHandle, Manager};
+use tauri::{App, AppHandle, Manager, path::BaseDirectory};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
@@ -11,10 +11,11 @@ use crate::{
         meta::MetaHolder,
         palette_action::PaletteAction,
         searcher::SearcherManager,
-        settings::{read_settings_file, Settings},
+        settings::{Settings, read_settings_file},
         suggester::Suggestion,
     },
     missed_events::EventManager,
+    previewer::Previewer,
 };
 
 #[derive(Debug, Clone)]
@@ -40,6 +41,7 @@ pub struct AppState {
     pub suggesters: Arc<RwLock<SearcherManager<Suggestion>>>,
     pub handle: AppHandle,
     pub event_manager: Arc<Mutex<EventManager>>,
+    pub previewer: Arc<Mutex<Previewer>>,
 }
 
 impl AppState {
@@ -63,6 +65,7 @@ impl AppState {
         )));
         let handle = app.handle().clone();
         let event_manager = Arc::new(Mutex::new(EventManager::new(app.handle().clone())));
+        let previewer = Arc::new(Mutex::new(Previewer::new()));
         Ok(Self {
             build_path,
             config_path,
@@ -76,6 +79,7 @@ impl AppState {
             suggesters,
             handle,
             event_manager,
+            previewer,
         })
     }
 }

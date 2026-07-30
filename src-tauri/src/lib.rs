@@ -16,6 +16,7 @@ use crate::message::ServerResult;
 
 pub mod message;
 pub mod missed_events;
+pub mod previewer;
 pub mod server;
 pub mod state;
 pub mod window_state;

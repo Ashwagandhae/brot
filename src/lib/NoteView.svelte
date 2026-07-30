@@ -2,7 +2,8 @@
   import { onDestroy, onMount, tick } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
 
-  import Editor from "./Editor.svelte";
+  import Editor from "./EditorTwo.svelte";
+  import { EditorSelection } from "@codemirror/state";
   import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";
   import Title from "./Title.svelte";
@@ -16,7 +17,6 @@
   import { parseTitleFromString } from "./parse";
   import TitleOutputDisplay from "./TitleOutputDisplay.svelte";
   import { TagSuggestionProvider } from "./suggestion";
-
   let {
     path,
     registry = $bindable(),
@@ -54,14 +54,19 @@
       toggleNoteMinimized: () => toggleMinimize(),
       saveNote: async () => {
         let content = getContent();
-        setContent(content);
+        let { format } = await import("@typstyle/typstyle-wasm-bundler");
+        let formattedContent = format(content, {});
+        formattedContent = formattedContent.trimEnd();
+        setContent(formattedContent);
         await saveNote();
         saved = true;
       },
       focusScrollNote: () => focusNote(true),
       focusNote: () => focusNote(false),
-      focusNoteEnd: () => {
-        registry.get("getEditor")?.().chain().focus("end").run();
+      focusNoteEnd: async () => {
+        const view = await registry.get("getEditor")?.();
+        if (view == null) return;
+        view.focus();
       },
       copyUrl: () => {
         navigator.clipboard.writeText(pathToUrl(path));
@@ -113,11 +118,13 @@
     saved = false;
   }
 
-  function handleSelectionChange() {
+  async function handleSelectionChange() {
     if (note == null) return;
-    let selection = registry.get("getEditor")?.().state.selection;
+    let editor = await registry.get("getEditor")?.();
+    if (editor == null) return;
+    let selection = editor.state.selection;
     if (selection == null) return;
-    note.meta.selection = [selection.from, selection.to];
+    note.meta.selection = [selection.main.from, selection.main.to];
   }
 
   function editTitle() {
@@ -138,19 +145,22 @@
         },
         toVal: parseTitleFromString,
         outputDisplay: withProps(TitleOutputDisplay, {}),
-      })
+      }),
     );
   }
 
-  function focusNote(scroll: boolean) {
-    console.log("focus note called");
+  async function focusNote(scroll: boolean) {
+    console.log("focusing note");
     let [from, to] = note?.meta.selection ?? [0, 0];
-    registry
-      .get("getEditor")?.()
-      ?.chain()
-      .focus(null, { scrollIntoView: false })
-      .setTextSelection({ from, to })
-      .run();
+    let editor = await registry.get("getEditor")?.();
+    if (editor != null) {
+      editor.focus();
+      editor.dispatch({
+        selection: EditorSelection.range(from, to),
+        scrollIntoView: true,
+      });
+    }
+
     if (scroll) {
       element?.scrollIntoView();
     }
@@ -158,14 +168,20 @@
 
   $effect(() => {
     if (!focused) {
-      registry.get("getEditor")?.().chain().blur().run();
+      (async () => {
+        let editor = await registry.get("getEditor")?.();
+        editor?.contentDOM.blur();
+      })();
     }
   });
 
   let lastMinimized = false;
   $effect(() => {
     if (!minimized && lastMinimized && focused) {
-      focusNote(false);
+      setTimeout(() => {
+        // need to set timeout because editorview is created async
+        focusNote(false);
+      }, 0);
     }
     lastMinimized = minimized;
   });
@@ -184,7 +200,7 @@
   class="top"
   bind:this={element}
   class:focused
-  style="--editor-font-size: {editorFontSize}px"
+  style="--font-size: {editorFontSize}px"
 >
   <div class="topBar" class:window={$platform == "window"}>
     <button class="titleBack" onclick={editTitle}>

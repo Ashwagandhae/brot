@@ -10,17 +10,11 @@
   import { isTauri } from "./platform";
 
   import { addEditorActions } from "./editorAction";
-  import {
-    parseLangFromString,
-    parseLatexRenderFromString,
-    parseUrlFromString,
-    type LatexRender,
-  } from "./parse";
+  import { parseLangFromString, parseUrlFromString } from "./parse";
   import { getComponentPaletteContext } from "./componentPalette";
   import CheckerEdit from "./CheckerEdit.svelte";
   import TextChecker from "./TextChecker.svelte";
   import { withProps } from "./componentProps";
-  import LatexOutputDisplay from "./LatexOutputDisplay.svelte";
   import { initExtensions } from "./editorInit";
 
   let {
@@ -49,7 +43,7 @@
   function initRegistry(editor: Editor) {
     registry.add(
       {
-        getEditor: () => editor,
+        // getEditor: () => editor,
         pasteWithoutFormatting: () => {
           if (isTauri()) {
             readText().then((val) => {

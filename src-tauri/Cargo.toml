@@ -3,7 +3,7 @@ name = "brot"
 version = "0.1.0"
 description = "A Tauri App"
 authors = ["you"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,7 +30,7 @@ tauri-plugin-http = "2"
 tokio = { version = "1.44.2", features = ["fs"] }
 actix-cors = "0.7.1"
 anyhow = "1.0.98"
-ts-rs = {version="10.1.0", features= ["no-serde-warnings"] }
+ts-rs = { version = "10.1.0", features = ["no-serde-warnings"] }
 tauri-plugin-dialog = "2"
 tauri-plugin-android-fs = "9.4.0"
 regex = "1.11.1"
@@ -43,10 +43,30 @@ itertools = "0.14.0"
 nucleo = "0.5.0"
 rustpython-vm = "0.4.0"
 rustpython-stdlib = "0.4.0"
+typst = "0.15.0"
+typst-html = "0.15.0"
+typst-library = "0.15.0"
+typst-svg = "0.15.0"
+comemo = "0.5.1"
+ecow = "0.3.0"
+
+[dependencies.typst-kit]
+version = "0.15.0"
+features = [
+  "bundle",
+  "embedded-fonts",
+  "scan-fonts",
+  "system-packages",
+  "universe-packages",
+  "datetime",
+  "emit-diagnostics",
+  "system-downloader",
+  "watcher",
+  "timer",
+]
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
 objc2-app-kit = "0.3.1"
 objc2 = "0.6.1"
 objc2-foundation = "0.3"
-

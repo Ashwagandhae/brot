@@ -103,7 +103,7 @@ pub fn toggle_pinned(app: AppHandle, state: State<'_, AppState>) {
                 focus_app_by_bundle_id(name);
             }
             pinned_window.set_always_on_top(false).unwrap();
-            std::thread::sleep(std::time::Duration::from_millis(20)); // need to wait to prevent glitch of behind windows popping over
+            std::thread::sleep(std::time::Duration::from_millis(50)); // need to wait to prevent glitch of behind windows popping over
             pinned_window.hide().unwrap();
         } else {
             pinned_window.show().unwrap();

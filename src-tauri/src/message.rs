@@ -4,20 +4,21 @@ use meta::{read_meta, write_meta};
 use note::Note;
 use note::{create_note, read_note, write_note};
 use serde::{Deserialize, Serialize};
-use settings::{write_settings, Settings};
+use settings::{Settings, write_settings};
 use ts_rs::TS;
 
-use crate::message::action::{read_actions, Actions, PartialActionFilter};
+use crate::message::action::{Actions, PartialActionFilter, read_actions};
 use crate::message::meta::TagConfig;
 use crate::message::note::update_path;
 use crate::message::palette::{create_palette, delete_palette, search_palette};
 use crate::message::palette_action::{Matched, PaletteAction};
-use crate::message::run_code::{run_python, CodeResult};
+use crate::message::run_code::{CodeResult, run_python};
 use crate::message::searcher::SearcherId;
 use crate::message::settings::read_settings_file;
 use crate::message::suggester::{
-    create_suggester, delete_suggester, search_suggester, SuggesterSource, Suggestion,
+    SuggesterSource, Suggestion, create_suggester, delete_suggester, search_suggester,
 };
+use crate::previewer::{PreviewerResult, SourceChange};
 use crate::state::AppState;
 
 use anyhow::Result;
@@ -108,6 +109,15 @@ pub enum ClientMessage {
     RunCode {
         code: String,
     },
+    #[serde(rename_all = "camelCase")]
+    PreviewerUpdateSource {
+        change: SourceChange,
+        editor_view_id: String,
+    },
+    #[serde(rename_all = "camelCase")]
+    PreviewerCloseEditorView {
+        editor_view_id: String,
+    },
 }
 
 #[derive(Serialize, Deserialize, TS)]
@@ -135,6 +145,8 @@ pub enum ServerMessage {
     GetTagConfigs(HashMap<String, TagConfig>),
     Refresh,
     RunCode(CodeResult),
+    PreviewerUpdateSource(PreviewerResult),
+    PreviewerCloseEditorView,
 }
 
 pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<ServerMessage> {
@@ -226,6 +238,19 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             read_actions(state, |a| a.clone()).await?,
         )),
         RunCode { code } => Ok(ServerMessage::RunCode(run_python(&code))),
+        PreviewerUpdateSource {
+            change,
+            editor_view_id,
+        } => {
+            let mut previewer = state.previewer.lock().await;
+            let res = previewer.update_source(change, editor_view_id);
+            Ok(ServerMessage::PreviewerUpdateSource(res))
+        }
+        PreviewerCloseEditorView { editor_view_id } => {
+            let mut previewer = state.previewer.lock().await;
+            previewer.close_editor_view(editor_view_id);
+            Ok(ServerMessage::PreviewerCloseEditorView)
+        }
     }
 }
 

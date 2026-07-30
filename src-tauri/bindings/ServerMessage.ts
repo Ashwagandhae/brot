@@ -4,6 +4,7 @@ import type { CodeResult } from "./CodeResult";
 import type { Matched } from "./Matched";
 import type { Note } from "./Note";
 import type { PaletteAction } from "./PaletteAction";
+import type { PreviewerResult } from "./PreviewerResult";
 import type { SearcherId } from "./SearcherId";
 import type { Settings } from "./Settings";
 import type { Suggestion } from "./Suggestion";
@@ -12,4 +13,4 @@ import type { TagConfig } from "./TagConfig";
 /**
  * ServerMessage's enum variant names must match ClientMessage's enum variant names
  */
-export type ServerMessage = { "type": "getSettings", "data": Settings } | { "type": "updateSettings" } | { "type": "getNote", "data": Note | null } | { "type": "updateNote" } | { "type": "updatePath", "data": string | null } | { "type": "createNote", "data": string | null } | { "type": "note", "data": Note | null } | { "type": "createPalette", "data": SearcherId } | { "type": "searchPalette", "data": Array<Matched<PaletteAction>> | null } | { "type": "deletePalette" } | { "type": "createSuggester", "data": SearcherId } | { "type": "searchSuggester", "data": Array<Matched<Suggestion>> | null } | { "type": "deleteSuggester" } | { "type": "addPinned" } | { "type": "removePinned" } | { "type": "getPinned", "data": Array<string> } | { "type": "getActions", "data": Actions } | { "type": "getTagConfigs", "data": { [key in string]?: TagConfig } } | { "type": "refresh" } | { "type": "runCode", "data": CodeResult };
+export type ServerMessage = { "type": "getSettings", "data": Settings } | { "type": "updateSettings" } | { "type": "getNote", "data": Note | null } | { "type": "updateNote" } | { "type": "updatePath", "data": string | null } | { "type": "createNote", "data": string | null } | { "type": "note", "data": Note | null } | { "type": "createPalette", "data": SearcherId } | { "type": "searchPalette", "data": Array<Matched<PaletteAction>> | null } | { "type": "deletePalette" } | { "type": "createSuggester", "data": SearcherId } | { "type": "searchSuggester", "data": Array<Matched<Suggestion>> | null } | { "type": "deleteSuggester" } | { "type": "addPinned" } | { "type": "removePinned" } | { "type": "getPinned", "data": Array<string> } | { "type": "getActions", "data": Actions } | { "type": "getTagConfigs", "data": { [key in string]?: TagConfig } } | { "type": "refresh" } | { "type": "runCode", "data": CodeResult } | { "type": "previewerUpdateSource", "data": PreviewerResult } | { "type": "previewerCloseEditorView" };

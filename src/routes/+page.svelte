@@ -54,13 +54,13 @@
       openPalette: () => ArgsFilter.neverMatch,
       removeCurrentPinned: () => ArgsFilter.neverMatch,
       toggleNoteMinimized: () => ArgsFilter.neverMatch,
-    }
+    },
   );
 
   let pinnedPaths: string[] | null = $state(null);
   let focusPath: string | null = $state(null);
   let noteActionRegistries: { [key: string]: ActionRegistryManager } = $state(
-    {}
+    {},
   );
   let minimized: { [key: string]: boolean } = $state({});
   let refreshKey = $state(false);
@@ -102,7 +102,7 @@
   function changeDictKeys<T>(
     dict: { [key: string]: T },
     newKeys: string[],
-    defaultValue: () => T
+    defaultValue: () => T,
   ): { [key: string]: T } {
     let newDict: { [key: string]: T } = {};
     for (let key of newKeys) {
@@ -122,12 +122,12 @@
       pinnedPaths,
       () => {
         return new ActionRegistryManager();
-      }
+      },
     );
     minimized = changeDictKeys(
       untrack(() => minimized),
       pinnedPaths,
-      () => false
+      () => false,
     );
   });
 
@@ -165,6 +165,7 @@
           bind:minimized={minimized[path]}
           focused={focusPath == path}
           canMinimize
+          autofocus={focusPath == path}
         ></NoteView>
       {/if}
     {/each}
