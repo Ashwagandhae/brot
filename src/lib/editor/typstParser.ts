@@ -146,26 +146,38 @@ export class TypstParser extends Parser {
 					return null;
 				}
 				if (transaction.docChanged) {
+					const pendingEdits: {
+						fromA: number;
+						toA: number;
+						insertedText: string;
+					}[] = [];
+
 					transaction.changes.iterChanges(
 						(fromA, toA, _fromB, _toB, inserted) => {
-							const edits = parser.parser?.edit(
+							pendingEdits.push({
 								fromA,
 								toA,
-								inserted.toString(),
-							);
-							if (edits.full_update) {
-								parser.clearTree();
-							} else {
-								// Apply incremental edits
-								for (const edit of edits.edits) {
-									parser.applyTreeEdit(
-										edit,
-										new ChudInput(transaction.newDoc.toString()),
-									);
-								}
-							}
+								insertedText: inserted.toString(),
+							});
 						},
 					);
+
+					for (let i = pendingEdits.length - 1; i >= 0; i--) {
+						const { fromA, toA, insertedText } = pendingEdits[i];
+
+						const edits = parser.parser?.edit(fromA, toA, insertedText);
+
+						if (edits?.full_update) {
+							parser.clearTree();
+						} else if (edits?.edits) {
+							for (const edit of edits.edits) {
+								parser.applyTreeEdit(
+									edit,
+									new ChudInput(transaction.newDoc.toString()),
+								);
+							}
+						}
+					}
 				}
 				return null;
 			},

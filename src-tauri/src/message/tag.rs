@@ -18,7 +18,7 @@ impl TagNode {
     }
 }
 
-/// Turn a path like "-hello--there_my_name_-is_-joe--dan-iel--john.md" -> [[hello, there], [is], [joe, dan-iel, john]]
+/// Turn a path like "-hello--there_my_name_-is_-joe--dan-iel--john.typ" -> [[hello, there], [is], [joe, dan-iel, john]]
 fn extract_tag_units(path: &str) -> Vec<Vec<String>> {
     static TWO_OR_MORE_DASHES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-{2,}").unwrap());
     let re = &*TWO_OR_MORE_DASHES;

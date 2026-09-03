@@ -327,17 +327,7 @@ export const clickableLinkHandler = (options: {
 		click(event, view) {
 			const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
 			if (pos == null) return;
-			const node = syntaxTree(view.state).resolveInner(pos);
-			if (node.name === "Link") {
-				options.linkHandler(view.state.sliceDoc(node.from, node.to));
-			} else {
-				const linkFuncNode = findAncestorOfName(node, "FuncCall");
-				if (linkFuncNode == null) return;
-				const parts = getLinkFuncParts(linkFuncNode, view.state);
-				if (parts == null) return;
-				const { str } = parts;
-				options.linkHandler(view.state.sliceDoc(str.from + 1, str.to - 1));
-			}
+			openLink(pos, options.linkHandler, view.state);
 		},
 	});
 export function findAncestorOfName(
@@ -351,4 +341,21 @@ export function findAncestorOfName(
 		curr = curr.parent;
 	}
 	return null;
+}
+export function openLink(
+	pos: number,
+	linkHandler: (url: string) => void,
+	state: EditorState,
+) {
+	const node = syntaxTree(state).resolveInner(pos);
+	if (node.name === "Link") {
+		linkHandler(state.sliceDoc(node.from, node.to));
+	} else {
+		const linkFuncNode = findAncestorOfName(node, "FuncCall");
+		if (linkFuncNode == null) return;
+		const parts = getLinkFuncParts(linkFuncNode, state);
+		if (parts == null) return;
+		const { str } = parts;
+		linkHandler(state.sliceDoc(str.from + 1, str.to - 1));
+	}
 }

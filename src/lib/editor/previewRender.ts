@@ -34,7 +34,7 @@ export const previewTheme: Extension = EditorView.theme({
 		verticalAlign: "middle",
 	},
 	".cm-preview-block-hidden": {
-		// opacity: "0 !important",
+		opacity: "0.5 !important",
 	},
 	".cm-block-preview": {
 		display: "block",

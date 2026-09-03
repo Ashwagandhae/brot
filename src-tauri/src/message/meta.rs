@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    message::tag::{tags_from_meta, TagNode},
+    message::tag::{TagNode, tags_from_meta},
     state::AppState,
 };
 
@@ -75,7 +75,7 @@ async fn sync_meta(state: &AppState, meta: &mut Meta) -> Result<()> {
     meta.notes = read_dir(state)
         .await?
         .into_iter()
-        .filter(|path| path.ends_with(".md"))
+        .filter(|path| path.ends_with(".typ"))
         .map(|path| {
             let val = meta.notes.get(&path).cloned();
             (path, val.unwrap_or_default())

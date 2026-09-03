@@ -123,6 +123,7 @@ import {
 	resetCountAndRegister,
 } from "./commands";
 import { backwardsSearch } from "./search";
+import { openLink } from "../inlineMarkup";
 
 /**
  * @internal
@@ -295,7 +296,7 @@ type CheckpointCommandDef<M> = {
 type ExplicitCommandDef<M> = SimpleCommand<M> | CheckpointCommandDef<M>;
 type CommandDef<M> = ExplicitCommandDef<M> | string;
 
-const helixCommandBindings: {
+const helixCommandBindings: (options: Options) => {
 	insert: Record<string, SimpleCommand<ModeState & { type: ModeType.Insert }>>;
 	normal: Record<string, CommandDef<NormalLikeMode>>;
 	goto: Record<string, CommandDef<NonInsertMode>>;
@@ -303,7 +304,7 @@ const helixCommandBindings: {
 	space: Record<string, CommandDef<NonInsertMode>>;
 	leftBracket: Record<string, CommandDef<NonInsertMode>>;
 	rightBracket: Record<string, CommandDef<NonInsertMode>>;
-} = {
+} = (options: Options) => ({
 	insert: {
 		Backspace(view) {
 			deleteCharBackward(view);
@@ -1342,6 +1343,17 @@ const helixCommandBindings: {
 					mode.type === ModeType.Normal ? MODE_EFF.NORMAL : MODE_EFF.SELECT,
 			});
 		},
+		["f"](view, mode) {
+			let pos = view.state.selection.main.anchor;
+			let linkHandler = options.linkHandler;
+			if (linkHandler != null) {
+				openLink(pos, linkHandler, view.state);
+			}
+			view.dispatch({
+				effects:
+					mode.type === ModeType.Normal ? MODE_EFF.NORMAL : MODE_EFF.SELECT,
+			});
+		},
 	},
 	match: {
 		["s"]: {
@@ -1541,7 +1553,7 @@ const helixCommandBindings: {
 			},
 		},
 	},
-};
+});
 
 function moveByGroup(view: EditorView, mode: NormalLikeMode, forward: boolean) {
 	const normal = mode.type === ModeType.Normal;
@@ -1608,7 +1620,9 @@ function moveByGroup(view: EditorView, mode: NormalLikeMode, forward: boolean) {
 	view.dispatch(tr);
 }
 
-function toCodemirrorKeymap(keybindings: typeof helixCommandBindings) {
+function toCodemirrorKeymap(
+	keybindings: ReturnType<typeof helixCommandBindings>,
+) {
 	const allKeys = [
 		...new Set(
 			Object.values(keybindings)
@@ -1879,7 +1893,8 @@ const modeUpdateListener = EditorView.updateListener.of((viewUpdate) => {
 	panel.setLineCol();
 });
 
-const helixKeymap = keymap.of(toCodemirrorKeymap(helixCommandBindings));
+const helixKeymap = (options: Options) =>
+	keymap.of(toCodemirrorKeymap(helixCommandBindings(options)));
 
 type ExternalCommand =
 	| "file_picker"
@@ -2109,6 +2124,7 @@ export interface Options {
 	 * For instance, registers are global state, while undo/redo history is not.
 	 */
 	globalInit?: EditorState | Snapshot;
+	linkHandler?: (url: string) => void;
 }
 
 /**
@@ -2306,7 +2322,7 @@ export function helix(options: Options = {}): Extension {
 					}),
 				]
 			: []),
-		helixKeymap,
+		helixKeymap(options),
 		modeField,
 		initialHistory ? historyField.init(() => initialHistory) : historyField,
 		initialRegisters

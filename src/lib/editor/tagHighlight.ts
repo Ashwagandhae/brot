@@ -17,9 +17,18 @@ export const tagHighlight = HighlightStyle.define([
 	{
 		tag: t.monospace,
 		fontFamily: "var(--font-mono)",
+		fontSize: "var(--font-size-mono)",
 		background: "var(--back-translucent)",
 		borderRadius: "4px",
 	},
-	{ tag: typstTags.codeSpace, fontFamily: "var(--font-mono)" },
-	{ tag: typstTags.contentSpace, fontFamily: "var(--font-prop)" },
+	{
+		tag: typstTags.codeSpace,
+		fontFamily: "var(--font-mono)",
+		fontSize: "var(--font-size-mono)",
+	},
+	{
+		tag: typstTags.contentSpace,
+		fontFamily: "var(--font-prop)",
+		fontSize: "var(--font-size)",
+	},
 ]);

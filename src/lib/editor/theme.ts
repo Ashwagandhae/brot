@@ -12,6 +12,7 @@ export const theme = EditorView.theme(
 			"--back-translucent": "oklch(1 0 0 / 0.1)",
 			"--font-prop": "Atkinson Hyperlegible Next",
 			"--font-mono": "JetBrains Mono",
+			"--font-size-mono": "calc(0.9 * var(--font-size))",
 			"--indent-width": `${indentWidth}px`,
 			"--link-color": "oklch(0.8 0.15 260)",
 			"--highlight-color": "oklch(0.3 0.15 110)",
@@ -28,7 +29,7 @@ export const theme = EditorView.theme(
 		".cm-content": {
 			caretColor: "oklch(1 0 0)",
 			fontFamily: "var(--font-mono)",
-			fontSize: "var(--font-size)",
+			fontSize: "var(--font-size-mono)",
 			lineHeight: "1.6",
 		},
 		"&.cm-focused .cm-cursor": {

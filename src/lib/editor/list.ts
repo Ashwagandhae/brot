@@ -55,6 +55,7 @@ export const listTheme: Extension = EditorView.theme({
 		display: "inline-block",
 		width: "var(--indent-width)",
 		fontFamily: "var(--font-prop)",
+		fontSize: "var(--font-size)",
 		textIndent: "0",
 	},
 	".cm-bullet-marker::before": {
@@ -71,6 +72,7 @@ export const listTheme: Extension = EditorView.theme({
 		display: "inline-block",
 		width: "var(--indent-width)",
 		fontFamily: "var(--font-prop)",
+		fontSize: "var(--font-size)",
 		textIndent: "0",
 	},
 	".cm-enum-marker::before": {
@@ -85,6 +87,7 @@ export const listTheme: Extension = EditorView.theme({
 		display: "inline-block",
 		width: "var(--indent-width)",
 		fontFamily: "var(--font-prop)",
+		fontSize: "var(--font-size)",
 	},
 	".cm-hx-cursor .cm-bullet-marker::before, .cm-hx-cursor .cm-enum-marker::before":
 		{

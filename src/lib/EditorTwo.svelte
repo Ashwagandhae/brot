@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { isTauri } from "./platform";
+  import { getPlatformName, isTauri } from "./platform";
 
   import { type ActionRegistryManager } from "./actions";
 
@@ -36,11 +36,20 @@
 
   setContent = (markdown: string) => {
     if (view == null) return;
+
+    const { anchor, head } = view.state.selection.main;
+    const newLength = markdown.length;
+
     view.dispatch({
       changes: {
         from: 0,
         to: view.state.doc.length,
         insert: markdown,
+      },
+
+      selection: {
+        anchor: Math.min(anchor, newLength),
+        head: Math.min(head, newLength),
       },
     });
   };
@@ -55,7 +64,7 @@
         doc: initContent,
         extensions: [
           await typstishLivePreview({
-            helix: true,
+            helix: (await getPlatformName()) != "android",
             linkHandler: (url) => {
               if (isTauri()) {
                 openUrl(url);
@@ -64,6 +73,16 @@
                 newTab?.focus();
               }
             },
+            commands: [
+              {
+                name: "write",
+                aliases: ["w"],
+                help: "Write changes to disk",
+                handler(view, args) {
+                  registry.get("saveNote")?.();
+                },
+              },
+            ],
           }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {

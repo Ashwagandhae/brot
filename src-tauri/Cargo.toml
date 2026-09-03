@@ -49,6 +49,9 @@ typst-library = "0.15.0"
 typst-svg = "0.15.0"
 comemo = "0.5.1"
 ecow = "0.3.0"
+openssl = { version = "0.10", features = [
+  "vendored",
+] } # need to do this due to typst dependency
 
 [dependencies.typst-kit]
 version = "0.15.0"
