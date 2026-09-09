@@ -22,6 +22,8 @@ import {
 	type NonInsertMode,
 } from "./entities";
 import { pathRegister } from "./lib";
+import { isTauri, platform, type Platform } from "../../platform";
+import { readText } from "@tauri-apps/plugin-clipboard-manager";
 
 export const modeEffect = StateEffect.define<ModeState>();
 
@@ -102,6 +104,8 @@ function minorModeStr(minor: MinorMode) {
 			return "[";
 		case MinorMode.RightBracket:
 			return "]";
+		case MinorMode.View:
+			return "z";
 		default: {
 			if (process.env.NODE_ENV === "development") {
 				throw new Error("Unexpected mode");
@@ -130,7 +134,9 @@ export async function readRegister(
 		case "+": {
 			const yanked = readSyncRegister(state, "+");
 
-			const copied = await navigator.clipboard.readText();
+			const copied = isTauri()
+				? await readText()
+				: await navigator.clipboard.readText();
 
 			if (yanked?.map((yank) => yank.toString()).join("\n") === copied) {
 				callback(yanked);

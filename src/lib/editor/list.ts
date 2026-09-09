@@ -38,10 +38,15 @@ function getEnumMarkerNumber(
 	if (parent == null) return { type: "auto", val: 0 };
 
 	let prevEnumSibling = parent.prevSibling;
-	while (prevEnumSibling !== null && prevEnumSibling.name !== "EnumItem") {
+	while (
+		prevEnumSibling !== null &&
+		prevEnumSibling.name !== "EnumItem" &&
+		(prevEnumSibling.name === "Space" || prevEnumSibling.name === "Parbreak")
+	) {
 		prevEnumSibling = prevEnumSibling.prevSibling;
 	}
 	if (prevEnumSibling == null) return { type: "auto", val: 1 };
+	if (prevEnumSibling.name !== "EnumItem") return { type: "auto", val: 1 };
 	if (prevEnumSibling.firstChild == null) return { type: "auto", val: 0 };
 
 	const val = getEnumMarkerNumber(prevEnumSibling.firstChild, doc).val + 1;

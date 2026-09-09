@@ -10,8 +10,8 @@ export const theme = EditorView.theme(
 			"--text-cursor": "oklch(0 0 0)",
 			"--back": "oklch(0.3 0 0)",
 			"--back-translucent": "oklch(1 0 0 / 0.1)",
-			"--font-prop": "Atkinson Hyperlegible Next",
-			"--font-mono": "JetBrains Mono",
+			"--font-prop": "Atkinson Hyperlegible Next Variable",
+			"--font-mono": "JetBrains Mono Variable",
 			"--font-size-mono": "calc(0.9 * var(--font-size))",
 			"--indent-width": `${indentWidth}px`,
 			"--link-color": "oklch(0.8 0.15 260)",
@@ -22,6 +22,9 @@ export const theme = EditorView.theme(
 			height: "auto",
 			margin: "auto",
 			maxWidth: "60em",
+		},
+		"&.cm-editor.cm-focused": {
+			outline: "none",
 		},
 		".cm-scroller": {
 			overflow: "visible",
@@ -53,6 +56,8 @@ export const theme = EditorView.theme(
 			display: "none",
 		},
 		".cm-panels": {
+			position: "fixed",
+			bottom: "0px",
 			background: "transparent",
 		},
 		".cm-panels:has(.cm-panel-open)": {

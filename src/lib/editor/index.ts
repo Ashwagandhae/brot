@@ -1,4 +1,5 @@
 import { bracketMatching, syntaxHighlighting } from "@codemirror/language";
+import { EditorSelection, type StateCommand } from "@codemirror/state";
 import {
 	history,
 	insertNewlineAndIndent,
@@ -82,18 +83,60 @@ export async function typstishLivePreview(
 			]),
 		);
 	} else {
-		res.push(
-			Prec.highest(
-				keymap.of([
-					{
-						key: "Enter",
-						run: insertNewlineKeepIndent,
-					},
-				]),
-			),
-		);
 		res.push(Prec.high(keymap.of(defaultKeymap)));
 	}
+	res.push(
+		Prec.highest(
+			keymap.of([
+				{
+					key: "Enter",
+					run: insertNewlineContinueTypstList,
+				},
+			]),
+		),
+	);
 	res.push(livePreview);
 	return res;
 }
+
+export const insertNewlineContinueTypstList: StateCommand = ({
+	state,
+	dispatch,
+}) => {
+	if (state.readOnly) return false;
+
+	const changes = state.changeByRange((range) => {
+		const line = state.doc.lineAt(range.head);
+
+		const match = line.text.match(/^(\s*)([-+]\s)?/);
+		const indent = match ? match[1] : "";
+		const marker = match && match[2] ? match[2] : "";
+
+		if (marker && line.text.trim() === marker.trim()) {
+			return {
+				changes: {
+					from: line.from + indent.length,
+					to: line.to,
+					insert: "",
+				},
+
+				range: EditorSelection.cursor(line.from + indent.length),
+			};
+		}
+
+		const prefix = indent + marker;
+
+		return {
+			changes: { from: range.from, to: range.to, insert: "\n" + prefix },
+			range: EditorSelection.cursor(range.from + 1 + prefix.length),
+		};
+	});
+
+	if (dispatch) {
+		dispatch(
+			state.update(changes, { scrollIntoView: true, userEvent: "input" }),
+		);
+	}
+
+	return true;
+};

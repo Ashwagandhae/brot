@@ -165,10 +165,15 @@ export class TypstParser extends Parser {
 					for (let i = pendingEdits.length - 1; i >= 0; i--) {
 						const { fromA, toA, insertedText } = pendingEdits[i];
 
-						const edits = parser.parser?.edit(fromA, toA, insertedText);
+						// If the parser was destroyed in a previous iteration of this loop, stop.
+						if (!parser.parser) break;
+
+						const edits = parser.parser.edit(fromA, toA, insertedText);
 
 						if (edits?.full_update) {
-							parser.clearTree();
+							parser.clearParser();
+
+							break;
 						} else if (edits?.edits) {
 							for (const edit of edits.edits) {
 								parser.applyTreeEdit(

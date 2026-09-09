@@ -824,12 +824,12 @@ export function surround(view: EditorView, char: string) {
 			range: EditorSelection.range(anchor, head),
 			changes: [
 				{
-					from: range.from,
-					insert: open,
-				},
-				{
 					from: range.to,
 					insert: close,
+				},
+				{
+					from: range.from,
+					insert: open,
 				},
 			],
 		};

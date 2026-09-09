@@ -1,4 +1,4 @@
-use message::{handle_message_and_errors, ClientMessage};
+use message::{ClientMessage, handle_message_and_errors};
 use missed_events::set_event_ready;
 use state::AppState;
 use tauri::{Manager, State};
@@ -29,6 +29,7 @@ fn is_android() -> bool {
     #[cfg(not(target_os = "android"))]
     {
         false
+        // true
     }
 
     #[cfg(target_os = "android")]
@@ -108,8 +109,7 @@ pub fn run() {
                             {
                                 use crate::window::toggle_pinned;
                                 toggle_pinned(app.clone(), state.clone());
-                            }
-                            if shortcut.matches(Modifiers::SUPER, Code::Quote)
+                            } else if shortcut.matches(Modifiers::SUPER, Code::Quote)
                                 || shortcut.matches(
                                     Modifiers::SUPER
                                         | Modifiers::CONTROL
@@ -119,8 +119,7 @@ pub fn run() {
                                 )
                             {
                                 open_search(app.clone(), state.clone());
-                            }
-                            if shortcut
+                            } else if shortcut
                                 .matches(Modifiers::SUPER | Modifiers::SHIFT, Code::Semicolon)
                             {
                                 use crate::message::locater::Locater;

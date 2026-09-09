@@ -41,6 +41,7 @@ import {
 	getPanel,
 	keymap,
 	showPanel,
+	type Command,
 } from "@codemirror/view";
 import { SearchQuery } from "@codemirror/search";
 
@@ -302,6 +303,7 @@ const helixCommandBindings: (options: Options) => {
 	goto: Record<string, CommandDef<NonInsertMode>>;
 	match: Record<string, CommandDef<NonInsertMode>>;
 	space: Record<string, CommandDef<NonInsertMode>>;
+	view: Record<string, CommandDef<NonInsertMode>>;
 	leftBracket: Record<string, CommandDef<NonInsertMode>>;
 	rightBracket: Record<string, CommandDef<NonInsertMode>>;
 } = (options: Options) => ({
@@ -311,9 +313,6 @@ const helixCommandBindings: (options: Options) => {
 		},
 		Delete(view) {
 			deleteCharForward(view);
-		},
-		Enter(view) {
-			insertNewlineKeepIndent(view);
 		},
 		// we need these two due to https://github.com/codemirror/dev/issues/634
 		// FIXME: stuff like Shift-<arrow> doesn't quite work with `editor.cursor-shape.insert === "block"`.
@@ -421,6 +420,7 @@ const helixCommandBindings: (options: Options) => {
 				selection: EditorSelection.create(selections, 0),
 			});
 		},
+		["MacAlt-KeyS"]: "Alt-s",
 		[","](view) {
 			if (view.state.selection.ranges.length === 1) {
 				return true;
@@ -568,12 +568,14 @@ const helixCommandBindings: (options: Options) => {
 				removeText(view, { yank: false, edit: true });
 			},
 		},
+		["MacAlt-KeyC"]: "Alt-c",
 		["Alt-d"]: {
 			checkpoint: true,
 			command(view) {
 				removeText(view, { yank: false });
 			},
 		},
+		["MacAlt-KeyD"]: "Alt-d",
 		["P"]: {
 			checkpoint: true,
 			command(view, mode) {
@@ -694,6 +696,11 @@ const helixCommandBindings: (options: Options) => {
 		["m"](view, mode) {
 			view.dispatch({
 				effects: overwriteMode(mode, { minor: MinorMode.Match }),
+			});
+		},
+		["z"](view, mode) {
+			view.dispatch({
+				effects: overwriteMode(mode, { minor: MinorMode.View }),
 			});
 		},
 		["i"]: {
@@ -1028,6 +1035,7 @@ const helixCommandBindings: (options: Options) => {
 				scrollIntoView: true,
 			});
 		},
+		["MacAlt-Semicolon"]: "Alt-;",
 		["Alt-:"](view) {
 			view.dispatch({
 				selection: mapSel(view.state.selection, (range) =>
@@ -1037,6 +1045,7 @@ const helixCommandBindings: (options: Options) => {
 				),
 			});
 		},
+		["MacAlt-Colon"]: "Alt-:",
 		["Alt-ArrowUp"](view) {
 			// FIXME: selection direction
 			expandSyntaxHistory(
@@ -1054,6 +1063,8 @@ const helixCommandBindings: (options: Options) => {
 		},
 		["Alt-o"]: "Alt-ArrowUp",
 		["Alt-i"]: "Alt-ArrowDown",
+		["MacAlt-KeyO"]: "Alt-o",
+		["MacAlt-KeyI"]: "Alt-i",
 		["Alt-ArrowDown"](view) {
 			const result = undoSyntaxHistory(view.state);
 
@@ -1065,10 +1076,12 @@ const helixCommandBindings: (options: Options) => {
 			moveToSibling(view, true);
 		},
 		["Alt-n"]: "Alt-ArrowRight",
+		["MacAlt-KeyN"]: "Alt-n",
 		["Alt-ArrowLeft"](view) {
 			moveToSibling(view, false);
 		},
 		["Alt-p"]: "Alt-ArrowLeft",
+		["MacAlt-KeyP"]: "Alt-p",
 		["Ctrl-c"]: {
 			checkpoint: true,
 			command(view) {
@@ -1103,6 +1116,7 @@ const helixCommandBindings: (options: Options) => {
 				changeCase(view, true);
 			},
 		},
+		["MacAlt-Backquote"]: "Alt-`",
 		["~"]: {
 			checkpoint: true,
 			command(view) {
@@ -1439,6 +1453,41 @@ const helixCommandBindings: (options: Options) => {
 			});
 		},
 	},
+	view: {
+		["z"](view) {
+			view.dispatch({
+				effects: [
+					EditorView.scrollIntoView(view.state.selection.main.head, {
+						y: "center",
+					}),
+					MODE_EFF.NORMAL,
+				],
+			});
+		},
+		["c"]: "z",
+		["t"](view) {
+			view.dispatch({
+				effects: [
+					EditorView.scrollIntoView(view.state.selection.main.head, {
+						y: "start",
+						yMargin: 100,
+					}),
+					MODE_EFF.NORMAL,
+				],
+			});
+		},
+		["b"](view) {
+			view.dispatch({
+				effects: [
+					EditorView.scrollIntoView(view.state.selection.main.head, {
+						y: "end",
+						yMargin: 100,
+					}),
+					MODE_EFF.NORMAL,
+				],
+			});
+		},
+	},
 	space: {
 		["y"](view, mode) {
 			getCommandPanel(view).showMessage(yank(view, mode, "+"));
@@ -1670,6 +1719,7 @@ function toCodemirrorKeymap(
 	}
 
 	const codemirrorKeybindings: KeyBinding[] = [];
+	const altKeybindings: { run: Command; key: string }[] = [];
 
 	for (const key of allKeys) {
 		const insertCommand = getExplicitCommand(key, keybindings.insert) as
@@ -1682,6 +1732,9 @@ function toCodemirrorKeymap(
 			| ExplicitCommandDef<NonInsertMode>
 			| undefined;
 		const matchCommand = getExplicitCommand(key, keybindings.match) as
+			| ExplicitCommandDef<NonInsertMode>
+			| undefined;
+		const viewCommand = getExplicitCommand(key, keybindings.view) as
 			| ExplicitCommandDef<NonInsertMode>
 			| undefined;
 		const spaceCommand = getExplicitCommand(key, keybindings.space) as
@@ -1724,6 +1777,8 @@ function toCodemirrorKeymap(
 				result = apply(matchCommand, view, mode);
 			} else if (mode.minor === MinorMode.Space && spaceCommand) {
 				result = apply(spaceCommand, view, mode);
+			} else if (mode.minor === MinorMode.View && viewCommand) {
+				result = apply(viewCommand, view, mode);
 			} else if (mode.minor === MinorMode.LeftBracket && leftBracketCommand) {
 				result = apply(leftBracketCommand, view, mode);
 			} else if (mode.minor === MinorMode.RightBracket && rightBracketCommand) {
@@ -1735,13 +1790,34 @@ function toCodemirrorKeymap(
 			return result ?? true;
 		};
 
-		codemirrorKeybindings.push({
-			key,
-			run: command,
-		});
+		if (key.startsWith("MacAlt-")) {
+			// macos doesn't work with alt, and codemirror provides no native way to deal with this
+			altKeybindings.push({ key: key.replace("MacAlt-", ""), run: command });
+		} else {
+			codemirrorKeybindings.push({
+				key,
+				run: command,
+			});
+		}
 	}
 
-	return codemirrorKeybindings;
+	return {
+		keybindings: codemirrorKeybindings,
+		altKeybindingsHandler: EditorView.domEventHandlers({
+			keydown(e, view) {
+				if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+
+				if (!e.altKey) return;
+				for (let keybind of altKeybindings) {
+					if (e.code == keybind.key) {
+						keybind.run(view);
+						e.stopPropagation();
+						return;
+					}
+				}
+			},
+		}),
+	};
 }
 
 class EndLineCursor extends WidgetType {
@@ -1893,8 +1969,12 @@ const modeUpdateListener = EditorView.updateListener.of((viewUpdate) => {
 	panel.setLineCol();
 });
 
-const helixKeymap = (options: Options) =>
-	keymap.of(toCodemirrorKeymap(helixCommandBindings(options)));
+const helixKeymap = (options: Options) => {
+	let { keybindings, altKeybindingsHandler } = toCodemirrorKeymap(
+		helixCommandBindings(options),
+	);
+	return [keymap.of(keybindings), altKeybindingsHandler];
+};
 
 type ExternalCommand =
 	| "file_picker"

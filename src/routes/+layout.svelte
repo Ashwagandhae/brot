@@ -2,8 +2,6 @@
   import "@fontsource-variable/atkinson-hyperlegible-next";
   import "@fontsource-variable/atkinson-hyperlegible-next/wght-italic.css";
   import "@fontsource-variable/jetbrains-mono";
-  import "katex/dist/katex.min.css";
-  import "@benrbray/prosemirror-math/dist/prosemirror-math.css";
 
   import { errorMessage } from "$lib/error";
   import {
@@ -58,6 +56,7 @@
     $platform = await getPlatformName();
     if ($platform == "window") {
       unlisten = await listen("search", () => {
+        console.log("received event search");
         if (getCurrentWindow().label != "pinned") return;
         search();
       });

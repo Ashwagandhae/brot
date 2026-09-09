@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from "svelte";
   import { openUrl } from "@tauri-apps/plugin-opener";
+  import { syntaxTree } from "@codemirror/language";
   import { getPlatformName, isTauri } from "./platform";
 
   import { type ActionRegistryManager } from "./actions";
@@ -80,6 +81,14 @@
                 help: "Write changes to disk",
                 handler(view, args) {
                   registry.get("saveNote")?.();
+                },
+              },
+              {
+                name: "ast",
+                aliases: [],
+                help: "Print ast to console",
+                handler(view, args) {
+                  console.log(syntaxTree(view.state).toString());
                 },
               },
             ],
