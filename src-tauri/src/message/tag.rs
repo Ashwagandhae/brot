@@ -33,7 +33,7 @@ fn extract_tag_units(path: &str) -> Vec<Vec<String>> {
 pub fn tags_from_meta(meta: &Meta) -> Vec<TagNode> {
     let mut nodes: Vec<TagNode> = Vec::new();
 
-    for path in meta.notes.keys() {
+    for path in meta.notes.iter() {
         for tag_parts in extract_tag_units(path) {
             insert_tag_parts(&tag_parts, &mut nodes);
         }

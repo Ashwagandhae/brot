@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -9,15 +9,12 @@ use crate::{
     state::AppState,
 };
 
-use super::{
-    folder_manager::{read, read_dir, write},
-    note::NoteMeta,
-};
+use super::folder_manager::{read, read_dir, write};
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 /// maps each note's path to NoteMeta
 pub struct Meta {
-    pub notes: HashMap<String, NoteMeta>,
+    pub notes: HashSet<String>,
     pub pinned: Vec<String>,
     pub tag_configs: HashMap<String, TagConfig>,
 }
@@ -76,19 +73,8 @@ async fn sync_meta(state: &AppState, meta: &mut Meta) -> Result<()> {
         .await?
         .into_iter()
         .filter(|path| path.ends_with(".typ"))
-        .map(|path| {
-            let val = meta.notes.get(&path).cloned();
-            (path, val.unwrap_or_default())
-        })
         .collect();
     Ok(())
-}
-
-pub async fn read_note_meta(state: &AppState, path: &str) -> Result<Option<NoteMeta>> {
-    Ok(read_meta(state, |holder| {
-        holder.meta.notes.get(path).as_deref().cloned()
-    })
-    .await?)
 }
 
 pub async fn read_meta<T>(
@@ -126,11 +112,4 @@ pub async fn write_meta<T>(
         *guard = Some(holder);
         Ok(res)
     }
-}
-
-pub async fn write_note_meta(state: &AppState, path: &str, note_meta: NoteMeta) -> Result<()> {
-    write_meta(state, move |holder| {
-        holder.meta.notes.insert(path.to_owned(), note_meta.clone());
-    })
-    .await
 }

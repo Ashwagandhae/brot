@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 
 use ts_rs::TS;
@@ -6,7 +6,7 @@ use ts_rs::TS;
 use crate::{
     message::{
         folder_manager::{read, remove_file, write},
-        meta::{read_meta, read_note_meta, write_meta, write_note_meta},
+        meta::{read_meta, write_meta},
         title::title_to_path,
     },
     state::AppState,
@@ -19,47 +19,26 @@ use super::folder_manager::file_exists;
 #[serde(rename_all = "camelCase")]
 pub struct Note {
     pub content: String,
-    pub meta: NoteMeta,
 }
 
 impl Note {
     pub fn new() -> Self {
         Note {
-            meta: NoteMeta { selection: None },
             content: "".to_owned(),
         }
-    }
-}
-
-#[derive(Serialize, Deserialize, TS, Clone, Debug)]
-#[ts(export)]
-#[serde(rename_all = "camelCase")]
-pub struct NoteMeta {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[ts(optional)]
-    pub selection: Option<(u32, u32)>,
-}
-
-impl Default for NoteMeta {
-    fn default() -> Self {
-        Self { selection: None }
     }
 }
 
 pub async fn read_note(state: &AppState, path: &str) -> Result<Option<Note>> {
     println!("reading note {:?}", path);
 
-    let meta = read_note_meta(state, path).await?;
     let content = read(state, path).await?;
-    Ok(meta
-        .zip(content)
-        .map(|(meta, content)| Note { meta, content }))
+    Ok(content.map(|content| Note { content }))
 }
 
 pub async fn write_note(state: &AppState, path: &str, note: Note) -> Result<()> {
     println!("updating note {:?}", path);
 
-    write_note_meta(state, path, note.meta).await?;
     write(state, path, note.content).await?;
 
     Ok(())
@@ -78,7 +57,7 @@ pub async fn create_note(state: &AppState, title: String) -> Result<Option<Strin
 pub async fn delete_note(state: &AppState, path: &str) -> Result<()> {
     remove_file(state, &path).await?;
     write_meta(state, |holder| {
-        holder.update_meta(|meta| meta.notes.remove_entry(path));
+        holder.update_meta(|meta| meta.notes.remove(path));
         holder.update_meta(|meta| meta.pinned.retain(|p| p != path));
     })
     .await?;

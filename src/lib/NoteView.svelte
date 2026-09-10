@@ -3,7 +3,7 @@
   import type { Note } from "../../src-tauri/bindings/Note";
 
   import Editor from "./EditorTwo.svelte";
-  import { EditorSelection } from "@codemirror/state";
+
   import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";
   import Title from "./Title.svelte";
@@ -122,9 +122,6 @@
     if (note == null) return;
     let editor = await registry.get("getEditor")?.();
     if (editor == null) return;
-    let selection = editor.state.selection;
-    if (selection == null) return;
-    note.meta.selection = [selection.main.from, selection.main.to];
   }
 
   function editTitle() {
@@ -151,14 +148,9 @@
 
   async function focusNote(scroll: boolean) {
     console.log("focusing note");
-    let [from, to] = note?.meta.selection ?? [0, 0];
     let editor = await registry.get("getEditor")?.();
     if (editor != null) {
       editor.focus();
-      editor.dispatch({
-        selection: EditorSelection.range(from, to),
-        scrollIntoView: true,
-      });
     }
 
     if (scroll) {

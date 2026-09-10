@@ -8,7 +8,7 @@ use ts_rs::TS;
 
 use crate::{
     message::{
-        action::{read_actions, PartialAction, PartialActionFilter, PartialActionGenerator},
+        action::{PartialAction, PartialActionFilter, PartialActionGenerator, read_actions},
         meta::read_meta,
         title::path_to_title,
     },
@@ -175,7 +175,7 @@ async fn get_all_note_paths(state: &AppState) -> Result<Vec<(String, String)>> {
             .meta()
             .notes
             .iter()
-            .map(|(path, _)| (path.clone(), path_to_title(path)))
+            .map(|path| (path.clone(), path_to_title(path)))
             .collect()
     })
     .await
