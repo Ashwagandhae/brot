@@ -6,7 +6,6 @@ use ts_rs::TS;
 use crate::{
     message::{
         folder_manager::{read, remove_file, write},
-        meta::{read_meta, write_meta},
         title::title_to_path,
     },
     state::AppState,
@@ -56,11 +55,6 @@ pub async fn create_note(state: &AppState, title: String) -> Result<Option<Strin
 
 pub async fn delete_note(state: &AppState, path: &str) -> Result<()> {
     remove_file(state, &path).await?;
-    write_meta(state, |holder| {
-        holder.update_meta(|meta| meta.notes.remove(path));
-        holder.update_meta(|meta| meta.pinned.retain(|p| p != path));
-    })
-    .await?;
     Ok(())
 }
 
@@ -85,19 +79,8 @@ pub async fn update_path(
         let Some(note) = read_note(state, &current_path).await? else {
             bail!("note does not exist")
         };
-        let pinned_index = read_meta(state, |holder| {
-            holder.meta().pinned.iter().position(|p| *p == current_path)
-        })
-        .await?;
         write_note(state, &new_path, note).await?;
         delete_note(state, &current_path).await?;
-
-        if let Some(index) = pinned_index {
-            write_meta(state, |holder| {
-                holder.update_meta(|meta| meta.pinned.insert(index, new_path.clone()));
-            })
-            .await?;
-        }
     }
     Ok(new_path)
 }

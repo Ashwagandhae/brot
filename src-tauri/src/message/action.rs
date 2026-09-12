@@ -3,8 +3,8 @@ use std::{collections::HashMap, fmt};
 use anyhow::Result;
 
 use serde::{
-    de::{self, MapAccess, Visitor},
     Deserialize, Deserializer, Serialize,
+    de::{self, MapAccess, Visitor},
 };
 use ts_rs::TS;
 
@@ -61,21 +61,6 @@ pub async fn read_actions_file(state: &AppState) -> Result<Actions> {
     match read(state, ACTIONS_PATH).await? {
         Some(contents) => Ok(toml::from_str(&contents)?),
         None => Ok(Actions::default()),
-    }
-}
-
-pub async fn read_actions<T>(
-    state: &AppState,
-    mut function: impl FnMut(&Actions) -> T,
-) -> Result<T> {
-    let mut guard = state.actions.lock().await;
-    if let Some(ref actions) = *guard {
-        Ok(function(actions))
-    } else {
-        let actions = read_actions_file(state).await?;
-        let res = function(&actions);
-        *guard = Some(actions);
-        Ok(res)
     }
 }
 

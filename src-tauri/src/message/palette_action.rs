@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 
@@ -8,8 +8,7 @@ use ts_rs::TS;
 
 use crate::{
     message::{
-        action::{PartialAction, PartialActionFilter, PartialActionGenerator, read_actions},
-        meta::read_meta,
+        action::{PartialAction, PartialActionFilter, PartialActionGenerator},
         title::path_to_title,
     },
     state::AppState,
@@ -67,27 +66,31 @@ async fn get_all_palette_actions(
     state: &AppState,
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
-    let shortcut_map = read_actions(state, |actions| {
-        actions
-            .shortcuts
-            .iter()
-            .map(|(shortcut, action)| (action.clone(), shortcut.clone()))
-            .collect()
-    })
-    .await?;
-    let palette_action_futures: anyhow::Result<_> = read_actions(state, |actions| {
-        Ok(actions
-            .palettes
-            .get(palette_key)
-            .ok_or_else(|| anyhow::anyhow!("invalid palette key"))?
-            .iter()
-            .map(|(title_with_icon, generator)| {
-                let (title, icon) = split_title_icon(title_with_icon);
-                generate_palette_actions(state, &shortcut_map, title, icon, generator.clone())
-            })
-            .collect::<Vec<_>>())
-    })
-    .await?;
+    let shortcut_map = state
+        .meta
+        .lock()
+        .await
+        .actions_config()
+        .context("no actions")?
+        .shortcuts
+        .iter()
+        .map(|(shortcut, action)| (action.clone(), shortcut.clone()))
+        .collect();
+    let palette_action_futures: anyhow::Result<_> = Ok(state
+        .meta
+        .lock()
+        .await
+        .actions_config()
+        .context("no actions")?
+        .palettes
+        .get(palette_key)
+        .ok_or_else(|| anyhow::anyhow!("invalid palette key"))?
+        .iter()
+        .map(|(title_with_icon, generator)| {
+            let (title, icon) = split_title_icon(title_with_icon);
+            generate_palette_actions(state, &shortcut_map, title, icon, generator.clone())
+        })
+        .collect::<Vec<_>>());
 
     let unflattened_palette_actions = join_all(palette_action_futures?)
         .await
@@ -105,9 +108,10 @@ async fn generate_palette_actions(
 ) -> Result<Vec<PaletteAction>> {
     let palette_actions: Vec<_> = if title.contains("$note_locater") {
         get_all_note_paths(state)
-            .await?
+            .await
             .into_iter()
-            .map(|(path, title_replace)| {
+            .map(|path| {
+                let title_replace = path_to_title(&path);
                 let mut args = generator.args.clone();
                 let index = args.iter().position(|a| a == "$note_locater");
                 if let Some(index) = index {
@@ -127,9 +131,10 @@ async fn generate_palette_actions(
             .collect()
     } else if title.contains("$note_path") {
         get_all_note_paths(state)
-            .await?
+            .await
             .into_iter()
-            .map(|(path, title_replace)| {
+            .map(|path| {
+                let title_replace = path_to_title(&path);
                 let mut args = generator.args.clone();
                 let index = args.iter().position(|a| a == "$note_path");
                 if let Some(index) = index {
@@ -169,14 +174,6 @@ async fn generate_palette_actions(
         .collect())
 }
 
-async fn get_all_note_paths(state: &AppState) -> Result<Vec<(String, String)>> {
-    read_meta(state, |holder| {
-        holder
-            .meta()
-            .notes
-            .iter()
-            .map(|path| (path.clone(), path_to_title(path)))
-            .collect()
-    })
-    .await
+async fn get_all_note_paths(state: &AppState) -> HashSet<String> {
+    state.meta.lock().await.paths().clone()
 }

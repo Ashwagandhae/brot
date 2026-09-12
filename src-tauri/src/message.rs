@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
-use meta::{read_meta, write_meta};
 use note::Note;
 use note::{create_note, read_note, write_note};
 use serde::{Deserialize, Serialize};
 use settings::{Settings, write_settings};
 use ts_rs::TS;
 
-use crate::message::action::{Actions, PartialActionFilter, read_actions};
-use crate::message::meta::TagConfig;
+use crate::message::action::{Actions, PartialActionFilter};
+use crate::message::meta::{TagConfig, sync_meta};
 use crate::message::note::update_path;
 use crate::message::palette::{create_palette, delete_palette, search_palette};
 use crate::message::palette_action::{Matched, PaletteAction};
@@ -20,7 +19,7 @@ use crate::message::suggester::{
 use crate::previewer::{PreviewerResult, SourceChange};
 use crate::state::AppState;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 pub mod action;
 pub mod folder_manager;
@@ -91,15 +90,6 @@ pub enum ClientMessage {
         start: u32,
         end: u32,
     },
-    #[serde(rename_all = "camelCase")]
-    AddPinned {
-        path: String,
-        position: usize,
-    },
-    #[serde(rename_all = "camelCase")]
-    RemovePinned {
-        path: String,
-    },
     GetPinned,
     GetActions,
     GetTagConfigs,
@@ -133,8 +123,6 @@ pub enum ServerMessage {
     CreateSuggester(SearcherId),
     SearchSuggester(Option<Vec<Matched<Suggestion>>>),
     DeleteSuggester,
-    AddPinned,
-    RemovePinned,
     GetPinned(Vec<String>),
     GetActions(Actions),
     GetTagConfigs(HashMap<String, TagConfig>),
@@ -197,39 +185,40 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             Ok(ServerMessage::DeleteSuggester)
         }
         GetPinned => Ok(ServerMessage::GetPinned(
-            read_meta(state, |holder| holder.meta().pinned.clone()).await?,
+            state
+                .meta
+                .lock()
+                .await
+                .pin_config()
+                .cloned()
+                .unwrap_or(Vec::new()),
         )),
-        AddPinned { path, position } => {
-            if read_meta(state, |holder| holder.meta().pinned.contains(&path)).await? {
-                return Ok(ServerMessage::AddPinned);
-            }
-            write_meta(state, |holder| {
-                holder.update_meta(|meta| meta.pinned.insert(position, path.clone()))
-            })
-            .await?;
-            Ok(ServerMessage::AddPinned)
-        }
-        RemovePinned { path } => {
-            write_meta(state, |holder| {
-                holder.update_meta(|meta| meta.pinned.retain(|p| *p != path));
-            })
-            .await?;
-            Ok(ServerMessage::RemovePinned)
-        }
         GetTagConfigs => Ok(ServerMessage::GetTagConfigs(
-            read_meta(state, |holder| holder.meta().tag_configs.clone()).await?,
+            state
+                .meta
+                .lock()
+                .await
+                .tag_configs()
+                .iter()
+                .map(|(key, val)| (key.join("--"), val.clone()))
+                .collect(),
         )),
         Refresh => {
-            *state.meta.lock().await = None;
             let config_path = state.config_path.clone();
             *state.settings.lock().await =
                 tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
-            *state.actions.lock().await = None;
+            sync_meta(state).await?;
 
             Ok(ServerMessage::Refresh)
         }
         GetActions => Ok(ServerMessage::GetActions(
-            read_actions(state, |a| a.clone()).await?,
+            state
+                .meta
+                .lock()
+                .await
+                .actions_config()
+                .context("no actions")?
+                .clone(),
         )),
         PreviewerUpdateSource {
             change,

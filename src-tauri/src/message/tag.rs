@@ -1,8 +1,8 @@
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use regex::Regex;
 
-use crate::message::{meta::Meta, title::path_to_title};
+use crate::message::title::path_to_title;
 
 pub struct TagNode {
     pub name: String,
@@ -19,21 +19,43 @@ impl TagNode {
 }
 
 /// Turn a path like "-hello--there_my_name_-is_-joe--dan-iel--john.typ" -> [[hello, there], [is], [joe, dan-iel, john]]
-fn extract_tag_units(path: &str) -> Vec<Vec<String>> {
+#[derive(Debug, Clone)]
+pub enum TitleWord {
+    Content(String),
+    Tag(Vec<String>),
+}
+pub fn parse_title_words(path: &str) -> Vec<TitleWord> {
     static TWO_OR_MORE_DASHES: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"-{2,}").unwrap());
     let re = &*TWO_OR_MORE_DASHES;
     path_to_title(path)
         .split_whitespace()
-        .filter(|s| s.starts_with('-'))
-        .map(|s| s.trim_start_matches('-'))
-        .map(|unit| re.split(unit).map(|x| x.to_string()).collect())
+        .map(|s| {
+            if s.starts_with('-') {
+                TitleWord::Tag(
+                    re.split(s.trim_start_matches('-'))
+                        .map(|x| x.to_string())
+                        .collect(),
+                )
+            } else {
+                TitleWord::Content(s.to_string())
+            }
+        })
+        .collect()
+}
+fn extract_tag_units(path: &str) -> Vec<Vec<String>> {
+    parse_title_words(path)
+        .into_iter()
+        .filter_map(|word| match word {
+            TitleWord::Tag(t) => Some(t),
+            _ => None,
+        })
         .collect()
 }
 
-pub fn tags_from_meta(meta: &Meta) -> Vec<TagNode> {
+pub fn tags_from_paths(paths: &HashSet<String>) -> Vec<TagNode> {
     let mut nodes: Vec<TagNode> = Vec::new();
 
-    for path in meta.notes.iter() {
+    for path in paths.iter() {
         for tag_parts in extract_tag_units(path) {
             insert_tag_parts(&tag_parts, &mut nodes);
         }

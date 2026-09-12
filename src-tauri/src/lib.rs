@@ -12,8 +12,9 @@ use window::{complete_search, open_search, open_window};
 #[cfg(not(target_os = "android"))]
 use window_state::update_window_state;
 
-use crate::message::ServerResult;
+use crate::message::{ServerResult, meta::sync_meta};
 
+pub mod extract_typst;
 pub mod message;
 pub mod missed_events;
 pub mod previewer;
@@ -59,6 +60,7 @@ pub fn run() {
             // app.set_activation_policy(ActivationPolicy::Accessory);
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             {
+                let state = state.clone();
                 std::thread::spawn(move || {
                     let sys = actix_rt::System::new();
                     sys.block_on(async {
@@ -68,6 +70,14 @@ pub fn run() {
                     });
                 });
             }
+            let app_handle = app.handle().clone();
+
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+                let state: State<'_, AppState> = app_handle.state();
+                sync_meta(&state).await.expect("failed to sync initially");
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -4,7 +4,9 @@ use ts_rs::TS;
 
 use crate::{
     message::{
-        meta::read_meta, palette_action::Matched, searcher::SearcherId, tag::construct_all_tags,
+        palette_action::Matched,
+        searcher::SearcherId,
+        tag::{construct_all_tags, tags_from_paths},
     },
     state::AppState,
 };
@@ -23,15 +25,12 @@ pub struct Suggestion {
 }
 
 pub async fn create_suggester(state: &AppState, _source: SuggesterSource) -> Result<SearcherId> {
-    let suggestions = read_meta(state, |holder| {
-        construct_all_tags(&holder.tags())
-            .into_iter()
-            .map(|s| Suggestion {
-                value: s.to_string(),
-            })
-            .collect::<Vec<_>>()
-    })
-    .await?;
+    let suggestions = construct_all_tags(&tags_from_paths(state.meta.lock().await.paths()))
+        .into_iter()
+        .map(|s| Suggestion {
+            value: s.to_string(),
+        })
+        .collect::<Vec<_>>();
     let mut suggesters = state.suggesters.write().await;
     Ok(suggesters.new_searcher(&suggestions))
 }

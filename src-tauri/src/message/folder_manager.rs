@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::anyhow;
 use tauri::App;
 use tauri_plugin_android_fs::Entry;
 use tauri_plugin_android_fs::{AndroidFsExt, FileUri, PersistableAccessMode, PrivateDir};
 use tokio::fs;
 
+use crate::message::meta::FileUpdateWatcher;
 use crate::state::AppState;
 
 #[allow(unused)]
@@ -101,12 +102,12 @@ pub async fn read(state: &AppState, path: &str) -> Result<Option<String>> {
 }
 
 pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()> {
-    match state.folder_manager {
+    let res = match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
                 return Ok(());
             };
-            fs::write(PathBuf::from(&path), contents).await?;
+            fs::write(PathBuf::from(&path), contents.clone()).await?;
             Ok(())
         }
         FolderManager::Android { ref uri } => {
@@ -124,6 +125,7 @@ pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()>
             let uri = uri.clone();
             let path = path.to_owned();
             let app = state.handle.clone();
+            let contents = contents.clone();
             tokio::task::spawn_blocking(move || {
                 let api = app.android_fs();
                 let file_uri = api.resolve_uri(&uri, path)?;
@@ -132,11 +134,14 @@ pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()>
             })
             .await?
         }
-    }
+    };
+    state.meta.lock().await.remove_file(path);
+    state.meta.lock().await.add_file(path, &contents);
+    res
 }
 
 pub async fn remove_file(state: &AppState, path: &str) -> Result<()> {
-    match state.folder_manager {
+    let res = match state.folder_manager {
         FolderManager::Normal => {
             let Some(path) = get_folder_path(state, path).await else {
                 return Ok(());
@@ -156,7 +161,9 @@ pub async fn remove_file(state: &AppState, path: &str) -> Result<()> {
             })
             .await?
         }
-    }
+    };
+    state.meta.lock().await.remove_file(path);
+    res
 }
 
 pub async fn file_exists(state: &AppState, path: &str) -> Result<bool> {

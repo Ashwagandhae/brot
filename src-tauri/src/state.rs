@@ -6,7 +6,6 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     message::{
-        action::Actions,
         folder_manager::FolderManager,
         meta::MetaHolder,
         palette_action::PaletteAction,
@@ -32,11 +31,10 @@ pub struct AppState {
     pub build_path: PathBuf,
     pub config_path: PathBuf,
     pub folder_manager: FolderManager,
-    pub meta: Arc<Mutex<Option<MetaHolder>>>,
+    pub meta: Arc<Mutex<MetaHolder>>,
     pub settings: Arc<Mutex<Settings>>,
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
-    pub actions: Arc<Mutex<Option<Actions>>>,
     pub palettes: Arc<RwLock<SearcherManager<PaletteAction>>>,
     pub suggesters: Arc<RwLock<SearcherManager<Suggestion>>>,
     pub handle: AppHandle,
@@ -50,13 +48,12 @@ impl AppState {
         let config_path = app.path().resolve("", BaseDirectory::AppConfig)?;
         let folder_manager = FolderManager::new(app)?;
         let settings = Arc::new(Mutex::new(read_settings_file(&config_path)?));
-        let meta = Arc::new(Mutex::new(None));
+        let meta = Arc::new(Mutex::new(MetaHolder::new()));
         let last_focused_app_name = Arc::new(Mutex::new(None));
         let pinned_state_before_search = Arc::new(Mutex::new(PinnedWindowState::Unfocused {
             visible: false,
             last_focused_app_name: None,
         }));
-        let actions = Arc::new(Mutex::new(None));
         let palettes = Arc::new(RwLock::new(SearcherManager::<PaletteAction>::new(
             |action| action.title.clone(),
         )));
@@ -66,7 +63,7 @@ impl AppState {
         let handle = app.handle().clone();
         let event_manager = Arc::new(Mutex::new(EventManager::new(app.handle().clone())));
         let previewer = Arc::new(Mutex::new(Previewer::new()));
-        Ok(Self {
+        let state = Self {
             build_path,
             config_path,
             folder_manager,
@@ -74,12 +71,12 @@ impl AppState {
             meta,
             last_focused_app_name,
             pinned_state_before_search,
-            actions,
             palettes,
             suggesters,
             handle,
             event_manager,
             previewer,
-        })
+        };
+        Ok(state)
     }
 }
