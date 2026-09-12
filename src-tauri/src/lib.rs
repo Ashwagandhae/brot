@@ -12,7 +12,7 @@ use window::{complete_search, open_search, open_window};
 #[cfg(not(target_os = "android"))]
 use window_state::update_window_state;
 
-use crate::message::{ServerResult, meta::sync_meta};
+use crate::message::ServerResult;
 
 pub mod extract_typst;
 pub mod message;
@@ -57,26 +57,31 @@ pub fn run() {
         .setup(|app| {
             let state = AppState::new(app).expect("failed to init app state");
             app.manage(state.clone());
+            let app_handle = app.handle().clone();
             // app.set_activation_policy(ActivationPolicy::Accessory);
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             {
-                let state = state.clone();
+                let app_handle = app_handle.clone();
                 std::thread::spawn(move || {
                     let sys = actix_rt::System::new();
                     sys.block_on(async {
-                        if let Err(e) = server::run_server(state.clone()).await {
+                        if let Err(e) = server::run_server(app_handle).await {
                             eprintln!("Actix server failed: {:?}", e);
                         }
                     });
                 });
             }
-            let app_handle = app.handle().clone();
 
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(2)).await;
-
                 let state: State<'_, AppState> = app_handle.state();
-                sync_meta(&state).await.expect("failed to sync initially");
+                state
+                    .file_derived
+                    .lock()
+                    .await
+                    .reload_files(&state)
+                    .await
+                    .expect("failed initial file sync");
             });
             Ok(())
         })

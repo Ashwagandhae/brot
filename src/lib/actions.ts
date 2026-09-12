@@ -8,8 +8,6 @@ export const actions = {
 	openPalette: ["palette"],
 	editNoteTitle: [],
 	goto: ["boolean", "locater"],
-	addPinned: ["insertion", "notePath"],
-	removeCurrentPinned: [],
 	toggleNoteMinimized: [],
 	saveNote: [],
 	saveWindowState: [],
@@ -34,46 +32,10 @@ export const actions = {
 	reduceEditorFontSize: [],
 	resetEditorFontSize: [],
 
-	// editor
-	unsetAllMarks: [],
-	clearNodes: [],
-	clearFormatting: [],
-	// hard break
-	setHardBreak: [],
-	// list
-	toggleBulletList: [],
-	toggleOrderedList: [],
-	splitListItem: [],
-	sinkListItem: [],
-	liftListItem: [],
-	// link
-	setLink: ["url"],
-	editLink: [],
-	unsetLink: [],
-	// table
-	insertTable: [],
-	addColumnBefore: [],
-	addColumnAfter: [],
-	deleteColumn: [],
-	addRowBefore: [],
-	addRowAfter: [],
-	deleteRow: [],
-	deleteTable: [],
-	mergeCells: [],
-	splitCell: [],
-	toggleHeaderColumn: [],
-	toggleHeaderRow: [],
-	toggleHeaderCell: [],
-	mergeOrSplit: [],
 	// blockquote
 	toggleBlockquote: [],
 	setBlockquote: [],
 	unsetBlockquote: [],
-	// heading
-	setHeading: ["level"],
-	toggleHeading: ["level"],
-	// paragraph
-	setParagraph: [],
 	// bold
 	setBold: [],
 	unsetBold: [],
@@ -94,18 +56,6 @@ export const actions = {
 	setUnderline: [],
 	unsetUnderline: [],
 	toggleUnderline: [],
-	// undo redo
-	undo: [],
-	redo: [],
-	// details
-	setDetails: [],
-	unsetDetails: [],
-	// code block
-	setCodeBlock: [],
-	toggleCodeBlock: [],
-	editCodeBlockLang: [],
-	runCodeBlock: [],
-	// math
 } as const;
 
 export type ActionRegistry = BuildActions & {

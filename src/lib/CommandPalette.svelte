@@ -7,9 +7,11 @@
   let {
     provider,
     onfinish,
+    focusSearch = $bindable(null),
   }: {
     provider: CommandProvider<T>;
     onfinish?: (command: T | null) => void;
+    focusSearch: null | (() => void);
   } = $props();
 
   let search: string = $state("");
@@ -45,21 +47,27 @@
       let newCommands = await provider.search(
         search,
         commands.length,
-        commands.length + 10
+        commands.length + 10,
       );
       commands = [...commands, ...newCommands];
     }
     selectedIndex = Math.max(
       0,
-      Math.min(commands.length - 1, newSelectedIndex)
+      Math.min(commands.length - 1, newSelectedIndex),
     );
   }
 
+  focusSearch = () => {
+    searchElement?.focus();
+  };
+
   let choices: HTMLElement | null = $state(null);
+  let searchElement: HTMLInputElement | undefined = $state(undefined);
 </script>
 
 <TextBar
   bind:value={search}
+  bind:element={searchElement}
   autofocus
   oncancel={() => {
     onfinish?.(null);

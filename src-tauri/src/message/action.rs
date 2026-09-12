@@ -57,13 +57,6 @@ impl PartialActionFilter {
     }
 }
 
-pub async fn read_actions_file(state: &AppState) -> Result<Actions> {
-    match read(state, ACTIONS_PATH).await? {
-        Some(contents) => Ok(toml::from_str(&contents)?),
-        None => Ok(Actions::default()),
-    }
-}
-
 impl<'de> Deserialize<'de> for PartialActionGenerator {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

@@ -64,8 +64,10 @@
   search = () => {
     console.log("open search");
 
-    // don't do it if search is already open because then the close thing triggers
-    if (!searchPalette) {
+    // don't do it if search is already open because then the close thing triggers, causing window to hide
+    if (searchPalette) {
+      focusSearch?.();
+    } else {
       searchPalette = true;
       paletteType = { type: "palette", key: "search" };
     }
@@ -130,6 +132,7 @@
       runAction(action);
     }
   }
+  let focusSearch: (() => void) | null = $state(null);
 </script>
 
 <svelte:document onkeydown={handleKeydown} />
@@ -154,6 +157,7 @@
             console.log("command palette finished");
             handleFinish(action == null ? null : parsePartialAction(action));
           }}
+          bind:focusSearch
         ></CommandPalette>
       {:else}
         {@const { Component, props } = paletteForArg(paletteType.argType)}

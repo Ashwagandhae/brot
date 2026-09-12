@@ -29,11 +29,8 @@
       },
     },
     {
-      openPalette: () =>
-        new ArgsFilter([["addPinnedAbove"], ["addPinnedBelow"]]),
-      removeCurrentPinned: () => ArgsFilter.alwaysMatch,
       toggleNoteMinimized: () => ArgsFilter.alwaysMatch,
-    }
+    },
   );
   let noteRegistry = new ActionRegistryManager();
   registry.setOverride(noteRegistry);

@@ -135,8 +135,20 @@ pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()>
             .await?
         }
     };
-    state.meta.lock().await.remove_file(path);
-    state.meta.lock().await.add_file(path, &contents);
+    state
+        .file_derived
+        .lock()
+        .await
+        .get_mut(state)
+        .await?
+        .remove_file(path);
+    state
+        .file_derived
+        .lock()
+        .await
+        .get_mut(state)
+        .await?
+        .add_file(path, &contents);
     res
 }
 
@@ -162,7 +174,13 @@ pub async fn remove_file(state: &AppState, path: &str) -> Result<()> {
             .await?
         }
     };
-    state.meta.lock().await.remove_file(path);
+    state
+        .file_derived
+        .lock()
+        .await
+        .get_mut(state)
+        .await?
+        .remove_file(path);
     res
 }
 

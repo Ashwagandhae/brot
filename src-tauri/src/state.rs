@@ -7,7 +7,7 @@ use tokio::sync::{Mutex, RwLock};
 use crate::{
     message::{
         folder_manager::FolderManager,
-        meta::MetaHolder,
+        meta::{FileDerived, FileDerivedWrapper},
         palette_action::PaletteAction,
         searcher::SearcherManager,
         settings::{Settings, read_settings_file},
@@ -31,7 +31,7 @@ pub struct AppState {
     pub build_path: PathBuf,
     pub config_path: PathBuf,
     pub folder_manager: FolderManager,
-    pub meta: Arc<Mutex<MetaHolder>>,
+    pub file_derived: Arc<Mutex<FileDerivedWrapper>>,
     pub settings: Arc<Mutex<Settings>>,
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
@@ -48,7 +48,7 @@ impl AppState {
         let config_path = app.path().resolve("", BaseDirectory::AppConfig)?;
         let folder_manager = FolderManager::new(app)?;
         let settings = Arc::new(Mutex::new(read_settings_file(&config_path)?));
-        let meta = Arc::new(Mutex::new(MetaHolder::new()));
+        let file_derived = Arc::new(Mutex::new(FileDerivedWrapper::new()));
         let last_focused_app_name = Arc::new(Mutex::new(None));
         let pinned_state_before_search = Arc::new(Mutex::new(PinnedWindowState::Unfocused {
             visible: false,
@@ -68,7 +68,7 @@ impl AppState {
             config_path,
             folder_manager,
             settings,
-            meta,
+            file_derived,
             last_focused_app_name,
             pinned_state_before_search,
             palettes,

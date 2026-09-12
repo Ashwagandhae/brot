@@ -7,7 +7,7 @@ use settings::{Settings, write_settings};
 use ts_rs::TS;
 
 use crate::message::action::{Actions, PartialActionFilter};
-use crate::message::meta::{TagConfig, sync_meta};
+use crate::message::meta::TagConfig;
 use crate::message::note::update_path;
 use crate::message::palette::{create_palette, delete_palette, search_palette};
 use crate::message::palette_action::{Matched, PaletteAction};
@@ -186,18 +186,22 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
         }
         GetPinned => Ok(ServerMessage::GetPinned(
             state
-                .meta
+                .file_derived
                 .lock()
                 .await
+                .get(state)
+                .await?
                 .pin_config()
                 .cloned()
                 .unwrap_or(Vec::new()),
         )),
         GetTagConfigs => Ok(ServerMessage::GetTagConfigs(
             state
-                .meta
+                .file_derived
                 .lock()
                 .await
+                .get(state)
+                .await?
                 .tag_configs()
                 .iter()
                 .map(|(key, val)| (key.join("--"), val.clone()))
@@ -207,15 +211,17 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             let config_path = state.config_path.clone();
             *state.settings.lock().await =
                 tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
-            sync_meta(state).await?;
+            state.file_derived.lock().await.reload_files(state).await?;
 
             Ok(ServerMessage::Refresh)
         }
         GetActions => Ok(ServerMessage::GetActions(
             state
-                .meta
+                .file_derived
                 .lock()
                 .await
+                .get(state)
+                .await?
                 .actions_config()
                 .context("no actions")?
                 .clone(),

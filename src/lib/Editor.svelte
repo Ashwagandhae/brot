@@ -35,17 +35,17 @@
     return view!.state.doc.toString();
   };
 
-  setContent = (markdown: string) => {
+  setContent = (content: string) => {
     if (view == null) return;
 
     const { anchor, head } = view.state.selection.main;
-    const newLength = markdown.length;
+    const newLength = content.length;
 
     view.dispatch({
       changes: {
         from: 0,
         to: view.state.doc.length,
-        insert: markdown,
+        insert: content,
       },
 
       selection: {

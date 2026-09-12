@@ -23,14 +23,59 @@ pub struct TagConfig {
     pub hue: Option<f32>,
 }
 
-pub struct MetaHolder {
+pub struct FileDerivedWrapper {
+    inner: FileDerived,
+    loaded: bool,
+}
+impl FileDerivedWrapper {
+    pub fn new() -> Self {
+        Self {
+            inner: FileDerived::new(),
+            loaded: false,
+        }
+    }
+    pub async fn get(&mut self, state: &AppState) -> Result<&FileDerived> {
+        if !self.loaded {
+            self.reload_files(state).await?;
+        }
+
+        Ok(&self.inner)
+    }
+    pub async fn get_mut(&mut self, state: &AppState) -> Result<&mut FileDerived> {
+        if !self.loaded {
+            self.reload_files(state).await?;
+        }
+
+        Ok(&mut self.inner)
+    }
+    pub async fn reload_files(&mut self, state: &AppState) -> Result<()> {
+        let paths = read_dir(state)
+            .await?
+            .into_iter()
+            .filter(|path| path.ends_with(".typ"));
+
+        for path in self.inner.paths.clone() {
+            self.inner.remove_file(&path);
+        }
+        for path in paths {
+            let contents = read(state, &path).await?;
+            if let Some(contents) = contents {
+                self.inner.add_file(&path, &contents);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+pub struct FileDerived {
     pin_config: SingleFileConfig<Vec<String>>,
     actions_config: SingleFileConfig<Actions>,
     tag_configs: TagConfigs,
     paths: HashSet<String>,
 }
 
-impl MetaHolder {
+impl FileDerived {
     pub fn new() -> Self {
         Self {
             pin_config: SingleFileConfig::new("pin"),
@@ -52,7 +97,7 @@ impl MetaHolder {
         &self.paths
     }
 }
-impl FileUpdateWatcher for MetaHolder {
+impl FileUpdateWatcher for FileDerived {
     fn add_file(&mut self, path: &str, contents: &str) {
         self.paths.insert(path.to_owned());
         self.pin_config.add_file(path, contents);
@@ -68,25 +113,6 @@ impl FileUpdateWatcher for MetaHolder {
 }
 
 // removes any files that aren't in the folder, and adds any files that are in meta
-pub async fn sync_meta(state: &AppState) -> Result<()> {
-    let paths = read_dir(state)
-        .await?
-        .into_iter()
-        .filter(|path| path.ends_with(".typ"));
-    let mut meta = state.meta.lock().await;
-
-    for path in meta.paths.clone() {
-        meta.remove_file(&path);
-    }
-    for path in paths {
-        let contents = read(state, &path).await?;
-        if let Some(contents) = contents {
-            meta.add_file(&path, &contents);
-        }
-    }
-
-    Ok(())
-}
 
 pub trait FileUpdateWatcher {
     fn add_file(&mut self, path: &str, contents: &str);

@@ -1,12 +1,15 @@
 import { Tree, type Input, type SyntaxNode, Parser } from "@lezer/common";
-import { parser as pythonParser } from "@lezer/python";
+import { parser as pyParser } from "@lezer/python";
 import { parser as jsParser } from "@lezer/javascript";
+// @ts-ignore
+import { parser as tomlParser } from "lezer-toml";
 
 const langParsers: Partial<Record<string, Parser>> = {
-	python: pythonParser,
-	py: pythonParser,
+	python: pyParser,
+	py: pyParser,
 	javascript: jsParser,
 	js: jsParser,
+	toml: tomlParser,
 };
 
 export function mixedLanguageReplacer(

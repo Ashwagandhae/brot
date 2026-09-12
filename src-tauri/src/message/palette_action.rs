@@ -67,9 +67,11 @@ async fn get_all_palette_actions(
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
     let shortcut_map = state
-        .meta
+        .file_derived
         .lock()
         .await
+        .get(state)
+        .await?
         .actions_config()
         .context("no actions")?
         .shortcuts
@@ -77,9 +79,11 @@ async fn get_all_palette_actions(
         .map(|(shortcut, action)| (action.clone(), shortcut.clone()))
         .collect();
     let palette_action_futures: anyhow::Result<_> = Ok(state
-        .meta
+        .file_derived
         .lock()
         .await
+        .get(state)
+        .await?
         .actions_config()
         .context("no actions")?
         .palettes
@@ -108,7 +112,7 @@ async fn generate_palette_actions(
 ) -> Result<Vec<PaletteAction>> {
     let palette_actions: Vec<_> = if title.contains("$note_locater") {
         get_all_note_paths(state)
-            .await
+            .await?
             .into_iter()
             .map(|path| {
                 let title_replace = path_to_title(&path);
@@ -131,7 +135,7 @@ async fn generate_palette_actions(
             .collect()
     } else if title.contains("$note_path") {
         get_all_note_paths(state)
-            .await
+            .await?
             .into_iter()
             .map(|path| {
                 let title_replace = path_to_title(&path);
@@ -174,6 +178,15 @@ async fn generate_palette_actions(
         .collect())
 }
 
-async fn get_all_note_paths(state: &AppState) -> HashSet<String> {
-    state.meta.lock().await.paths().clone()
+async fn get_all_note_paths(state: &AppState) -> Result<Vec<String>> {
+    Ok(state
+        .file_derived
+        .lock()
+        .await
+        .get(state)
+        .await?
+        .paths()
+        .iter()
+        .cloned()
+        .collect())
 }

@@ -25,12 +25,14 @@ pub struct Suggestion {
 }
 
 pub async fn create_suggester(state: &AppState, _source: SuggesterSource) -> Result<SearcherId> {
-    let suggestions = construct_all_tags(&tags_from_paths(state.meta.lock().await.paths()))
-        .into_iter()
-        .map(|s| Suggestion {
-            value: s.to_string(),
-        })
-        .collect::<Vec<_>>();
+    let suggestions = construct_all_tags(&tags_from_paths(
+        state.file_derived.lock().await.get(state).await?.paths(),
+    ))
+    .into_iter()
+    .map(|s| Suggestion {
+        value: s.to_string(),
+    })
+    .collect::<Vec<_>>();
     let mut suggesters = state.suggesters.write().await;
     Ok(suggesters.new_searcher(&suggestions))
 }

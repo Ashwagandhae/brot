@@ -2,7 +2,7 @@
   import { onDestroy, onMount, tick } from "svelte";
   import type { Note } from "../../src-tauri/bindings/Note";
 
-  import Editor from "./EditorTwo.svelte";
+  import Editor from "./Editor.svelte";
 
   import type { ActionRegistryManager } from "./actions";
   import { platform } from "./platform";

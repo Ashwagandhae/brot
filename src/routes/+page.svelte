@@ -18,25 +18,6 @@
   let registry = getActionRegistryContext();
   registry.add(
     {
-      addPinned: async (insertion, path) => {
-        if (pinnedPaths == null) return;
-        if (pinnedPaths.length == 0) {
-          await msg("addPinned", { path, position: 0 });
-        } else {
-          let position = pinnedPaths.findIndex((path) => path == focusPath);
-          if (insertion == "below") {
-            position += 1;
-          }
-          await msg("addPinned", { path, position });
-        }
-        pinnedPaths = await msg("getPinned");
-        refreshKey = !refreshKey;
-      },
-      removeCurrentPinned: async () => {
-        if (focusPath == null) return;
-        await msg("removePinned", { path: focusPath });
-        pinnedPaths = await msg("getPinned");
-      },
       refreshPage: async () => {
         pinnedPaths = await msg("getPinned");
         refreshKey = !refreshKey;
@@ -52,7 +33,6 @@
     },
     {
       openPalette: () => ArgsFilter.neverMatch,
-      removeCurrentPinned: () => ArgsFilter.neverMatch,
       toggleNoteMinimized: () => ArgsFilter.neverMatch,
     },
   );
