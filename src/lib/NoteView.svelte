@@ -17,6 +17,7 @@
   import { parseTitleFromString } from "./parse";
   import TitleOutputDisplay from "./TitleOutputDisplay.svelte";
   import { TagSuggestionProvider } from "./suggestion";
+  import { getFocusStateContext } from "./focus";
   let {
     path,
     registry = $bindable(),
@@ -39,6 +40,7 @@
   let initContent: string | null = $state(null);
   let getContent: () => string = $state(() => "");
   let setContent: (markdown: string) => void = $state(() => {});
+  let focusState = getFocusStateContext();
 
   let componentPaletteContext = getComponentPaletteContext();
   let pathContext = getPathContext();
@@ -90,7 +92,8 @@
     if (note != null) {
       initContent = note.content;
       await tick();
-      if (autofocus) {
+      await registry.get("getEditor")?.();
+      if (autofocus && !$focusState.ignoreAutoFocus) {
         focusNote(false);
       }
     }

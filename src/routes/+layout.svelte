@@ -39,6 +39,7 @@
   } from "$lib/componentPalette";
   import { setTagConfigsContext, type TagConfigs } from "$lib/tagConfig";
   import { msg } from "$lib/message";
+  import { type FocusState, setFocusStateContext } from "$lib/focus";
 
   let { children } = $props();
 
@@ -51,6 +52,9 @@
   let tagConfigs: TagConfigs = $state({});
   setTagConfigsContext(() => tagConfigs);
 
+  let focusState: Writable<FocusState> = writable({ ignoreAutoFocus: false });
+  setFocusStateContext(focusState);
+
   let unlisten = () => {};
   onMount(async () => {
     $platform = await getPlatformName();
@@ -58,6 +62,10 @@
       unlisten = await listen("search", () => {
         console.log("received event search");
         if (getCurrentWindow().label != "pinned") return;
+        focusState.update((f) => {
+          f.ignoreAutoFocus = true;
+          return f;
+        });
         search();
       });
       await invoke("set_event_ready");
