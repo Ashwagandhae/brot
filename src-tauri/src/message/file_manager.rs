@@ -31,7 +31,7 @@ pub struct FileManager {
 #[derive(Debug, Clone)]
 pub enum Folder {
     Android { uri: FileUri },
-    Normal { dir_path: PathBuf },
+    Normal { dir_path: Option<PathBuf> },
 }
 #[allow(unused)]
 fn downloads_subfolder_uri(app: AppHandle) -> Result<FileUri> {
@@ -67,12 +67,10 @@ fn downloads_subfolder_uri(app: AppHandle) -> Result<FileUri> {
 
 impl Folder {
     #[allow(unused)]
-    pub fn new(app: AppHandle, path: &PathBuf) -> Result<Self> {
+    pub fn new(app: AppHandle, path: Option<PathBuf>) -> Result<Self> {
         #[cfg(not(target_os = "android"))]
         {
-            Ok(Self::Normal {
-                dir_path: path.to_owned(),
-            })
+            Ok(Self::Normal { dir_path: path })
         }
 
         #[cfg(target_os = "android")]
@@ -85,7 +83,7 @@ impl Folder {
 }
 
 impl FileManager {
-    pub fn new(handle: AppHandle, path: &PathBuf) -> Result<Self> {
+    pub fn new(handle: AppHandle, path: Option<PathBuf>) -> Result<Self> {
         Ok(Self {
             folder: Folder::new(handle.clone(), path)?,
             tracker: Arc::new(Mutex::new(LoadedTracker {
@@ -168,7 +166,7 @@ impl FileManager {
     pub async fn read_dir(&self) -> Result<Vec<String>> {
         match self.folder {
             Folder::Normal { ref dir_path } => {
-                let mut entries = fs::read_dir(&dir_path).await?;
+                let mut entries = fs::read_dir(resolve(dir_path, "./")?).await?;
                 let mut paths = Vec::new();
                 while let Some(entry) = entries.next_entry().await? {
                     paths.push(
@@ -200,7 +198,7 @@ impl FileManager {
     pub async fn remove_file(&self, path: &str) -> Result<()> {
         let res = match self.folder {
             Folder::Normal { ref dir_path } => {
-                let path = dir_path.join(path);
+                let path = resolve(dir_path, path)?;
                 fs::remove_file(path).await?;
                 Ok(())
             }
@@ -224,7 +222,7 @@ impl FileManager {
     pub async fn write(&self, path: &str, contents: String) -> Result<()> {
         let res = match self.folder {
             Folder::Normal { ref dir_path } => {
-                let path = dir_path.join(path);
+                let path = resolve(dir_path, path)?;
                 fs::write(PathBuf::from(&path), contents.clone()).await?;
                 Ok(())
             }
@@ -267,6 +265,12 @@ impl FileManager {
         res
     }
 }
+fn resolve(dir_path: &Option<PathBuf>, path: &str) -> Result<PathBuf> {
+    dir_path
+        .as_ref()
+        .map(|p| p.join(path))
+        .context("no path specified")
+}
 pub struct LazyFile {
     path: String,
     contents: OnceCell<Option<String>>,
@@ -295,7 +299,7 @@ impl LazyFile {
 async fn read(folder: &Folder, handle: AppHandle, path: &str) -> Result<Option<String>> {
     match folder {
         Folder::Normal { dir_path } => {
-            let path = dir_path.join(path);
+            let path = resolve(dir_path, path)?;
             match fs::read_to_string(path).await {
                 Ok(contents) => Ok(Some(contents)),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -328,7 +332,7 @@ async fn read(folder: &Folder, handle: AppHandle, path: &str) -> Result<Option<S
 async fn file_exists(folder: &Folder, handle: AppHandle, path: &str) -> Result<bool> {
     match folder {
         Folder::Normal { dir_path } => {
-            let path = dir_path.join(path);
+            let path = resolve(dir_path, path)?;
             Ok(fs::try_exists(path).await?)
         }
         Folder::Android { uri } => {

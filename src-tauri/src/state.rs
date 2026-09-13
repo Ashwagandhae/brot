@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use tauri::{App, AppHandle, Manager, path::BaseDirectory};
 use tokio::sync::{Mutex, RwLock};
 
@@ -46,7 +46,7 @@ impl AppState {
         let settings = read_settings_file(&config_path)?;
         let file_manager = FileManager::new(
             app.handle().clone(),
-            &settings.notes_path.clone().context("no notes path")?.into(),
+            settings.notes_path.clone().map(PathBuf::from),
         )?;
         let settings = Arc::new(Mutex::new(settings));
         let last_focused_app_name = Arc::new(Mutex::new(None));

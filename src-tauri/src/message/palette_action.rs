@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use futures::future::join_all;
@@ -6,13 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use ts_rs::TS;
 
-use crate::{
-    message::{
-        action::{PartialAction, PartialActionFilter, PartialActionGenerator},
-        file_derived::FileDerived,
-        title::path_to_title,
-    },
-    state::AppState,
+use crate::message::{
+    action::{PartialAction, PartialActionFilter, PartialActionGenerator},
+    file_derived::FileDerived,
+    title::path_to_title,
 };
 
 #[derive(Serialize, Deserialize, TS, Clone)]
