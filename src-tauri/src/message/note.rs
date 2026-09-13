@@ -3,15 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use ts_rs::TS;
 
-use crate::{
-    message::{
-        folder_manager::{read, remove_file, write},
-        title::title_to_path,
-    },
-    state::AppState,
-};
-
-use super::folder_manager::file_exists;
+use crate::{message::title::title_to_path, state::AppState};
 
 #[derive(Serialize, Deserialize, TS, Clone)]
 #[ts(export)]
@@ -31,14 +23,14 @@ impl Note {
 pub async fn read_note(state: &AppState, path: &str) -> Result<Option<Note>> {
     println!("reading note {:?}", path);
 
-    let content = read(state, path).await?;
+    let content = state.file_manager.read(path).await?;
     Ok(content.map(|content| Note { content }))
 }
 
 pub async fn write_note(state: &AppState, path: &str, note: Note) -> Result<()> {
     println!("updating note {:?}", path);
 
-    write(state, path, note.content).await?;
+    state.file_manager.write(path, note.content).await?;
 
     Ok(())
 }
@@ -54,14 +46,14 @@ pub async fn create_note(state: &AppState, title: String) -> Result<Option<Strin
 }
 
 pub async fn delete_note(state: &AppState, path: &str) -> Result<()> {
-    remove_file(state, &path).await?;
+    state.file_manager.remove_file(&path).await?;
     Ok(())
 }
 
 /// Creates note path from title if that note path doesn't already exist, else returns None
 async fn create_note_path(state: &AppState, title: &str) -> Result<Option<String>> {
     let path = title_to_path(title);
-    Ok(if file_exists(state, &path).await? {
+    Ok(if state.file_manager.file_exists(&path).await? {
         None
     } else {
         Some(path)

@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use anyhow::Result;
 
-use crate::message::palette_action::{get_palette_actions, Matched, PaletteAction};
+use crate::message::palette_action::{Matched, PaletteAction, get_palette_actions};
 use crate::message::{action::PartialActionFilter, searcher::SearcherId};
 use crate::state::AppState;
 
@@ -11,7 +11,8 @@ pub async fn create_palette(
     palette_key: String,
     filters: Vec<PartialActionFilter>,
 ) -> Result<SearcherId> {
-    let actions = get_palette_actions(state, &palette_key, filters).await?;
+    let actions =
+        get_palette_actions(&*state.file_manager.derived().await?, &palette_key, filters).await?;
     let mut palettes = state.palettes.write().await;
     Ok(palettes.new_searcher(&actions))
 }

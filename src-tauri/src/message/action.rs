@@ -8,11 +8,7 @@ use serde::{
 };
 use ts_rs::TS;
 
-use crate::{message::folder_manager::read, state::AppState};
-
-const ACTIONS_PATH: &str = "./brot_actions.toml";
-
-#[derive(Serialize, Deserialize, TS, Clone, Default)]
+#[derive(Serialize, Deserialize, TS, Clone, Default, Debug)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Actions {
@@ -20,7 +16,7 @@ pub struct Actions {
     pub palettes: HashMap<String, HashMap<String, PartialActionGenerator>>,
 }
 
-#[derive(Serialize, PartialEq, Eq, Hash, TS, Clone)]
+#[derive(Serialize, PartialEq, Eq, Hash, TS, Clone, Debug)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct PartialAction {
@@ -28,7 +24,7 @@ pub struct PartialAction {
     pub args: Vec<String>,
 }
 
-#[derive(Serialize, TS, Clone)]
+#[derive(Serialize, TS, Clone, Debug)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 

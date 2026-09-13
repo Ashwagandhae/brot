@@ -9,6 +9,7 @@ use ts_rs::TS;
 use crate::{
     message::{
         action::{PartialAction, PartialActionFilter, PartialActionGenerator},
+        file_derived::FileDerived,
         title::path_to_title,
     },
     state::AppState,
@@ -33,11 +34,11 @@ pub struct PaletteAction {
 }
 
 pub async fn get_palette_actions(
-    state: &AppState,
+    file_derived: &FileDerived,
     palette_key: &str,
     filters: Vec<PartialActionFilter>,
 ) -> Result<Vec<PaletteAction>> {
-    Ok(get_all_palette_actions(state, palette_key)
+    Ok(get_all_palette_actions(file_derived, palette_key)
         .await?
         .into_iter()
         .filter(|command| {
@@ -63,27 +64,18 @@ fn split_title_icon(title_with_icon: &str) -> (String, Option<String>) {
 }
 
 async fn get_all_palette_actions(
-    state: &AppState,
+    file_derived: &FileDerived,
     palette_key: &str,
 ) -> Result<Vec<PaletteAction>> {
-    let shortcut_map = state
-        .file_derived
-        .lock()
-        .await
-        .get(state)
-        .await?
+    println!("before get all palette actions");
+    let shortcut_map = file_derived
         .actions_config()
         .context("no actions")?
         .shortcuts
         .iter()
         .map(|(shortcut, action)| (action.clone(), shortcut.clone()))
         .collect();
-    let palette_action_futures: anyhow::Result<_> = Ok(state
-        .file_derived
-        .lock()
-        .await
-        .get(state)
-        .await?
+    let palette_action_futures: anyhow::Result<_> = Ok(file_derived
         .actions_config()
         .context("no actions")?
         .palettes
@@ -92,7 +84,7 @@ async fn get_all_palette_actions(
         .iter()
         .map(|(title_with_icon, generator)| {
             let (title, icon) = split_title_icon(title_with_icon);
-            generate_palette_actions(state, &shortcut_map, title, icon, generator.clone())
+            generate_palette_actions(&file_derived, &shortcut_map, title, icon, generator.clone())
         })
         .collect::<Vec<_>>());
 
@@ -100,19 +92,19 @@ async fn get_all_palette_actions(
         .await
         .into_iter()
         .collect::<Result<Vec<_>>>()?;
+    println!("after get all palette actions");
     Ok(unflattened_palette_actions.into_iter().flatten().collect())
 }
 
 async fn generate_palette_actions(
-    state: &AppState,
+    file_derived: &FileDerived,
     shortcut_map: &HashMap<PartialAction, String>,
     title: String,
     icon: Option<String>,
     generator: PartialActionGenerator,
 ) -> Result<Vec<PaletteAction>> {
     let palette_actions: Vec<_> = if title.contains("$note_locater") {
-        get_all_note_paths(state)
-            .await?
+        get_all_note_paths(file_derived)?
             .into_iter()
             .map(|path| {
                 let title_replace = path_to_title(&path);
@@ -134,8 +126,7 @@ async fn generate_palette_actions(
             })
             .collect()
     } else if title.contains("$note_path") {
-        get_all_note_paths(state)
-            .await?
+        get_all_note_paths(file_derived)?
             .into_iter()
             .map(|path| {
                 let title_replace = path_to_title(&path);
@@ -178,15 +169,6 @@ async fn generate_palette_actions(
         .collect())
 }
 
-async fn get_all_note_paths(state: &AppState) -> Result<Vec<String>> {
-    Ok(state
-        .file_derived
-        .lock()
-        .await
-        .get(state)
-        .await?
-        .paths()
-        .iter()
-        .cloned()
-        .collect())
+fn get_all_note_paths(file_derived: &FileDerived) -> Result<Vec<String>> {
+    Ok(file_derived.paths().iter().cloned().collect())
 }

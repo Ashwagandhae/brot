@@ -26,7 +26,7 @@ pub struct Suggestion {
 
 pub async fn create_suggester(state: &AppState, _source: SuggesterSource) -> Result<SearcherId> {
     let suggestions = construct_all_tags(&tags_from_paths(
-        state.file_derived.lock().await.get(state).await?.paths(),
+        state.file_manager.derived().await?.paths(),
     ))
     .into_iter()
     .map(|s| Suggestion {

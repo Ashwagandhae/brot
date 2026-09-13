@@ -1,13 +1,12 @@
 use std::{path::PathBuf, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tauri::{App, AppHandle, Manager, path::BaseDirectory};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     message::{
-        folder_manager::FolderManager,
-        meta::{FileDerived, FileDerivedWrapper},
+        file_manager::FileManager,
         palette_action::PaletteAction,
         searcher::SearcherManager,
         settings::{Settings, read_settings_file},
@@ -26,12 +25,10 @@ pub enum PinnedWindowState {
     },
 }
 
-#[derive(Clone)]
 pub struct AppState {
     pub build_path: PathBuf,
     pub config_path: PathBuf,
-    pub folder_manager: FolderManager,
-    pub file_derived: Arc<Mutex<FileDerivedWrapper>>,
+    pub file_manager: FileManager,
     pub settings: Arc<Mutex<Settings>>,
     pub last_focused_app_name: Arc<Mutex<Option<String>>>,
     pub pinned_state_before_search: Arc<Mutex<PinnedWindowState>>,
@@ -46,9 +43,12 @@ impl AppState {
     pub fn new(app: &mut App) -> Result<Self> {
         let build_path = app.path().resolve("build", BaseDirectory::Resource)?;
         let config_path = app.path().resolve("", BaseDirectory::AppConfig)?;
-        let folder_manager = FolderManager::new(app)?;
-        let settings = Arc::new(Mutex::new(read_settings_file(&config_path)?));
-        let file_derived = Arc::new(Mutex::new(FileDerivedWrapper::new()));
+        let settings = read_settings_file(&config_path)?;
+        let file_manager = FileManager::new(
+            app.handle().clone(),
+            &settings.notes_path.clone().context("no notes path")?.into(),
+        )?;
+        let settings = Arc::new(Mutex::new(settings));
         let last_focused_app_name = Arc::new(Mutex::new(None));
         let pinned_state_before_search = Arc::new(Mutex::new(PinnedWindowState::Unfocused {
             visible: false,
@@ -66,9 +66,8 @@ impl AppState {
         let state = Self {
             build_path,
             config_path,
-            folder_manager,
             settings,
-            file_derived,
+            file_manager,
             last_focused_app_name,
             pinned_state_before_search,
             palettes,

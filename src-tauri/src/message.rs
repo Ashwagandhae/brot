@@ -7,7 +7,7 @@ use settings::{Settings, write_settings};
 use ts_rs::TS;
 
 use crate::message::action::{Actions, PartialActionFilter};
-use crate::message::meta::TagConfig;
+use crate::message::file_derived::TagConfig;
 use crate::message::note::update_path;
 use crate::message::palette::{create_palette, delete_palette, search_palette};
 use crate::message::palette_action::{Matched, PaletteAction};
@@ -22,9 +22,9 @@ use crate::state::AppState;
 use anyhow::{Context, Result};
 
 pub mod action;
-pub mod folder_manager;
+pub mod file_derived;
+pub mod file_manager;
 pub mod locater;
-pub mod meta;
 pub mod note;
 pub mod palette;
 pub mod palette_action;
@@ -186,10 +186,8 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
         }
         GetPinned => Ok(ServerMessage::GetPinned(
             state
-                .file_derived
-                .lock()
-                .await
-                .get(state)
+                .file_manager
+                .derived()
                 .await?
                 .pin_config()
                 .cloned()
@@ -197,10 +195,8 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
         )),
         GetTagConfigs => Ok(ServerMessage::GetTagConfigs(
             state
-                .file_derived
-                .lock()
-                .await
-                .get(state)
+                .file_manager
+                .derived()
                 .await?
                 .tag_configs()
                 .iter()
@@ -211,16 +207,16 @@ pub async fn handle_message(message: ClientMessage, state: &AppState) -> Result<
             let config_path = state.config_path.clone();
             *state.settings.lock().await =
                 tokio::task::spawn_blocking(move || read_settings_file(&config_path)).await??;
-            state.file_derived.lock().await.reload_files(state).await?;
+            println!("reloading files...");
+            state.file_manager.reload_files().await?;
+            println!("reloaded");
 
             Ok(ServerMessage::Refresh)
         }
         GetActions => Ok(ServerMessage::GetActions(
             state
-                .file_derived
-                .lock()
-                .await
-                .get(state)
+                .file_manager
+                .derived()
                 .await?
                 .actions_config()
                 .context("no actions")?

@@ -56,7 +56,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let state = AppState::new(app).expect("failed to init app state");
-            app.manage(state.clone());
+            app.manage(state);
             let app_handle = app.handle().clone();
             // app.set_activation_policy(ActivationPolicy::Accessory);
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -76,10 +76,8 @@ pub fn run() {
                 tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                 let state: State<'_, AppState> = app_handle.state();
                 state
-                    .file_derived
-                    .lock()
-                    .await
-                    .reload_files(&state)
+                    .file_manager
+                    .reload_files()
                     .await
                     .expect("failed initial file sync");
             });

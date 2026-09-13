@@ -7,7 +7,7 @@ use tauri_plugin_android_fs::Entry;
 use tauri_plugin_android_fs::{AndroidFsExt, FileUri, PersistableAccessMode, PrivateDir};
 use tokio::fs;
 
-use crate::message::meta::FileUpdateWatcher;
+use crate::message::file_derived::FileUpdateWatcher;
 use crate::state::AppState;
 
 #[allow(unused)]
@@ -135,20 +135,14 @@ pub async fn write(state: &AppState, path: &str, contents: String) -> Result<()>
             .await?
         }
     };
-    state
-        .file_derived
-        .lock()
-        .await
-        .get_mut(state)
-        .await?
-        .remove_file(path);
-    state
-        .file_derived
-        .lock()
-        .await
-        .get_mut(state)
-        .await?
-        .add_file(path, &contents);
+    {
+        let mut file_derived_lock = state.file_derived.lock().await;
+        let file_derived = file_derived_lock.get_mut(state).await?;
+        file_derived.remove_file(path);
+        file_derived
+            .add_file(path, &LazyFile::new(path, state))
+            .await?;
+    }
     res
 }
 
@@ -263,3 +257,20 @@ pub async fn read_dir(state: &AppState) -> Result<Vec<String>> {
         }
     }
 }
+// pub async fn reload_files(&mut self, state: &AppState) -> Result<()> {
+//     let paths = read_dir(state)
+//         .await?
+//         .into_iter()
+//         .filter(|path| path.ends_with(".typ"));
+
+//     for path in self.inner.paths.clone() {
+//         self.inner.remove_file(&path);
+//     }
+//     for path in paths {
+//         let contents = LazyFile::new(&path, state);
+//         self.inner.add_file(&path, &contents).await?;
+//     }
+//     self.loaded = true;
+
+//     Ok(())
+// }
