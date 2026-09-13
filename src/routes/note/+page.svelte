@@ -8,6 +8,7 @@
     ArgsFilter,
     ActionRegistryManager,
   } from "$lib/actions";
+  import { onBeforeClose } from "$lib/beforeClose";
 
   import { getPathHues, setCssVarsFromHues, setPathContext } from "$lib/path";
   import { getTagConfigsContext } from "$lib/tagConfig";
@@ -45,8 +46,12 @@
   $effect(() => {
     setCssVarsFromHues(getPathHues(path, tagConfigs()), document.body);
   });
+  onBeforeClose(async () => {
+    await noteView?.saveUnsaved();
+  });
 
   let refreshKey = $state(false);
+  let noteView: NoteView | null = $state(null);
 </script>
 
 {#key refreshKey}
@@ -56,6 +61,7 @@
       registry={noteRegistry}
       focused={true}
       autofocus
+      bind:this={noteView}
       canMinimize={false}
     ></NoteView>
   {/key}

@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "webviews": ["*"],
+  "webviews": [
+    "*"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
@@ -64,10 +66,14 @@
     "core:window:allow-set-title",
     "clipboard-manager:allow-read-text",
     "shell:allow-open",
-    "shell:default"
+    "shell:default",
+    "core:window:allow-close",
+    "core:window:allow-destroy"
   ],
   "remote": {
-    "urls": ["localhost://*"]
+    "urls": [
+      "localhost://*"
+    ]
   },
   "android": {
     "minSdkVersion": 29

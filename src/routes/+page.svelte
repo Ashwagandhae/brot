@@ -3,6 +3,7 @@
   import NoteView from "$lib/NoteView.svelte";
   import { getViewStateContext } from "$lib/viewState";
   import { msg } from "$lib/message";
+  import { onBeforeClose } from "$lib/beforeClose";
 
   import {
     ActionRegistryManager,
@@ -43,7 +44,11 @@
     {},
   );
   let minimized: { [key: string]: boolean } = $state({});
+  let noteViews: { [key: string]: NoteView } = $state({});
   let refreshKey = $state(false);
+  onBeforeClose(async () => {
+    await Promise.all(Object.values(noteViews).map((x) => x.saveUnsaved()));
+  });
 
   setPathContext({
     setPath: (from, to) => {
@@ -146,6 +151,7 @@
           focused={focusPath == path}
           canMinimize
           autofocus={focusPath == path}
+          bind:this={noteViews[path]}
         ></NoteView>
       {/if}
     {/each}

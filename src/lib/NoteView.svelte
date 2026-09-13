@@ -34,6 +34,7 @@
     autofocus?: boolean;
     canMinimize?: boolean;
     minimized?: boolean;
+    saveUnsaved?: () => Promise<void>;
   } = $props();
 
   let note: Note | null = $state(null);
@@ -107,15 +108,18 @@
 
   let saved = $state(true);
   let interval = setInterval(async () => {
+    saveUnsaved();
+  }, 1000);
+  onDestroy(() => {
+    clearInterval(interval);
+  });
+  export async function saveUnsaved() {
     if (note == null) return;
     if (!saved) {
       await saveNote();
     }
     saved = true;
-  }, 1000);
-  onDestroy(() => {
-    clearInterval(interval);
-  });
+  }
 
   function handleUpdate() {
     saved = false;
